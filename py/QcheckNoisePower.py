@@ -1,3 +1,6 @@
+import matplotlib as mpl
+mpl.use('Agg')
+import matplotlib.pyplot as plt
 
 
 #!/usr/bin/env python
@@ -7,10 +10,15 @@ import scipy
 
 
 import statsTools
+
+
+import sys
+sys.path.append("/global/homes/e/engelen/aveTools/")
 import aveTools
+
 import pickle
 
-import pdb
+
 
 print "Reading dict file"
 p = flipperDict.flipperDict()
@@ -44,33 +52,33 @@ if iMax>iStop:
 elif (iMax > (iStop - delta)) and iMax <iStop:
 	iMax = iStop
 
+if False:
+    #Read the data power spectrum
+    theoryPower = numpy.loadtxt(p['theoryScal'])
+    l=theoryPower[:,0]
+    cl_TT=theoryPower[:,1]
+    cl_EE=theoryPower[:,2]
+    cl_TE=theoryPower[:,3]
+    cl_BB=None
 
-#Read the data power spectrum
-theoryPower = numpy.loadtxt(p['theoryScal'])
-l=theoryPower[:,0]
-cl_TT=theoryPower[:,1]
-cl_EE=theoryPower[:,2]
-cl_TE=theoryPower[:,3]
-cl_BB=None
 
 
+    #for unlensed maps with lensed power
+    theoryPower_lensed = numpy.loadtxt(p['theoryLens'])
+    l_len=theoryPower_lensed[:,0]
+    cl_TT_len=theoryPower_lensed[:,1]
+    cl_EE_len=theoryPower_lensed[:,2]
+    cl_BB_len=theoryPower_lensed[:,3]
+    cl_TE_len=theoryPower_lensed[:,4]
 
-#for unlensed maps with lensed power
-theoryPower_lensed = numpy.loadtxt(p['theoryLens'])
-l_len=theoryPower_lensed[:,0]
-cl_TT_len=theoryPower_lensed[:,1]
-cl_EE_len=theoryPower_lensed[:,2]
-cl_BB_len=theoryPower_lensed[:,3]
-cl_TE_len=theoryPower_lensed[:,4]
+    lMax = 9000 if 9000 < max(l_len) else max(l_len)
 
-lMax = 9000 if 9000 < max(l_len) else max(l_len)
-
-l_len=l_len[:lMax]
-cl_TT_len=cl_TT_len[:lMax]*2*numpy.pi/(l_len*(l_len+1))
-cl_EE_len=cl_EE_len[:lMax]*2*numpy.pi/(l_len*(l_len+1))
-cl_TE_len=cl_TE_len[:lMax]*2*numpy.pi/(l_len*(l_len+1))
-cl_BB_len=cl_BB_len[:lMax]*2*numpy.pi/(l_len*(l_len+1))
-
+    l_len=l_len[:lMax]
+    cl_TT_len=cl_TT_len[:lMax]*2*numpy.pi/(l_len*(l_len+1))
+    cl_EE_len=cl_EE_len[:lMax]*2*numpy.pi/(l_len*(l_len+1))
+    cl_TE_len=cl_TE_len[:lMax]*2*numpy.pi/(l_len*(l_len+1))
+    cl_BB_len=cl_BB_len[:lMax]*2*numpy.pi/(l_len*(l_len+1))
+lMax = 9000
 
 nsNames = p['nsNames']
 nsNamesSubarr = p['nsNamesSubarr']
@@ -120,14 +128,7 @@ cl_TE_noise = numpy.empty(lMax)
 cl_TE_noise.fill(0.)
 
 
-(ls_fg, foregroundPower) = numpy.loadtxt('../../limber/data/foreground_powers.txt').transpose()
 
-
-
-l=l[:lMax]
-cl_TT=cl_TT[:lMax]*2*numpy.pi/(l*(l+1))
-cl_EE=cl_EE[:lMax]*2*numpy.pi/(l*(l+1))
-cl_TE=cl_TE[:lMax]*2*numpy.pi/(l*(l+1))
 
 
 Ra0Array= p['Ra0Array']
@@ -177,23 +178,26 @@ dataMapDir = '../data/'
 cosineApod = {'apply':True,'lenApod':500,'pad':0}
 
 # iStop = 10
-iMax = 2
+iMax = 1
 
-noisePsdDir = '/scratch2/r/rbond/engelen/new6/lensRecon/maps/dataMaps/actpolDeep/'
+# noisePsdDir = '/scratch2/r/rbond/engelen/new6/lensRecon/maps/dataMaps/actpolDeep/'
 
 
+noisePsdDir = p['noisePsdDir']
 
 weightMapDir = noisePsdDir
-
+mapDir = p['mapDir']
 # patchList = ['5s1ar1',  '6s1ar1', '6s2ar1', '6s2ar2', '7ar1', '7ar2']
 # patchList = [p['nsNamesSubarr']][0]
 
 doAll = True
 
+numCMBsets = 1
 
 if doAll:
 
     power_data =                statsTools.twodl(nPatches, len(nsNamesSubarr[0]) )
+    power_null =                statsTools.twodl(nPatches, len(nsNamesSubarr[0]) )
     power_noiseSims =          statsTools.fourdl(nPatches, len(nsNamesSubarr[0]), numCMBsets, iMax - iMin)
 
     
@@ -204,8 +208,15 @@ if doAll:
                 
             print 'got here!'
 
+            # inmapSample = liteMap.liteMapFromFits(mapDir + '/global/cscratch1/sd/engelen/lensSims_201709/data/noiseMaps_set00_00000/noise_2dPSD_v2_T_7ar1.fits') #sample map
+
+            #commented this out because DW's directory vanished
+            inmapSample = liteMap.liteMapFromFits(mapDir + 'dataCoadd_' + 'Q' +  '_' + subarrName + '.fits') #sample map
+            taper = liteMapPol.initializeCosineWindow(inmapSample,100,0)
+
             # dataMap = liteMap.liteMapFromFits('/scratch2/r/rbond/engelen/new4/maps/actpolDeep/dataCoadd_I_' + subarrName + '.fits')        
-            power_data[i][n] = aveTools.allpowersFitsFile('/scratch2/r/rbond/engelen/new6/lensRecon/maps/dataMaps//actpolDeep/dataCoadd_', '_' + subarrName + '.fits', useI = True, TOnly = False)
+            power_data[i][n] = aveTools.allpowersFitsFile(mapDir + 'dataCoadd_', '_' + subarrName + '.fits', useI = True, TOnly = False, binFile = 'binningTest', window = taper)
+            power_null[i][n] = aveTools.allpowersFitsFile(mapDir + 'noiseMap_', '_' + subarrName + '.fits', useI = True, TOnly = False, binFile = 'binningTest', window = taper)
 
 # power_data[i][n] = statsTools.quickPower(dataMap, applySlepianTaper = True)
 
@@ -213,43 +224,81 @@ if doAll:
 
                 print i, n, iii 
 
-
-
                 for cmbSet in numpy.arange(0,numCMBsets):
                     noiseDir = '%s_set%02d_%05d'%(noiseDirRoot, cmbSet, iii)
-                    power_noiseSims[i][n][cmbSet][iii] = aveTools.allpowersFitsFile(noiseDir + '/noise_2dPSD_', '_%s.fits' % subarrName , useI = False, TOnly = False)
+                    power_noiseSims[i][n][cmbSet][iii] = aveTools.allpowersFitsFile(noiseDir + '/noise_2dPSD_v2_', '_%s.fits' % subarrName , useI = False, TOnly = False, binFile = 'binningTest', window = taper)
 
-
+# #         statsLenBeamCutouts[i][j] = statsTools.stats(clsloc)
                                                                          # '/scratch2/r/rbond/engelen/new4/maps/actpolDeep/dataCoadd_', '_' + subarrName + '.fits')
 
+for fi, figureToDraw in enumerate( ['noisePower', 'noisePowerCompare']  ):
+    print figureToDraw
+    plt.figure(figureToDraw, figsize = (15,10))
+    plt.clf()
+    lbin = power_data[0][0]['lbin']
+
+    i = 0
+
+    numPatches = len(nsNamesSubarr[i])
+    for ip, teb in enumerate(['cl_TT', 'cl_EE']):
+        for n, subarrName in enumerate(nsNamesSubarr[i]):
+            plt.subplot(numPatches,2, 2 * n + 1 + ip )
+
+            if figureToDraw == 'noisePower':
+
+                plt.semilogy(lbin, power_data[i][n][teb], label = 'data')
+                plt.semilogy(lbin, power_null[i][n][teb], label = 'data-based null')
 
 
-                    
-figure('noise power')
-clf()
-lbin = power_data[0][0]['lbin']
+            for cmbSet in numpy.arange(0,numCMBsets):
+                theseStats = statsTools.stats(power_noiseSims[i][n][cmbSet], label = teb)
+                for iii in xrange(iMin,1):
+                    if figureToDraw == 'noisePower':
+                        plt.semilogy(lbin, power_noiseSims[i][n][cmbSet][iii][teb], label = 'sim %i set %i' %(iii, cmbSet))
+                    # else:
+                    #     continue
+                        # plt.plot(lbin, power_noiseSims[i][n][cmbSet][iii][teb] / power_null[i][n][teb], label = 'sim %i set %i' %(iii, cmbSet))
+
+                if figureToDraw == 'noisePowerCompare':
+                    plt.errorbar(lbin, theseStats['mean'] / power_null[i][n][teb], theseStats['stdev']/ power_null[i][n][teb], color = 'red', label = 'error per sim')
+                    plt.errorbar(lbin, theseStats['mean'] / power_null[i][n][teb], theseStats['stdev']/ power_null[i][n][teb] / numpy.sqrt(iMax - iMin), color = 'green', label = 'error on mean')
+                    plt.plot(lbin, theseStats['mean'] / power_null[i][n][teb], label = ' sims / data-based null')
+                    plt.axhline(1.0, ls = "dashed", color = 'k')
+                    plt.axhline(1.02, linestyle = "dotted", color = 'k')
+                    plt.axhline(.98, linestyle = "dotted", color = 'k')
+
+                else:
+                    plt.errorbar(lbin, theseStats['mean'], theseStats['stdev'])
+                    plt.errorbar(lbin, theseStats['mean'], theseStats['stdev'] / numpy.sqrt(iMax - iMin))
+
+                        
+            plt.title(subarrName + ' ' + teb)
+
+            # if figureToDraw != ['noisePower']:
+            #     yscale('linear')
+            plt.xlim([200,6000])
+            if (ip == 0 and n == 0):
+
+                plt.legend()
 
 
 
-i = 0
+        # plt.legend()
 
-numPatches = len(nsNamesSubarr[i])
-for n, subarrName in enumerate(nsNamesSubarr[i]):
-    subplot(2,3, n + 1 )
-
-    semilogy(lbin, power_data[i][n]['cl_TT'], label = 'data')
-
-    for iii in xrange(iMin,iMax):
-        for cmbSet in numpy.arange(0,numCMBsets):
-
-            semilogy(lbin, power_noiseSims[i][n][cmbSet][iii]['cl_TT'], label = 'sim %i set %i' %(iii, cmbSet))
-
-    title(subarrName)
-
-legend()
+    plt.tight_layout()
+    # plt.show()
+    
+    plt.savefig('../plot/checkNoisePower%s.pdf' % ( '' if figureToDraw == 'noisePower' else 'compare'))
+    plt.savefig('../plot/checkNoisePower%s.png' % ( '' if figureToDraw == 'noisePower' else 'compare'))
 
 
-show()
+
+# figure('images', )
+# for ip, tqu in enumerate(['T', 'Q', 'U']):
+#     for n, subarrName in enumerate(nsNamesSubarr[i]):
+#         thisSim = noiseDir + '/noise_2dPSD_v2_' + tqu +  '_%s.fits' % subarrName 
+#         imshow(thisSim.data)
+#         colorbar()
 
 
 #         # globalnum += 1

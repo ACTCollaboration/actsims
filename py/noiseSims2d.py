@@ -118,13 +118,15 @@ noiseDirRoot = p['noiseDirRoot']
 
 
 # noisePsdDir = '/home/r/rbond/bsherwin/dis2/septemberLensingVersion/lensRecon/maps/dataMaps/actpolDeep/'
-noisePsdDir = '/scratch2/r/rbond/engelen/new6/lensRecon/maps/dataMaps/actpolDeep/'
+# noisePsdDir = '/scratch2/r/rbond/engelen/cmblens/maps/dataMaps/actpolDeep/'
+noisePsdDir = p['noisePsdDir']
 
 
 
 weightMapDir = noisePsdDir
 
-patchList = ['5s1ar1', '6s1ar1', '6s2ar1', '6s2ar2', '7ar1', '7ar2']
+# patchList = ['5s1ar1', '6s1ar1', '6s2ar1', '6s2ar2', '7ar1', '7ar2']
+patchList = p['patchList']
 
 # patchTemp = '9'
 # Loop over patches 
@@ -159,8 +161,8 @@ for iii in xrange(iMin,iMax):
 
 
     
-        for patchNum, patch in enumerate(patchList):
-            # print 'i = ', i, 'map =', patch
+        for patchNum, patch in enumerate(p['patchList']):
+            print 'rank ', rank, 'of ', size , ', iii = ', iii, ' within %d to %d, patch =', patch
             tNoise = pickle.load(open(noisePsdDir+'noisePowerIAlt_'+patch+'.pkl'))
             qNoise = pickle.load(open(noisePsdDir+'noisePowerQAlt_'+patch+'.pkl'))
             uNoise = pickle.load(open(noisePsdDir+'noisePowerUAlt_'+patch+'.pkl'))
@@ -170,7 +172,7 @@ for iii in xrange(iMin,iMax):
             mask = liteMap.liteMapFromFits(noisePsdDir + 'weightMap_' + patchList[patchNum] + '.fits')
 
             # mask = liteMap.liteMapFromFits(weightMapDir + 'weightMap_'+patch+'.fits')
-            print 'b', mask.info()
+            # print 'b', mask.info()
             loc = numpy.where(mask.data == 0.)
             loc2 = numpy.where(mask.data < 0.)
             mask.data = numpy.sqrt(mask.data)
