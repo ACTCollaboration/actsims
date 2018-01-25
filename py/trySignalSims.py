@@ -21,21 +21,21 @@ useQuickPower = True
 
 doCmb = True
 
-doAll = False
+doAll = True
 
-# patchList = [['deep1_s13_pa1_f150'] ,\
-#              ['deep5_s13_pa1_f150'],\
-#              ['deep6_s13_pa1_f150'],\
+patchList = [['deep1_s13_pa1_f150'] ,\
+             ['deep5_s13_pa1_f150'],\
+             ['deep6_s13_pa1_f150'],\
              
-#              ['deep56_s14_pa1_f150'],\
-#              ['deep56_s14_pa2_f150'],\
-#              ['deep56_s15_pa1_f150'],\
-#              ['deep56_s15_pa2_f150']]
+             ['deep56_s14_pa1_f150'],\
+             ['deep56_s14_pa2_f150'],\
+             ['deep56_s15_pa1_f150'],\
+             ['deep56_s15_pa2_f150']]
 
 # # patchList = [['deep1_s13_pa1_f150'] ]
 # patchList = [['deep56_s15_pa3_f090'] , \
 #              ['deep56_s15_pa3_f150']]
-patchList = [['deep1_s13_pa1_f150']]
+# patchList = [['deep1_s13_pa1_f150']]
 
 patchList = [item for sublist in patchList for item in sublist]
 nPatches = len(patchList)
@@ -67,8 +67,8 @@ if doCmb and doAll:
 
         # noisePowerWindow = crosslinkMap.copy()
         # noisePowerWindow.data *= (liteMapPol.initializeCosineWindow(crosslinkMap,200,0)).data
-        cmbPowerWindow = cmbSims[0][0].copy()
-        cmbPowerWindow.data = (liteMapPol.initializeCosineWindow(cmbSims[0][0],200,0)).data
+        cmbPowerWindow = cmbSims[pi][0].copy()
+        cmbPowerWindow.data = (liteMapPol.initializeCosineWindow(cmbSims[pi][0],200,0)).data
 
         if useQuickPower:
             cmbSims[pi][1].data *= -1.
@@ -97,12 +97,14 @@ if doCmb:
                          cmbSimPowers[pi][spec] \
                          * cmbSimPowers[pi]['lbin'] \
                          * (cmbSimPowers[pi]['lbin']  + 1) / (2. * np.pi), \
-                         label = patch + ' ' + spec,\
+                         label = patch + ' ' + spec if si == 0 else None,\
                          # linestyle = 'dashed', \
-                         color = 'grb'[si], linewidth = 3)
+                         color = 'grb'[si], linewidth = .5)
         
     plt.legend(loc = 'best')
     plt.xlim([0,10000])
+    plt.ylim([1e-7,1e4])
+
     plt.xlabel('$\ell$', fontsize = 20)
     plt.ylabel('$D_\ell$', fontsize = 20)
 
