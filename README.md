@@ -15,8 +15,10 @@ where you should set:
     freqGHz = 150,
     region = 'deep5'
  
-See the py/simpleTest.py script for a simple invocation.
+See the bin/simpleTest.py script for a simple invocation.
 
+
+To install: try pip install -e . --user
 
 Current issues / to-do:
 * Noise sims and signal sims currently are getting slightly different sizes (originating because one is obtained using Flipper, the other with enlib).  There is a mechanism for dealing with this (the coordsEpsilonArcmin flag) but the values for each patch are not yet determined.

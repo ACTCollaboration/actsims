@@ -1,5 +1,5 @@
-import numpy as np, cmblens.flipper.flipperDict as flipperDict, pickle, \
-    cmblens.flipper.liteMap as liteMap
+import numpy as np, flipper.flipperDict as flipperDict, pickle, \
+    flipper.liteMap as liteMap
 
 
 import warnings
