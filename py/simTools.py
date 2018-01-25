@@ -201,7 +201,10 @@ def getActpolSim(iterationNum = 0, region = 'deep5',
 #FIXME: get rid of absolute pathnames
     """ Return a given noise sim.  
     Provide either 'patch' or all of 'season', 'freqGHz', 'pa', and 'region' .
-    For now returns only a liteMap. """
+    For now returns only a liteMap. 
+
+    Returns a python list of elements for T, Q, U where each is a liteMap.
+"""
 
     cDict = flipperDict.flipperDict()
     cDict.read_from_file(coaddDictFilePath + '/' + coaddDictFile)
