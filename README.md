@@ -24,3 +24,4 @@ Current issues / to-do:
 * simType = 'foregrounds' to be implemented
 * For lensing, we need a second set of cmb sims lensed by the same phi field; these have not been made yet, so cmbSim = 0 has been set as the default internally in the code for now.
 * Currently only sims of noise for full coadds are generated (not splits)
+* FFTs for noise sims currently take a long time, as they are using numpy.fft rather than fftw.  This can be replaced (or better, replace with enlib versions)
