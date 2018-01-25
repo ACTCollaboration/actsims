@@ -1,27 +1,6 @@
 
 syncRoot = '/project/projectdirs/act/data/synced_maps/mr2_20170608_20170816/'
 
-# coaddPatchList = [['s13-d1-pa1-f150'], \
-#                   ['s13-d5-pa1-f150'], \
-#                   ['s13-d6-pa1-f150'], \
-
-#                   ['s14-d56-pa1-f150'], \
-#                   ['s14-d56-pa2-f150'], \
-
-#                   ['s15-d56-pa1-f150'], \
-#                   ['s15-d56-pa2-f150'], \
-#                   ['s15-d56-pa3-f090'], \
-#                   ['s15-d56-pa3-f150'], \
-
-#                   ['s15-d8-pa1-f150'] , \
-#                   ['s15-d8-pa2-f150'], \
-#                   ['s15-d8-pa3-f090'], \
-#                   ['s15-d8-pa3-f150' ]]
-
-#                   # ['s15-bn-pa1-f150'], \
-#                   # ['s15-bn-pa2-f150'], \
-#                   # ['s15-bn-pa3-f090'], \
-#                   # ['s15-bn-pa3-f150']]
                   
 
 useCrossLinkMaps = True
