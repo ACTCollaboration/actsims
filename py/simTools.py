@@ -18,7 +18,7 @@ def getActpolCmbSim(beamfile, coords, iterationNum, cmbDir, cmbSet = 0, \
 
     shape,wcs = enmap.fullsky_geometry(res=1.0*np.pi/180./60.)
 
-    output = [None] * 3
+    flipperized = [None] * 3
 
     # coordsForEnmap = np.array([[coords[1,0], coords[0,1]],[ coords[0,0],coords[1,1]]]) \
     #                  * np.pi / 180.
@@ -44,11 +44,14 @@ def getActpolCmbSim(beamfile, coords, iterationNum, cmbDir, cmbSet = 0, \
             wcs_override = wcs )
 
         # thisMap = enmap.upgrade(thisMap, 2.)
-
-        output[x] = thisMap.to_flipper()
+        
+        flipperized[x] = thisMap.to_flipper()
 
     if doBeam:
-        liteMapPol.simpleBeamConvolution(output[0], output[1], output[2], beamfile )
+        output = liteMapPol.simpleBeamConvolution(flipperized[0], \
+                                                  flipperized[1], \
+                                                  flipperized[2],\
+                                                  beamfile )
 
     return output
     
@@ -58,6 +61,7 @@ def getActpolNoiseSim(noiseSeed, patch, noisePsdDir, mask, verbose=True):
     tNoise = pickle.load(open(noisePsdDir+'noisePowerIAlt_'+patch+'.pkl'))
     qNoise = pickle.load(open(noisePsdDir+'noisePowerQAlt_'+patch+'.pkl'))
     uNoise = pickle.load(open(noisePsdDir+'noisePowerUAlt_'+patch+'.pkl'))
+
 
 
     loc = np.where(mask.data == 0.)
@@ -97,7 +101,7 @@ def getActpolNoiseSim(noiseSeed, patch, noisePsdDir, mask, verbose=True):
     return output
 
 
-def getActpolSim(iterationNum = 0, region = 'd5', 
+def getActpolSim(iterationNum = 0, region = 'deep5', 
                  season = 's13', \
                  pa = 'pa1', \
                  freqGHz = 150, \
@@ -126,7 +130,7 @@ def getActpolSim(iterationNum = 0, region = 'd5',
 
     if patch == None:
         freqStr = (freqGHz if type(freqGHz) is str else 'f%03i' % freqGHz)
-        patch = '%s-%s-%s-%s' %(season, region, pa, freqStr)
+        patch = '%s_%s_%s_%s' %(region, season, pa,  freqStr)
 
 
     #unroll patch names (normally stored as a nested  array of arrays)
@@ -139,7 +143,7 @@ def getActpolSim(iterationNum = 0, region = 'd5',
 
     foregroundSeed = patchList.index(patch) * 100000000 + iterationNum 
 
-    mask = liteMap.liteMapFromFits(sDict['noisePsdDir'] + 'weightMap_T' + patch + '.fits')
+    mask = liteMap.liteMapFromFits(sDict['noisePsdDir'] + 'weightMap_T_' + patch + '.fits')
     if verbose:
         print 'coords are (x0, y0, x1, y1) = (', mask.x0, mask.y0, mask.x1, mask.y1, ')'
 
