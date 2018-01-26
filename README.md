@@ -2,6 +2,8 @@
 
 This is a simple set of tools to return sims of noise and signal for CMB studies with ACTPol.
 
+
+## To run
 The sims can be accessed using simTools.getActpolSim(iterationNum, simType, patch)
 
 where you should set:
@@ -17,10 +19,12 @@ where you should set:
  
 See the bin/simpleTest.py script for a simple invocation.
 
-
+## Installation
 To install: pip install -e . --user
 
-Current issues / to-do:
+Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merged in Mat's fix for an [issue](https://github.com/amaurea/enlib/issues/34) on that date)
+
+## Current issues / to-do:
 * Noise sims and signal sims currently are getting slightly different sizes (originating because one is obtained using Flipper, the other with enlib).  There is a mechanism for dealing with this (the coordsEpsilonArcmin flag) but the values for each patch are not yet determined.
 * Boss-N is to come.
 * simType = 'foregrounds' to be implemented
