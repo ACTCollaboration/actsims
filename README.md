@@ -4,7 +4,7 @@ This is a simple set of tools to return sims of noise and signal for CMB studies
 
 
 ## To run
-The sims can be accessed using simTools.getActpolSim(iterationNum, simType, patch)
+The sims can be accessed using `simTools.getActpolSim(iterationNum, simType, patch)`
 
 where you should set:
 * `iterationNum` is an integer from 0 to 127 
