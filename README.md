@@ -7,20 +7,20 @@ This is a simple set of tools to return sims of noise and signal for CMB studies
 The sims can be accessed using simTools.getActpolSim(iterationNum, simType, patch)
 
 where you should set:
-* iterationNum is an integer from 0 to 127 
-* simType = 'cmb' or 'noise' ('foregrounds' to come)
-* patch is a string set to, for instance (see the inputParams/CoaddAll*dict file for the current full list),
-    patch = 'deep1_s13_pa1_f150'
+* `iterationNum` is an integer from 0 to 127 
+* `simType = 'cmb'` or `'noise'` (`'foregrounds'` to come)
+* `patch` is a string set to, for instance (see the `inputParams/CoaddAll*dict` file for the current full list),
+    `patch = 'deep1_s13_pa1_f150'`
 * Alternatively, you can pass the info separately, e.g:
-    season = 's13', 
+    `season = 's13', 
     pa = 'pa1', 
     freqGHz = 150,
-    region = 'deep5'
+    region = 'deep5'`
  
-See the bin/simpleTest.py script for a simple invocation.
+See the `bin/simpleTest.py` script for a simple invocation.
 
 ## Installation
-To install: pip install -e . --user
+To install: `pip install -e . --user`
 
 Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merged in Mat's fix for an [issue](https://github.com/amaurea/enlib/issues/34) on that date)
 
