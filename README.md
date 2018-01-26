@@ -28,6 +28,6 @@ Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merg
 * Noise sims and signal sims currently are getting slightly different sizes (originating because one is obtained using Flipper, the other with enlib).  There is a mechanism for dealing with this (the coordsEpsilonArcmin flag) but the values for each patch are not yet determined.
 * Boss-N is to come.
 * simType = 'foregrounds' to be implemented
-* For lensing, we need a second set of cmb sims lensed by the same phi field; these have not been made yet, so cmbSim = 0 has been set as the default internally in the code for now.
+* For lensing, we need a second set of cmb sims lensed by the same phi field; these have not been made yet, so cmbSet = 0 has been set as the default internally in the code for now.
 * Currently only sims of noise for full coadds are generated (not splits)
 
