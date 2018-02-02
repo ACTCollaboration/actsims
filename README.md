@@ -29,4 +29,5 @@ Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merg
 * simType = 'foregrounds' to be implemented
 * For lensing, we need a second set of cmb sims lensed by the same phi field; these have not been made yet, so cmbSet = 0 has been set as the default internally in the code for now.
 * Currently only sims of noise for full coadds are generated (not splits)
+* Add a test routine to check whether the code returns the same realization (across platfroms and python module versions).
 
