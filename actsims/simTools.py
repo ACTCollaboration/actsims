@@ -114,7 +114,7 @@ def getActpolCmbSim(beamfile, coords, iterationNum, cmbDir, cmbSet = 0, \
         upsampled = resample_fft_withbeam(thisMap, \
                                  (thisMap.shape[0] * pixelFac, \
                                   thisMap.shape[1] * pixelFac),
-                                          doBeam = True, 
+                                          doBeam = doBeam, 
                                           beamData = beamData)
 
 

@@ -7,7 +7,7 @@ This is a simple set of tools to return sims of noise and signal for CMB studies
 The sims can be accessed using `simTools.getActpolSim(iterationNum, simType, patch)`
 
 where you should set:
-* `iterationNum` is an integer from 0 to 127 
+* `iterationNum` is an integer from 0 to 2047 
 * `simType = 'cmb'` or `'noise'` (`'foregrounds'` to come)
 * `patch` is a string set to, for instance,  `patch = 'deep1_s13_pa1_f150'` (see the `inputParams/CoaddAll*dict` file for the current full list)
 * Alternatively, you can pass the info separately, e.g:
