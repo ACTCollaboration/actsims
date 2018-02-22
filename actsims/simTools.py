@@ -109,7 +109,7 @@ def getActpolCmbSim(beamfile, coords, iterationNum, cmbDir, cmbSet = 0, \
 
         # thisMap = enmap.upgrade(thisMap, 2.)
         
-        beamData = np.loadtxt(beamfile)
+        beamData = np.loadtxt(beamfile) if doBeam else None
 
         upsampled = resample_fft_withbeam(thisMap, \
                                  (thisMap.shape[0] * pixelFac, \
