@@ -71,7 +71,18 @@ def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None):
 	return res if np.issubdtype(d.dtype, np.complexfloating) else res.real
 
 
+# def getActpolForegroundSim(beamFile, coords, iterationNum, cmbDir, cmbSet = 0, beamfile, coords, iterationNum, cmbDir, cmbSet = 0, \
+#                            coordsEpsilonArcmin = np.array([[0,0], [0,0]]), \
+#                            doBeam = True, pixelFac = 2):
 
+#     shape,wcs = enmap.fullsky_geometry(res=1.0*np.pi/180./60.)
+    
+#     if coords[1,1] > 180. :
+#         coords[1,1] -= 360.
+#     if coords[0,1] > 180. :
+#         coords[0,1] -= 360.
+
+    
 
 def getActpolCmbSim(beamfile, coords, iterationNum, cmbDir, cmbSet = 0, \
                     coordsEpsilonArcmin = np.array([[0,0], [0,0]]), \
@@ -189,7 +200,7 @@ def getActpolSim(iterationNum = 0, region = 'deep5',
                  pa = 'pa1', \
                  freqGHz = 150, \
                  patch = None,\
-                 coaddDictFile = 'Coadd_s131415.dict', \
+                 coaddDictFile = 'Coadd_s131415wboss.dict', \
                  coaddDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'), \
                  simToolsDictFile = 'simTools.dict',\
                  simToolsDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'),\
