@@ -6,7 +6,7 @@
 noisePsdDir = '/global/homes/e/engelen/cmblens/maps/dataMaps/actpolDeep/'
 
 
-cmbDir = '/global/cscratch1/sd/engelen/simsS1516_v0.1/data/'
+cmbDir = '/global/cscratch1/sd/engelen/simsS1516_v0.2/data/'
 
 # coordsEpsilonArcminCMBSim = [[0, -1.], [1.5, 0]]
 # coordsEpsilonArcminCMBSim = [[0, 0], [2.5, 0]]
