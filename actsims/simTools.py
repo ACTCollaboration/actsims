@@ -200,7 +200,7 @@ def getActpolSim(iterationNum = 0, region = 'deep5',
                  pa = 'pa1', \
                  freqGHz = 150, \
                  patch = None,\
-                 coaddDictFile = 'Coadd_s131415wboss.dict', \
+                 coaddDictFile = 'Coadd_s131415.dict', \
                  coaddDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'), \
                  simToolsDictFile = 'simTools.dict',\
                  simToolsDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'),\
