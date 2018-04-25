@@ -1,4 +1,4 @@
-
+from __future__ import print_function
 from actsims import simTools
 
 
@@ -33,3 +33,6 @@ noiseSim = simTools.getActpolSim(iterationNum = 0, \
 cmbSim = simTools.getActpolSim(iterationNum = 0, \
                                       simType = 'cmb', \
                                       patch = patch)
+
+print("Noise sim shape is :",noiseSim.shape)
+print("CMB sim shape is :",cmbSim.shape)

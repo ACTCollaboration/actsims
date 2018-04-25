@@ -7,7 +7,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 
-from enlib import enmap, fft, powspec, resample, curvedsky
+from enlib import enmap, fft, powspec, resample
 
 import pdb
 import os
@@ -248,6 +248,7 @@ def getActpolForegroundSim(beamfileDict ,
                            foregroundSeed):
 
 
+    from enlib import curvedsky
     # inPowers = np.loadtxt(os.path.join(os.path.dirname(os.path.abspath(__file__)),
     #                                    '../data/',
     #                                    foregroundPowerFile))
