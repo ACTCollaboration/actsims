@@ -2,7 +2,7 @@ from __future__ import print_function
 from actsims import simTools
 
 
-#patch can be currently any of:
+#psa can be currently any of:
 #                   [['deep1_s13_pa1_f150'] ,\
 #                    ['deep5_s13_pa1_f150'],\
 #                    ['deep6_s13_pa1_f150'],\
@@ -22,17 +22,23 @@ from actsims import simTools
 
 #Alternatively, you can pass the info separately, e.g: season = 's13', pa = 'pa1', freqGHz = 150, region = 'deep5'
 
-patch = 'deep56_s15_pa1_f150'
+patch = 'deep56'
+season = 's15'
+array = 'pa1'
 
 
 
 noiseSim = simTools.getActpolSim(iterationNum = 0, \
                                       simType = 'noise', \
-                                      patch = patch)
+                                      patch = patch, \
+                                 season = season, \
+                                 array = array)
 
 cmbSim = simTools.getActpolSim(iterationNum = 0, \
                                       simType = 'cmb', \
-                                      patch = patch)
+                                      patch = patch, \
+                                 season = season, \
+                                 array = array)
 
 print("Noise sim shape is :",noiseSim.shape)
 print("CMB sim shape is :",cmbSim.shape)
