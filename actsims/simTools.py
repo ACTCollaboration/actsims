@@ -175,7 +175,7 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
     #Could also have an alternative version of this using enlib tools.
 
     if useCovSqrt:
-        #in this case it was the CovSqrt's that were saved.  This is based on Mat's code in orphics / xc
+        #in this case it was the CovSqrt's that were saved.  This is based on Mat's code in orphics.
         if verbose:
             print 'getActpolNoiseSim(): getting weight maps; assuming I for all'
         
@@ -215,7 +215,9 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         #in makeNoisePsds.py for the dichroic arrays,
         #namely I90, Q90, U90, I150, Q150, U150.
 
-        outMaps = outMaps.reshape( len(freqs), outMaps.shape[0] / len(freqs), outMaps.shape[-2], outMaps.shape[-1], order = 'F')
+        outMaps = outMaps.reshape( len(freqs), outMaps.shape[0] / len(freqs),
+                                   outMaps.shape[-2], outMaps.shape[-1],
+                                   order = 'F')
 
 
         for fi, freq in enumerate(freqs):
@@ -223,9 +225,10 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
             thisMaskMap = np.squeeze(maskMaps[fi])
             outMaps[fi, :, :, :] /= np.sqrt(thisMaskMap)
 
-            #Loop over T,Q,U.  Couldn't think of clever way to vectorize this part..j
+            #Loop over T,Q,U.  Couldn't think of clever way to vectorize this part..
             for z in range(outMaps.shape[-3]):
-                outMaps[fi, z][thisMaskMap < thisMaskMap[np.where(np.isfinite(thisMaskMap))].max() / killFactor] = fillValue
+                outMaps[fi, z][thisMaskMap < thisMaskMap[np.where(np.isfinite(thisMaskMap))].max() / killFactor] \
+                    = fillValue
 
 
 
