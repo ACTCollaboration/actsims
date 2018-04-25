@@ -1,5 +1,5 @@
-import numpy as np, flipper.flipperDict as flipperDict, pickle, \
-    flipper.liteMap as liteMap
+import numpy as np, flipper.flipperDict as flipperDict, pickle
+    # flipper.liteMap as liteMap
 import astropy.wcs
 
 import warnings
@@ -155,94 +155,96 @@ def clPowerFactor(inEnkiMap):
     return inEnkiMap.area() / (float(inEnkiMap.shape[0] * inEnkiMap.shape[1]))**2
 
 
+def freqsInPsas(psa, freqsInArraysDict):
+    #figure out which frequencies come in a given 'psa' given that this info is not in the dict file -- just listed by 'pa' there.
+
+    arrayList = freqsInArraysDict.keys()
+    for array in arrayList:
+        if array in psa:
+            psaFreqs = freqsInArraysDict[array]
+            continue
+
+    return psaFreqs
 
 
-def getActpolNoiseSim(noiseSeed, patch, noisePsdDir, mask, verbose = True, useEnkiTemplates = False):
+def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
+                      useCovSqrt = True,  killFactor = 30., fillValue = 0.):
     #return array of T, Q, U
     #to-do: these are currently using numpy.FFT and are slow; switch to FFTW if installed.
 
     #Could also have an alternative version of this using enlib tools.
-    # import pdb
-    # pdb.set_trace()
-    sqrtmask = mask.copy()
-    sqrtmask.data = np.sqrt(sqrtmask.data)
-    loc = np.where(mask.data == 0.)
-    loc2 = np.where(mask.data < 0.)
 
-    if not useEnkiTemplates:
-
-        tNoise = pickle.load(open(noisePsdDir+'noisePowerIAlt_'+patch+'.pkl'))
-        qNoise = pickle.load(open(noisePsdDir+'noisePowerQAlt_'+patch+'.pkl'))
-        uNoise = pickle.load(open(noisePsdDir+'noisePowerUAlt_'+patch+'.pkl'))
+    if useCovSqrt:
+        #in this case it was the CovSqrt's that were saved.  This is based on Mat's code in orphics / xc
+        if verbose:
+            print 'getActpolNoiseSim(): getting weight maps; assuming I for all'
+        
+        iqu = 'I' #FOR NOW
 
 
+        stackOfMaskMaps = [enmap.read_map(noisePsdDir + 'totalWeightMap' \
+                                                        + iqu + '_' + psa + '_' + freq  + '_fromenlib.fits') \
+                                         for freq in freqs ]
+        thisWcs  = stackOfMaskMaps[0].wcs
 
+        maskMaps = enmap.enmap(np.stack(stackOfMaskMaps), thisWcs)
 
-        TF = mask.copy()
-        QF = mask.copy()
-        UF = mask.copy()
-        TF.data *= 0.
-        QF.data *= 0.
-        UF.data *= 0.
+        covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' )
 
         if verbose:
-            print 'getActpolNoiseSim: setting unique RNG seed of %i' % noiseSeed
+            print 'getActpolNoiseSim(): running map_mul to make random phases'
+
+        #get the right normalization
+        covsqrt *= np.sqrt(np.prod(covsqrt.shape[-2:]) / enmap.area(covsqrt.shape[-2:], thisWcs ))
+
         np.random.seed(noiseSeed)
-        TF.fillWithGRFFromTemplate(tNoise,bufferFactor=1)
-        QF.fillWithGRFFromTemplate(qNoise,bufferFactor=1)
-        UF.fillWithGRFFromTemplate(uNoise,bufferFactor=1)
+        kmap = enmap.map_mul(covsqrt, enmap.rand_gauss_harm((covsqrt.shape[0], covsqrt.shape[-2:][0], covsqrt.shape[-2:][1]),
+                                                            thisWcs))
 
-        TF.data /= sqrtmask.data
-        QF.data /= sqrtmask.data
-        UF.data /= sqrtmask.data
-        TF.data[loc] = 0.
-        QF.data[loc] = 0.
-        UF.data[loc] = 0.
-        TF.data[loc2] = 0.
-        QF.data[loc2] = 0.
-        UF.data[loc2] = 0.
-        output = [TF, QF, UF]
-        
+        #old way:
+        # kmapReshape = kmap.reshape((4, kmap.shape[-2:][0], kmap.shape[-2:][1]))
+        # outMaps = enmap.ifft(kmapReshape).real
+        # kmap /= sqrt(mask)
+
+        if verbose:
+            print 'getActpolNoiseSim(): inverse transforming'
+
+        outMaps = enmap.harm2map(kmap, iau = True)
+        #now reshape to have shape [nfreqs, 3, Ny, Nx]
+        #The "order = 'F' (row vs. column ordering) is due to the ordering that is done
+        #in makeNoisePsds.py for the dichroic arrays,
+        #namely I90, Q90, U90, I150, Q150, U150.
+
+        outMaps = outMaps.reshape( len(freqs), outMaps.shape[0] / len(freqs), outMaps.shape[-2], outMaps.shape[-1], order = 'F')
+
+
+        for fi, freq in enumerate(freqs):
+            #Note each frequency has its own maskmap, so this loop is important
+            thisMaskMap = np.squeeze(maskMaps[fi])
+            outMaps[fi, :, :, :] /= np.sqrt(thisMaskMap)
+
+            #Loop over T,Q,U.  Couldn't think of clever way to vectorize this part..j
+            for z in range(outMaps.shape[-3]):
+                outMaps[fi, z][thisMaskMap < thisMaskMap[np.where(np.isfinite(thisMaskMap))].max() / killFactor] = fillValue
+
+
+
+        return outMaps
+    
+
     else:
-
-        output = [None ] * 3
-
-        for iquind , iqu in enumerate(['I', 'Q', 'U']):
-            noisePsd = enmap.read_map(noisePsdDir + "noisePower" + iqu + 'Alt_'+patch+'_fromenlib.fits')
-            
-            # noise = enmap.rand_gauss(noisePsd.shape,noisePsd.wcs)
-            realPart = np.random.randn(noisePsd.shape[0], noisePsd.shape[1]) * np.sqrt(noisePsd / clPowerFactor(noisePsd))
-            imagPart = np.random.randn(noisePsd.shape[0], noisePsd.shape[1]) * np.sqrt(noisePsd / clPowerFactor(noisePsd))
-
-            noise = enmap.ifft(realPart + 1j * imagPart, normalize = True).real / (noisePsd.shape[0] * noisePsd.shape[1])**.5
-            #Simone had this line, turned off for now.
-            ##NOTE: if I use np.sqrt(hi), with i=0,1,2,3 I can get 4-way noise realization... which is what Steve wants. 
-            ##noise = enmap.project(noise,ht.shape,ht.wcs)*np.sqrt(ht)
-            
-            # pdb.set_trace()
-
-            noise /= sqrtmask.data
-            noise[loc] = 0
-            noise[loc2] = 0
-            output[iquind] = noise.to_flipper()
-            # pdb.set_trace()
-
-        print 'got here...'
+        raise ValueError('older ways of getting the noise maps are deprecated')    
 
 
 
-    return output
-
-
-def getActpolForegroundSim(beamfile ,
-                           # coords ,
+def getActpolForegroundSim(beamfileDict ,
                            shape,
                            wcs,
                            iterationNum ,
                            coordsEpsilonArcmin , 
                            doBeam  ,
                            foregroundPowerFile,
-                           freqStr,
+                           freqs,
                            foregroundSeed):
 
 
@@ -252,12 +254,6 @@ def getActpolForegroundSim(beamfile ,
     
 
     #This is rescaled ACT foregrounds best-fit for: TT 95x95, 95x150, 150x150, EE 95x95, 95x150, 150x150, TE 95x95, 95x150, 150x150.
-    if freqStr == 'f090':
-        freqInd = 0
-    elif freqStr == 'f150' :
-        freqInd = 1
-    else:
-        raise ValueError('invalid input for freqStr: %s' % freqStr)
 
     temperaturePowers \
         = powspec.read_spectrum(os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -265,95 +261,100 @@ def getActpolForegroundSim(beamfile ,
                                              foregroundPowerFile),
                                 ncol = 3)
 
-    outputBothFreqs = curvedsky.rand_map((2,shape[0], shape[1]),
+    outputTT_90_150 = curvedsky.rand_map((2,shape[0], shape[1]),
                                          wcs,
                                          temperaturePowers,
                                          spin = 0,
                                          seed = foregroundSeed)
+    outputFreqs = ['f090', 'f150']
 
-    output = outputBothFreqs[freqInd]
+    output = enmap.enmap(np.zeros([len(freqs), 3] + list(sampleMap.shape)))
 
-    if doBeam:
-        beamData = np.loadtxt(beamfile) if doBeam else None
-        beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1])(output.modlmap())
+    # for fi, freq in enumerate(freqs):
 
-        output = enmap.ifft(enmap.fft(output) * beam2d)
-
-    # output = enmap.rand_map
+    #     output[]
 
 
-    return [output.to_flipper(), None, None]
+    # output =     
+    # if doBeam:
+    #     for fi, freq in enumerate(freqs):
+    #         beamData = np.loadtxt(beamfileDict[psa + '_' + freq) 
+
+    #     beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1])(output.modlmap())
+
+    #     output[i] = enmap.ifft(enmap.fft(output[i]) * beam2d)
+
+    return enmap.enmap(np.stack((output, np.zeros(output.shape), np.zeros(output.shape))))
 
 
-def getActpolSim(iterationNum = 0, region = 'deep5', 
+def getActpolSim(iterationNum = 0, patch = 'deep5', 
                  season = 's13', \
-                 pa = 'pa1', \
-                 freqGHz = 150, \
-                 patch = None,\
-                 coaddDictFile = 'Coadd_s131415wboss.dict', \
-                 coaddDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'), \
-                 simToolsDictFile = 'simTools.dict',\
-                 simToolsDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'),\
+                 array = 'pa1', \
+                 psa = None,\
+                 noiseDictFile = 'templateInputs.dict', \
+                 noiseDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'), \
+                 signalDictFile = 'signal.dict',\
+                 signalDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'),\
                  verbose = True,\
                  simType = 'noise',
                  cmbSet = 0,
-                 doBeam = True,
-                 useEnkiTemplates = False):
+                 doBeam = True):
+                 #update the last one to True if possible
+
 
 #FIXME: get rid of absolute pathnames
     """ Return a given noise sim.  
-    Provide either 'patch' or all of 'season', 'freqGHz', 'pa', and 'region' .
-    For now returns only a liteMap. 
+    Provide either 'psa' or all of 'season',  'pa', and 'patch' .
 
-    Returns a python list of elements for T, Q, U where each is a liteMap.
+    Will return a stack of enmaps with shape [n_freqs, 3, Ny, Nx],  where the second element has the elements (T, Q, U).  
+    n_freqs will be 1 for pa1 and pa2.
+
 """
 
-    cDict = flipperDict.flipperDict()
-    cDict.read_from_file(coaddDictFilePath + '/' + coaddDictFile)
+    nDict = flipperDict.flipperDict()
+    nDict.read_from_file(noiseDictFilePath + '/' + noiseDictFile)
 
     sDict = flipperDict.flipperDict()
-    sDict.read_from_file(simToolsDictFilePath + '/' + simToolsDictFile)
+    sDict.read_from_file(signalDictFilePath + '/' + signalDictFile)
     
-
-    
-    if patch == None:
-        freqStr = (freqGHz if type(freqGHz) is str else 'f%03i' % freqGHz)
-        patch = '%s_%s_%s_%s' %(region, season, pa,  freqStr)
-    else:
-        freqStr = 'f150' if 'f150' in patch else 'f090'
-
-    #unroll patch names (normally stored as a nested  array of arrays)
-    patchList = [item for sublist in cDict['coaddPatchList'] for item in sublist]
+    if psa == None: #psa stands for patch, season, 
+        psa = '%s_%s_%s' %(patch, season, array)
 
 
-    if patch not in patchList:
-        raise ValueError('patch %s not found in patchList; options are ' % (patch ), patchList)
-
-    noiseSeed = patchList.index(patch) * 1000000 + iterationNum 
+    #Figure out what frequencies correspond to this array, using the function defined above.
+    psaFreqs = freqsInPsas(psa, nDict['freqsInArrays'])
 
 
-    #Note! Foreground seed is the same for every sky region, season, and frequency!
+    #unroll psa names (normally stored as a nested  array of arrays)
+    psaList = [item for sublist in nDict['psaList'] for item in sublist]
+
+
+    if psa not in psaList:
+        raise ValueError('psa %s not found in psaList; options are ' % (psa ), psaList)
+
+    noiseSeed = psaList.index(psa) * 1000000 + iterationNum 
+
+    #load up one sample map, just to get the shape and wcs info.  Do this for "I" at one frequency
+    sampleMap = enmap.read_map(nDict['dataMapDir'] + 'totalWeightMap' \
+                                                        + 'I' + '_' + psa + '_' + psaFreqs[0]  + '_fromenlib.fits') 
+
+
+    #Note! Foreground seed is the same for every sky patch, season, and frequency!
     #This is because they are used to generate fullsky alm's
     foregroundSeed =  100000000 + iterationNum 
-
-    mask = liteMap.liteMapFromFits(sDict['noisePsdDir'] + 'weightMap_T_' + patch + '.fits')
-    if verbose:
-        print 'coords are (x0, y0, x1, y1) = (', mask.x0, mask.y0, mask.x1, mask.y1, ')'
 
     if simType == 'noise':
 
         return getActpolNoiseSim(noiseSeed = noiseSeed, \
-                                 patch = patch, \
-                                 noisePsdDir = sDict['noisePsdDir'],
-                                 mask = mask,
-                                 verbose = verbose,
-                                 useEnkiTemplates = useEnkiTemplates)
+                                 psa = psa, \
+                                 noisePsdDir = nDict['dataMapDir'],
+                                 freqs = psaFreqs, 
+                                 verbose = verbose)
 
     elif simType == 'cmb':
-
         
         #note dec comes first in the array ordering for enmap, so follow that here
-        return getActpolCmbSim(beamfile = sDict['beamNames'][patch],
+        return getActpolCmbSim(beamfile = sDict['beamNames'][psa],
                                coords = np.array([[mask.y0, mask.x0],[mask.y1, mask.x1]] ),
                                iterationNum = iterationNum,
                                cmbDir = sDict['cmbDir'], cmbSet = 0, \
@@ -362,16 +363,16 @@ def getActpolSim(iterationNum = 0, region = 'deep5',
 
     elif simType == 'foregrounds':
 
-        return getActpolForegroundSim(beamfile = sDict['beamNames'][patch],
+        return getActpolForegroundSim(beamfileDict = sDict['beamNames'],
                                # coords = np.array([[mask.y0, mask.x0],[mask.y1, mask.x1]] ),
-                                      shape = mask.data.shape,
+                                      shape = sampleMap.shape,
                                       # wcs = mask.wcs.copy(),
-                                      wcs = astropy.wcs.WCS(mask.wcs.header),
+                                      wcs = sampleMap.shape,
                                       iterationNum = iterationNum,
                                       foregroundPowerFile = sDict['foregroundPowerFile'],
                                       coordsEpsilonArcmin = np.array(sDict['coordsEpsilonArcminCMBSim']),\
                                       doBeam = doBeam,
-                                      freqStr = freqStr,
+                                      freqs = psaFreqs,
                                       foregroundSeed = foregroundSeed)
 
 
@@ -380,3 +381,32 @@ def getActpolSim(iterationNum = 0, region = 'deep5',
     else:
         raise ValueError("bad input")
     
+
+
+
+
+
+#A BUNCH OF LEGACY STUFF -- WHEN WE WERE LOADING NOISE TEMPLATES IN ANOTHER WAY.  MOVED HERE TO KEEP MAIN CODE CLEANER.
+    # sqrtmask = mask.copy()
+    # sqrtmask.data = np.sqrt(sqrtmask.data)
+    # loc = np.where(mask.data == 0.)
+    # loc2 = np.where(mask.data < 0.)
+        # for iquind , iqu in enumerate(['I', 'Q', 'U']):
+        #     noisePsd = enmap.read_map(noisePsdDir + "noisePower" + iqu + 'Alt_'+patch+'_fromenlib.fits')
+            
+        #     # noise = enmap.rand_gauss(noisePsd.shape,noisePsd.wcs)
+        #     realPart = np.random.randn(noisePsd.shape[0], noisePsd.shape[1]) * np.sqrt(noisePsd / clPowerFactor(noisePsd))
+        #     imagPart = np.random.randn(noisePsd.shape[0], noisePsd.shape[1]) * np.sqrt(noisePsd / clPowerFactor(noisePsd))
+
+        #     noise = enmap.ifft(realPart + 1j * imagPart, normalize = True).real / (noisePsd.shape[0] * noisePsd.shape[1])**.5
+        #     #Simone had this line, turned off for now.
+        #     ##NOTE: if I use np.sqrt(hi), with i=0,1,2,3 I can get 4-way noise realization... which is what Steve wants. 
+        #     ##noise = enmap.project(noise,ht.shape,ht.wcs)*np.sqrt(ht)
+            
+        #     # pdb.set_trace()
+
+        #     noise /= sqrtmask.data
+        #     noise[loc] = 0
+        #     noise[loc2] = 0
+        #     output[iquind] = noise.to_flipper()
+
