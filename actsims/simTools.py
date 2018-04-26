@@ -66,8 +66,8 @@ def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None, appl
 		norm *= float(nnew)/nold
         #AvE hacking
         if applyWindow:
-            wy, wx = calc_window(fd.shape)
-            fd *= wy[:,None]**pow * wx[None,:]**pow
+            wy, wx = enmap.calc_window(fd.shape)
+            fd *= wy[:,None]**1 * wx[None,:]**1
 	# And transform back
 	res  = fft.ifft(fd, axes=axes, normalize=True)
 	del fd
@@ -88,69 +88,66 @@ def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None, appl
 
     
 
-def getActpolCmbSim(beamfile, coords, iterationNum, cmbDir, cmbSet = 0, \
-                    coordsEpsilonArcmin = np.array([[0,0], [0,0]]), \
-                    doBeam = True, pixelFac = 2, applyWindow = True):
-    """ coords is in radians as np.array( [ [dec0,ra0], [dec1, ra1 ] ])"""
-    #wcs fix per https://phy-wiki.princeton.edu/polwiki/pmwiki.php?n=ACTpolLensingAnalysisTelecon.SomePreliminarySignalSims.  Coords passed in in degrees
+def getActpolCmbSim(beamfileDict, box, iterationNum, cmbDir, freqs, psa,
+                    cmbSet = 0, \
+                    doBeam = True, pixelFac = 2, applyWindow = True, verbose = True,
+                    inscribe = True): #set to True to inscribe inside the shape of the ACTPol map
+    #wcs fix per https://phy-wiki.princeton.edu/polwiki/pmwiki.php?n=ACTpolLensingAnalysisTelecon.SomePreliminarySignalSims.  
 
-    shape,wcs = enmap.fullsky_geometry(res=1.0*np.pi/180./60.)
+    shapeFull,wcsFull = enmap.fullsky_geometry(res=1.0*np.pi/180./60.)
 
     flipperized = [None] * 3
 
     # coordsForEnmap = np.array([[coords[1,0], coords[0,1]],[ coords[0,0],coords[1,1]]]) \
     #                  * np.pi / 180.
 
-    if coords[1,1] > 180. :
-        coords[1,1] -= 360.
-    if coords[0,1] > 180. :
-        coords[0,1] -= 360.
-
         
-    output = [None] * 3
-    
-    coordsForEnmap = (coords + coordsEpsilonArcmin / 60.) \
-                     * np.pi / 180.
+    nTQUs = len('TQU')
+    firstTime = True
 
+    for tqui in range(0, 3):
+        if verbose:
+            print 'getActpolCmbSim(): cutting out %s map ' % 'TQU'[tqui]
+        thisMap = enmap.read_fits(cmbDir + \
+                                  "/cmb_set%02d_%05i/fullskyLensedMap_%s_%05d.fits" \
+                                  % (cmbSet, iterationNum, 'TQU'[tqui], iterationNum), \
+                                  box = box, \
+                                  wcs_override = wcsFull )
 
-
-    for x in range(0, 3):
-        thisMap = enmap.read_fits(
-            cmbDir + \
-            "/cmb_set%02d_%05i/fullskyLensedMap_%s_%05d.fits" \
-            % (cmbSet, iterationNum, 'TQU'[x], iterationNum), \
-            box = coordsForEnmap, \
-            wcs_override = wcs )
 
         # thisMap = enmap.upgrade(thisMap, 2.)
+        for fi, freq in enumerate(freqs):
+            beamData = np.loadtxt(beamfileDict[psa + '_' + freq] ) if doBeam else None
+
+            if verbose:
+                print 'getActpolCmbSim(): upsampling by a factor %d for %s.  Beam is %s, pixel window is %s'\
+                    % (pixelFac, freq, ('on' if doBeam else 'off'), ('on ' if applyWindow else 'off'))
+
+            upsampled = resample_fft_withbeam(thisMap, \
+                                              (thisMap.shape[0] * pixelFac, \
+                                               thisMap.shape[1] * pixelFac),
+                                              doBeam = doBeam, 
+                                              beamData = beamData, applyWindow = applyWindow)
+
+            oshape, owcs = enmap.scale_geometry(thisMap.shape, thisMap.wcs, pixelFac )
+
+            if oshape != upsampled.shape:
+                raise ValueError('shape mismatch.  ' + oshape + ' vs. ' \
+                                 + 'upsampled.shape')
+            if firstTime:
+                
+                # output = enmap.enmap(np.zeros([len(freqs), 3] \
+                #                               +  (list(actpolShape[-2:]) if inscribe else oshape[-2:]) ), owcs)
+
+                output = enmap.enmap(np.zeros([len(freqs), 3] \
+                                              +  list( oshape[-2:]) )
+                                     , owcs)
+
+                firstTime = False
+
+
+            output[fi, tqui,:, :] = upsampled
         
-        beamData = np.loadtxt(beamfile) if doBeam else None
-
-
-        upsampled = resample_fft_withbeam(thisMap, \
-                                 (thisMap.shape[0] * pixelFac, \
-                                  thisMap.shape[1] * pixelFac),
-                                          doBeam = doBeam, 
-                                          beamData = beamData, applyWindow = applyWindow)
-
-
-        oshape, owcs = enmap.scale_geometry(thisMap.shape, thisMap.wcs, pixelFac )
-
-        if oshape != upsampled.shape:
-            raise ValueError('shape mismatch.  ' + oshape + ' vs. ' \
-                             + 'upsampled.shape')
-        
-        outputEnmap = enmap.enmap(upsampled, owcs)
-        output[x] = outputEnmap.to_flipper()
-
-
-        # old version (using flipper):
-    # if doBeam:
-    #     output = liteMapPol.simpleBeamConvolution(flipperized[0], \
-    #                                               flipperized[1], \
-    #                                               flipperized[2],\
-    #                                               beamfile )
-
     return output
     
 
@@ -363,7 +360,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
     psaFreqs = freqsInPsas(psa, nDict['freqsInArrays'])
 
 
-    #unroll psa names (normally stored as a nested  array of arrays)
+    #unroll psa names (normally stored as a nested  list of lists)
     psaList = [item for sublist in nDict['psaList'] for item in sublist]
 
 
@@ -392,11 +389,13 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
     elif simType == 'cmb':
         
         #note dec comes first in the array ordering for enmap, so follow that here
-        return getActpolCmbSim(beamfile = sDict['beamNames'][psa],
-                               coords = np.array([[mask.y0, mask.x0],[mask.y1, mask.x1]] ),
+        return getActpolCmbSim(beamfileDict = sDict['beamNames'],
+                               box = enmap.box(sampleMap.shape, sampleMap.wcs),
                                iterationNum = iterationNum,
-                               cmbDir = sDict['cmbDir'], cmbSet = 0, \
-                               coordsEpsilonArcmin = np.array(sDict['coordsEpsilonArcminCMBSim']),\
+                               cmbDir = sDict['cmbDir'],
+                               freqs = psaFreqs,
+                               psa = psa,
+                               cmbSet = 0, 
                                doBeam = doBeam, applyWindow = applyWindow,
                                verbose = verbose)
 
