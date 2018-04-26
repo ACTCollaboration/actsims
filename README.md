@@ -17,7 +17,7 @@ where you should set:
     
     See the `bin/simpleTest.py` script for a simple invocation.
 
-* The code will return an `enmap` object of stacked maps; the shape is `[N_freq, 3, Ny, Nx]`, where the first index is 1 or 2 depending on whether the array is dichroic, and the second index is for `T, Q, U`
+The code will return an `enmap` object of stacked maps; the shape is `[N_freq, 3, Ny, Nx]`, where the first index is 1 or 2 depending on whether the array is dichroic, and the second index is for `T, Q, U`
 
 
 ## Installation
