@@ -34,6 +34,7 @@ Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merg
 
 ## Current issues / to-do:
 * Noise sims and signal sims currently are getting slightly different sizes.  There is a mechanism for dealing with this (the coordsEpsilonArcmin flag) but the values for each patch are not yet determined.
+* Diagonlize the big (6, 6, Ny, Nx) matrix for the full covariance, and then test the sims coming out of this pipeline for that template.
 * Add a test routine to check whether the code returns the same realization (across platfroms and python module versions).
-* CMB sims are awaiting a new run, to fix an issue with the aberration effect
+* CMB sims are awaiting a new run, to fix an issue with the aberration effect and with the random seeds.
 * Need to do lensing nulls for these.
