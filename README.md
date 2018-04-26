@@ -28,7 +28,7 @@ Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merg
 ## Changes in April 26 edition
 * New power spectrum templates for all the maps, that give reasonable power spectra, see http://www.cita.utoronto.ca/~engelen/plots/sim_vs_nullmaps.pdf
 * If using a dichroic array, sims at both frequencies are returned; the correlations between the frequencies are included in  the foregrounds, and the same is true in principle for the noise.  
-* Using enmap everywhere (no flipper)
+* Using enmap everywhere (no flipper), all code is now self-contained (no code from cmblens)
 * Pixel window functions now being applied
 * Signal sims have the modulation & aberration applied, and can be labelled separately for CMB and phi maps 
 
