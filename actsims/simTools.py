@@ -13,14 +13,14 @@ import pdb
 import os
 import scipy.interpolate
 
-def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None):
+def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None, applyWindow = False):
 	"""Resample numpy array d via fourier-reshaping. Requires periodic data.
 	n indicates the desired output lengths of the axes that are to be
 	resampled. By the fault the last len(n) axes are resampled, but this
 	can be controlled via the axes argument.
 
         van Engelen Jan 2018:
-        tweaked version which allows to simultaneaously convolve with a beam file.
+        tweaked version which allows to simultaneaously convolve with a beam file and window function.
         stolen from enlib.resample.
 
         """
@@ -64,6 +64,10 @@ def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None):
 			spost = tuple([slice(None)]*ax+[slice(nnew//2-dn,None)]+[slice(None)]*(fd.ndim-ax-1))
 			fd = np.concatenate([fd[spre],fd[spost]],axis=ax)
 		norm *= float(nnew)/nold
+        #AvE hacking
+        if applyWindow:
+            wy, wx = calc_window(fd.shape)
+            fd *= wy[:,None]**pow * wx[None,:]**pow
 	# And transform back
 	res  = fft.ifft(fd, axes=axes, normalize=True)
 	del fd
@@ -86,7 +90,7 @@ def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None):
 
 def getActpolCmbSim(beamfile, coords, iterationNum, cmbDir, cmbSet = 0, \
                     coordsEpsilonArcmin = np.array([[0,0], [0,0]]), \
-                    doBeam = True, pixelFac = 2):
+                    doBeam = True, pixelFac = 2, applyWindow = True):
     """ coords is in radians as np.array( [ [dec0,ra0], [dec1, ra1 ] ])"""
     #wcs fix per https://phy-wiki.princeton.edu/polwiki/pmwiki.php?n=ACTpolLensingAnalysisTelecon.SomePreliminarySignalSims.  Coords passed in in degrees
 
@@ -122,11 +126,12 @@ def getActpolCmbSim(beamfile, coords, iterationNum, cmbDir, cmbSet = 0, \
         
         beamData = np.loadtxt(beamfile) if doBeam else None
 
+
         upsampled = resample_fft_withbeam(thisMap, \
                                  (thisMap.shape[0] * pixelFac, \
                                   thisMap.shape[1] * pixelFac),
                                           doBeam = doBeam, 
-                                          beamData = beamData)
+                                          beamData = beamData, applyWindow = applyWindow)
 
 
         oshape, owcs = enmap.scale_geometry(thisMap.shape, thisMap.wcs, pixelFac )
@@ -182,6 +187,7 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         iqu = 'I' #FOR NOW
 
 
+
         stackOfMaskMaps = [enmap.read_map(noisePsdDir + 'totalWeightMap' \
                                                         + iqu + '_' + psa + '_' + freq  + '_fromenlib.fits') \
                                          for freq in freqs ]
@@ -230,6 +236,9 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
                 outMaps[fi, z][thisMaskMap < thisMaskMap[np.where(np.isfinite(thisMaskMap))].max() / killFactor] \
                     = fillValue
 
+        if verbose:
+            print 'getActpolNoiseSim(): done '
+
 
 
         return outMaps
@@ -245,10 +254,11 @@ def getActpolForegroundSim(beamfileDict ,
                            wcs,
                            iterationNum ,
                            coordsEpsilonArcmin , 
-                           doBeam  ,
+                           doBeam  , applyWindow,
                            foregroundPowerFile,
                            freqs,
-                           foregroundSeed):
+                           psa,
+                           foregroundSeed, verbose = True):
 
 
     from enlib import curvedsky
@@ -259,12 +269,15 @@ def getActpolForegroundSim(beamfileDict ,
 
     #This is rescaled ACT foregrounds best-fit for: TT 95x95, 95x150, 150x150, EE 95x95, 95x150, 150x150, TE 95x95, 95x150, 150x150.
 
+
     temperaturePowers \
         = powspec.read_spectrum(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                              '../data/',
                                              foregroundPowerFile),
                                 ncol = 3)
 
+    if verbose:
+        print 'getActpolForegroundSim(): Getting foreground map '
     outputTT_90_150 = curvedsky.rand_map((2,shape[0], shape[1]),
                                          wcs,
                                          temperaturePowers,
@@ -272,23 +285,44 @@ def getActpolForegroundSim(beamfileDict ,
                                          seed = foregroundSeed)
     outputFreqs = ['f090', 'f150']
 
-    output = enmap.enmap(np.zeros([len(freqs), 3] + list(sampleMap.shape)))
+    output = enmap.enmap(np.zeros([len(freqs), 3] + list(shape)), wcs)
 
-    # for fi, freq in enumerate(freqs):
+    for fi, freq in enumerate(freqs):
+        if freq in outputFreqs:
+            
+            output[fi, 'TQU'.index('T'), :, :]  \
+                = outputTT_90_150[outputFreqs.index(freq), :, :]
 
-    #     output[]
+    if doBeam or applyWindow:
+        for fi, freq in enumerate(freqs):
+            if doBeam:
+                if verbose:
+                    print 'getActpolForegroundSim(): Convolving foregrounds with beam for frequency ', freq
 
+                beamData = np.loadtxt(beamfileDict[psa + '_' + freq] )
 
-    # output =     
-    # if doBeam:
-    #     for fi, freq in enumerate(freqs):
-    #         beamData = np.loadtxt(beamfileDict[psa + '_' + freq) 
+                beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1],
+                                                    bounds_error = False, fill_value = 0.)(output.modlmap())
+            else:
+                beam2d = np.ones(shape)
 
-    #     beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1])(output.modlmap())
+            if applyWindow:
+                print 'getActpolForegroundSim(): Applying pixel window function for frequency ', freq
 
-    #     output[i] = enmap.ifft(enmap.fft(output[i]) * beam2d)
+                wy, wx = enmap.calc_window(shape)
 
-    return enmap.enmap(np.stack((output, np.zeros(output.shape), np.zeros(output.shape))))
+            else :
+                wy = np.ones(shape[-2])
+                wx = np.ones(shape[-1])
+
+            #beam-convolve all of T, Q, and U at once.
+            #also apply the pixel window functions; this line stolen from enmap.apply_window().
+            output[fi] = enmap.ifft(enmap.fft(output[fi]) * beam2d * wy[:,None]**1 * wx[None,:]**1).real
+
+    if verbose:
+        print 'getActpolForegroundSim(): done '
+
+    return output
 
 
 def getActpolSim(iterationNum = 0, patch = 'deep5', 
@@ -302,7 +336,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                  verbose = True,\
                  simType = 'noise',
                  cmbSet = 0,
-                 doBeam = True):
+                 doBeam = True, applyWindow = True):
                  #update the last one to True if possible
 
 
@@ -363,21 +397,22 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                                iterationNum = iterationNum,
                                cmbDir = sDict['cmbDir'], cmbSet = 0, \
                                coordsEpsilonArcmin = np.array(sDict['coordsEpsilonArcminCMBSim']),\
-                               doBeam = doBeam)
+                               doBeam = doBeam, applyWindow = applyWindow,
+                               verbose = verbose)
 
     elif simType == 'foregrounds':
 
         return getActpolForegroundSim(beamfileDict = sDict['beamNames'],
-                               # coords = np.array([[mask.y0, mask.x0],[mask.y1, mask.x1]] ),
                                       shape = sampleMap.shape,
-                                      # wcs = mask.wcs.copy(),
-                                      wcs = sampleMap.shape,
+                                      wcs = sampleMap.wcs,
                                       iterationNum = iterationNum,
                                       foregroundPowerFile = sDict['foregroundPowerFile'],
                                       coordsEpsilonArcmin = np.array(sDict['coordsEpsilonArcminCMBSim']),\
-                                      doBeam = doBeam,
+                                      doBeam = doBeam, applyWindow = applyWindow,
+                                      psa = psa,
                                       freqs = psaFreqs,
-                                      foregroundSeed = foregroundSeed)
+                                      foregroundSeed = foregroundSeed,
+                                      verbose = verbose)
 
 
 
