@@ -26,15 +26,14 @@ To install: `pip install -e . --user`
 Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merged in Mat's fix for an [issue](https://github.com/amaurea/enlib/issues/34) on that date)
 
 ## Changes in April 26 edition
-* If using a dichroic array, sims at both frequencies are returned; the correlations between the frequencies are included in  the foregrounds, and the same is true in principle for the noise.  (The current noise templates have been generated with these correlations turned off, but when this template is updated the sim code will be ready to go.)
+* New power spectrum templates for all the maps, that give reasonable power spectra, see http://www.cita.utoronto.ca/~engelen/plots/sim_vs_nullmaps.pdf
+* If using a dichroic array, sims at both frequencies are returned; the correlations between the frequencies are included in  the foregrounds, and the same is true in principle for the noise.  
 * Using enmap everywhere (no flipper)
 * Pixel window functions now being applied
 * Signal sims have the modulation & aberration applied, and can be labelled separately for CMB and phi maps 
-* New power spectrum templates for all the maps, that give reasonable power spectra
-** 150-90 correlations are computed, but set to zero (for now) when diagonalizing.  
 
 ## Current issues / to-do:
-* Noise sims and signal sims currently are getting slightly different sizes (originating because one is obtained using Flipper, the other with enlib).  There is a mechanism for dealing with this (the coordsEpsilonArcmin flag) but the values for each patch are not yet determined.
+* Noise sims and signal sims currently are getting slightly different sizes.  There is a mechanism for dealing with this (the coordsEpsilonArcmin flag) but the values for each patch are not yet determined.
 * Add a test routine to check whether the code returns the same realization (across platfroms and python module versions).
 * CMB sims are awaiting a new run, to fix an issue with the aberration effect
-
+* Need to do lensing nulls for these.
