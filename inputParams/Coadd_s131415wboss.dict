@@ -1,0 +1,170 @@
+
+syncRoot = '/project/projectdirs/act/data/synced_maps/mr2_20170608_20170816/'
+
+                  
+
+useCrossLinkMaps = True
+
+
+#extra 'window' because I screwed up file transfer
+
+
+
+
+coaddPatchList =  [['deep1_s13_pa1_f150'] ,\
+                   ['deep5_s13_pa1_f150'],\
+                   ['deep6_s13_pa1_f150'],\
+                   
+                   ['deep56_s14_pa1_f150'],\
+                   ['deep56_s14_pa2_f150'],\
+                   ['deep56_s15_pa1_f150'],\
+                   ['deep56_s15_pa2_f150'],\
+                   ['deep56_s15_pa3_f090'],\
+                   ['deep56_s15_pa3_f150'],\
+                   ['deep8_s15_pa1_f150'],\
+                   ['deep8_s15_pa2_f150'],\
+                   ['deep8_s15_pa3_f090'],\
+                   ['deep8_s15_pa3_f150'], \
+
+                  ['boss_s15_pa1_f150'],\
+                  ['boss_s15_pa2_f150'],\
+                  ['boss_s15_pa3_f090'],\
+                  ['boss_s15_pa3_f150']]
+
+
+dirList = [syncRoot + 's13/' + 'deep1/', \
+        syncRoot + 's13/' + 'deep5/', \
+        syncRoot + 's13/' + 'deep6/' ]  \
+        + [syncRoot + 's14/' + 'deep56/' ] * 2 \
+        + [syncRoot + 's15/' + 'deep56/' ] * 4 \
+        + [syncRoot + 's15/' + 'deep8/'] * 4 \
+        + [syncRoot + 's15/' + 'boss_north/'] * 4
+
+
+mapNameList = ['s13_mr2_deep1_pa1_f150_night_set', \
+            's13_mr2_deep5_pa1_f150_night_set', \
+            's13_mr2_deep6_pa1_f150_night_set', \
+
+            's14_mr2_deep56_pa1_f150_night_set', \
+            's14_mr2_deep56_pa2_f150_night_set', \
+
+            's15_mr2_deep56_pa1_f150_night_set',\ 
+            's15_mr2_deep56_pa2_f150_night_set', \
+            's15_mr2_deep56_pa3_f90_night_set', \
+            's15_mr2_deep56_pa3_f150_night_set', \
+
+            's15_mr2_deep8_pa1_f150_night_set', \
+            's15_mr2_deep8_pa2_f150_night_set', \
+            's15_mr2_deep8_pa3_f90_night_set', \
+            's15_mr2_deep8_pa3_f150_night_set', \
+
+             's15_boss_pa1_f150_night_nohwp_4way_', \
+            's15_boss_pa2_f150_night_nohwp_4way_', \
+            's15_boss_pa3_f090_night_nohwp_4way_', \
+            's15_boss_pa3_f150_night_nohwp_4way_']
+
+
+
+endNameList = [  '_wpoly_500'] * 13 + ['_sky_map0500_mono'] * 4
+
+#new patches from Steve
+bufferEdgeDeg = 1
+deep1coords = [143.666667 - bufferEdgeDeg, 157.166667 + bufferEdgeDeg, \
+               -3.075000 - bufferEdgeDeg, 4.741667 + bufferEdgeDeg]
+
+#note steve's lower edge is dec = -9.1 but map has -7.16
+# deep5coords = [349.308333 - 360 - bufferEdgeDeg, 360 -354.916667 + bufferEdgeDeg, \
+#                -9.100000 - bufferEdgeDeg, 5.591667 + bufferEdgeDeg]
+#go up an arcmin on lower edge
+deep5coords = [349.308333 - 360 - bufferEdgeDeg, 360 -354.916667 + bufferEdgeDeg, \
+               -7.166667 + 1./60, 5.591667 + bufferEdgeDeg]
+
+
+deep6coords = [28.716667 - bufferEdgeDeg, 41.258333 + bufferEdgeDeg, \
+               -9.108333 - 0, 0.925000 + bufferEdgeDeg]
+
+deep56coords = [349.308333 - 360. - bufferEdgeDeg, 43.650000 + bufferEdgeDeg, \
+                -9.100000 - bufferEdgeDeg, 5.591667 + bufferEdgeDeg]
+
+#here also steve's coords didn't match for y0.
+# deep8coords = [353.500000 - 360. - bufferEdgeDeg, 10.458333 - bufferEdgeDeg,  \
+#                -51.441667 - bufferEdgeDeg, -31.966667 + bufferEdgeDeg]
+deep8coords = [353.500000 - 360. - bufferEdgeDeg, 10.458333 - bufferEdgeDeg,  \
+               -52.291667 + 1./160, -31.966667 + bufferEdgeDeg]
+
+
+bossNcoords = [142.766667 - bufferEdgeDeg, 244.741667 + bufferEdgeDeg, \
+            -4.358333 - bufferEdgeDeg, 21.341667 + bufferEdgeDeg]
+
+
+
+
+
+# deep56coords = [42.,351.,-7.8,4.5]
+
+
+
+#older patches
+# deep1coords = [150, 155, -2, 7]
+# deep5coords = [-7.,2.5,-3.,3.]
+# deep6coords = [30.,40.,-7.8,-0.6]
+# deep56coords = [42.,351.,-7.8,4.5]
+# deep8coords = [-3, 10, -50, -32]
+coordList = [deep1coords, deep5coords, deep6coords] \
+             + [deep56coords] * 2 +  [deep56coords] * 4 \
+              + [deep8coords] * 4 + [bossNcoords] * 4
+
+
+
+
+useIQUs = False
+
+nSplits = [4] * 17
+     
+
+justUseIWeights = True
+
+weightEndNameList = ['_hits'] * 13 + [  '_sky_div_mono' ] * 4
+
+isEnki = None
+isEnkiArr = [False] * 13 + [True] * 4
+
+# this the old one, of december 2017
+# crossLinkRoot = '/global/cscratch1/sd/engelen/crosslink_maps/forecast_171203/window/window/'
+crossLinkRoot = '/global/cscratch1/sd/engelen/crosslink_maps/forecast_180223/'
+
+
+crossLinkDict = {'deep1_s13_pa1_f150':  crossLinkRoot + 'deep1_forecast_180223_master_apo_w0.fits',\
+                 'deep5_s13_pa1_f150':  crossLinkRoot + 'deep5_forecast_180223_master_apo_w0.fits',\
+                 'deep6_s13_pa1_f150':  crossLinkRoot + 'deep6_forecast_180223_master_apo_w0.fits',\
+                 'deep56_s14_pa1_f150': crossLinkRoot + 'deep56_forecast_180223_master_apo_w0.fits', \
+                 'deep56_s14_pa2_f150': crossLinkRoot + 'deep56_forecast_180223_master_apo_w0.fits', \
+                 'deep56_s15_pa1_f150': crossLinkRoot + 'deep56_forecast_180223_master_apo_w0.fits', \
+                 'deep56_s15_pa2_f150': crossLinkRoot + 'deep56_forecast_180223_master_apo_w0.fits', \
+                 'deep56_s15_pa3_f090': crossLinkRoot + 'deep56_forecast_180223_master_apo_w0.fits', \
+                 'deep56_s15_pa3_f150': crossLinkRoot + 'deep56_forecast_180223_master_apo_w0.fits', \
+                 'deep8_s15_pa1_f150': None, \
+                 'deep8_s15_pa2_f150': None, \
+                 'deep8_s15_pa3_f090':  None, \
+                 'deep8_s15_pa3_f150': None,\
+                 'boss_s15_pa1_f150': crossLinkRoot + 'boss_forecast_180223_master_apo_w0.fits',\
+                 'boss_s15_pa2_f150': crossLinkRoot + 'boss_forecast_180223_master_apo_w0.fits', \
+                 'boss_s15_pa3_f090': crossLinkRoot + 'boss_forecast_180223_master_apo_w0.fits',\
+                 'boss_s15_pa3_f150': crossLinkRoot + 'boss_forecast_180223_master_apo_w0.fits'}
+
+
+
+addInputUsed = False
+flipQSign = True
+taperWidth = 120
+
+dirPolList = dirList                  
+mapNamePolList = mapNameList
+weightEndNamePolList = weightEndNameList
+endNamePolList = endNameList
+
+makeSplits = True
+
+doJan2016Split3Tweak = False
+
+useRealNoiseMapInSim = False
