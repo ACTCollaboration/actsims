@@ -25,6 +25,17 @@ To install: `pip install -e . --user`
 
 Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merged in Mat's fix for an [issue](https://github.com/amaurea/enlib/issues/34) on that date)
 
+### Feynman installation
+
+In the `actsims` directory, do the following:
+
+```
+ln -s /mnt/act3/users/msyriac/sim_data/beams beams
+ln -s /mnt/act3/users/msyriac/sim_data/signal/v0.2 cmb_sim_data
+ln -s /mnt/act3/users/msyriac/sim_data/noise/v0.2/ templateData
+```
+
+
 ## Changes in April 26 edition
 * New power spectrum templates for all the maps, that give reasonable power spectra, see http://www.cita.utoronto.ca/~engelen/plots/sim_vs_nullmaps.pdf
 * If using a dichroic array, sims at both frequencies are returned; the correlations between the frequencies are included in  the foregrounds, and the same is true in principle for the noise.  
