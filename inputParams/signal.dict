@@ -5,7 +5,7 @@
 
 
 
-cmbDir = '/global/cscratch1/sd/engelen/simsS1516_v0.2/data/'
+cmbDir = '../cmb_sim_data/'
 
 # coordsEpsilonArcminCMBSim = [[0, -1.], [1.5, 0]]
 # coordsEpsilonArcminCMBSim = [[0, 0], [2.5, 0]]
@@ -15,7 +15,7 @@ coordsEpsilonArcminCMBSim = [[0, 0], [0, 0]]
 
 
 
-beamBase = '/global/cscratch1/sd/engelen/Beams/171206/beam_tform_171206_'
+beamBase = '../beams/171206/beam_tform_171206_'
 
 
 
