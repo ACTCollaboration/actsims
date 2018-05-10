@@ -29,16 +29,16 @@ array = 'pa1'
 
 
 noiseSim = simTools.getActpolSim(iterationNum = 0, \
-                                      simType = 'noise', \
-                                      patch = patch, \
+                                 simType = 'noise', \
+                                 patch = patch, \
                                  season = season, \
                                  array = array)
 
 cmbSim = simTools.getActpolSim(iterationNum = 0, \
-                                      simType = 'cmb', \
-                                      patch = patch, \
-                                 season = season, \
-                                 array = array)
+                               simType = 'cmb', \
+                               patch = patch, \
+                               season = season, \
+                               array = array)
 
 print("Noise sim shape is :",noiseSim.shape)
 print("CMB sim shape is :",cmbSim.shape)
