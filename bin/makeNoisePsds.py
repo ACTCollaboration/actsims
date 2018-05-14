@@ -18,7 +18,7 @@ import liteMapPol
 # import cmblens.config as conf
 # import cmblens.mpi as mpi
 # import statsTools
-from enlib import enmap
+from enlib import enmap, array_ops
 import mpiTools
 import fnmatch
 from mpi4py import MPI
@@ -292,7 +292,7 @@ if not justUseIWeights:
 #this code does not know the names of the ACTPol arrays, so load up that list here.
 arrayList = p['freqsInArrays'].keys()
 
-stop
+
 
 if doAll:
     for pi, psa in enumerate(psaList):
@@ -460,24 +460,28 @@ if doAll:
 
         print 'done', time.time() - start
 
+        print 'making bigMatrixNoisePsdsCovSqrt - diagonals'
+        start = time.time()
+        covsqrtDiagsOnly = enmap.enmap(np.zeros(bigMatrixNoisePsds.shape), bigMatrixNoisePsds.wcs)        
+        for i in range(len(IQUs)):
+            covsqrtDiagsOnly[i::3, i::3, : , :] \
+                = array_ops.eigpow(bigMatrixNoisePsds[i::3,i::3, :, :], 0.5, axes = [0,1])
+        print 'done', time.time() - start
+
+ 
+        print 'saving bigMatrixNoisePsdsCovSqrt - diagonals'
+        start = time.time()
+        enmap.write_fits(dataMapDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits', covsqrtDiagsOnly )
+        print 'done', time.time() - start
+
         print 'making bigMatrixNoisePsdsCovSqrt'
         start = time.time()
-
-
-        
-        covsqrt = enmap.enmap(np.zeros(bigMatrixNoisePsds.shape), bigMatrixNoisePsds.wcs)
-
-        
-        for i in range(len(IQUs)):
-            covsqrt[i::3, i::3, : , :] = enmap.multi_pow(bigMatrixNoisePsds[i::3,i::3, :, :], 0.5)
+        covsqrt = array_ops.eigpow(bigMatrixNoisePsds, 0.5, axes = [0,1])
         print 'done', time.time() - start
- 
+
         print 'saving bigMatrixNoisePsdsCovSqrt'
-        start = time.time()
         enmap.write_fits(dataMapDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits', covsqrt )
-        print 'done', time.time() - start
-
-
+        print 'done'        
         
         # bigMatrixNoisePsds
 
