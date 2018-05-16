@@ -34,11 +34,11 @@ noiseSim = simTools.getActpolSim(iterationNum = 0, \
                                  season = season, \
                                  array = array)
 
-cmbSim = simTools.getActpolSim(iterationNum = 0, \
-                               simType = 'cmb', \
-                               patch = patch, \
-                               season = season, \
-                               array = array)
+# cmbSim = simTools.getActpolSim(iterationNum = 0, \
+#                                simType = 'cmb', \
+#                                patch = patch, \
+#                                season = season, \
+#                                array = array)
 
 fgSim = simTools.getActpolSim(iterationNum = 0, \
                               simType = 'foregrounds', \
@@ -47,5 +47,5 @@ fgSim = simTools.getActpolSim(iterationNum = 0, \
                               array = array)
 
 print("Noise sim shape is :",noiseSim.shape)
-print("CMB sim shape is :",cmbSim.shape)
+#print("CMB sim shape is :",cmbSim.shape)
 print("fg sim shape is :",fgSim.shape)

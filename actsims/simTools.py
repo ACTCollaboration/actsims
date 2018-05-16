@@ -289,7 +289,7 @@ def getActpolForegroundSim(beamfileDict ,
                 if verbose:
                     print 'getActpolForegroundSim(): Convolving foregrounds with beam for frequency ', freq
 
-                beamData = np.loadtxt(beamfileDict[psa + '_' + freq] )
+                beamData = np.loadtxt(os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq] )
 
                 beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1],
                                                     bounds_error = False, fill_value = 0.)(output.modlmap())
