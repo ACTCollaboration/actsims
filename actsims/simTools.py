@@ -100,7 +100,7 @@ def getActpolCmbSim(beamfileDict,
             print 'getActpolCmbSim(): cutting out %s map ' % 'TQU'[tqui]
         lowresMap = enmap.read_fits(cmbDir + \
                                   "fullskyLensedMap_%s_%05d.fits" \
-                                  % (cmbSet, iterationNum, 'TQU'[tqui], iterationNum), \
+                                  % ('TQU'[tqui], iterationNum), \
                                   box = enmap.box(shape, wcs), \
                                   wcs_override = wcsFull )
 
@@ -363,7 +363,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
     noiseSeed = psaList.index(psa) * 1000000 + iterationNum 
 
     #load up one sample map, just to get the shape and wcs info.  Do this for "I" at one frequency
-    sampleMap = enmap.read_map(nDict['dataMapDir'] + 'totalWeightMap' \
+    sampleMap = enmap.read_map(os.path.join(os.path.dirname(os.path.abspath(__file__))+nDict['dataMapDir'] + 'totalWeightMap' \
                                                         + 'I' + '_' + psa + '_' + psaFreqs[0]  + '_fromenlib.fits') 
 
 
