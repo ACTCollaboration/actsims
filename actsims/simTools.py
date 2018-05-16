@@ -99,7 +99,7 @@ def getActpolCmbSim(beamfileDict,
         if verbose:
             print 'getActpolCmbSim(): cutting out %s map ' % 'TQU'[tqui]
         lowresMap = enmap.read_fits(cmbDir + \
-                                  "/cmb_set%02d_%05i/fullskyLensedMap_%s_%05d.fits" \
+                                  "fullskyLensedMap_%s_%05d.fits" \
                                   % (cmbSet, iterationNum, 'TQU'[tqui], iterationNum), \
                                   box = enmap.box(shape, wcs), \
                                   wcs_override = wcsFull )
