@@ -99,15 +99,15 @@ def getActpolCmbSim(beamfileDict,
         if verbose:
             print 'getActpolCmbSim(): cutting out %s map ' % 'TQU'[tqui]
         lowresMap = enmap.read_fits(cmbDir + \
-                                  "/cmb_set%02d_%05i/fullskyLensedMap_%s_%05d.fits" \
-                                  % (cmbSet, iterationNum, 'TQU'[tqui], iterationNum), \
+                                  "fullskyLensedMap_%s_%05d.fits" \
+                                  % ('TQU'[tqui], iterationNum), \
                                   box = enmap.box(shape, wcs), \
                                   wcs_override = wcsFull )
 
         
 
         for fi, freq in enumerate(freqs):
-            beamData = np.loadtxt(beamfileDict[psa + '_' + freq] ) if doBeam else None
+            beamData = np.loadtxt(os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq] ) if doBeam else None
 
             if verbose:
                 print 'getActpolCmbSim(): upsampling by a factor %d for %s.  Beam is %s, pixel window is %s'\
@@ -296,7 +296,7 @@ def getActpolForegroundSim(beamfileDict ,
                 if verbose:
                     print 'getActpolForegroundSim(): Convolving foregrounds with beam for frequency ', freq
 
-                beamData = np.loadtxt(beamfileDict[psa + '_' + freq] )
+                beamData = np.loadtxt(os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq] )
 
                 beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1],
                                                     bounds_error = False, fill_value = 0.)(output.modlmap())
@@ -370,7 +370,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
     noiseSeed = psaList.index(psa) * 1000000 + iterationNum 
 
     #load up one sample map, just to get the shape and wcs info.  Do this for "I" at one frequency
-    sampleMap = enmap.read_map(nDict['dataMapDir'] + 'totalWeightMap' \
+    sampleMap = enmap.read_map(os.path.join(os.path.dirname(os.path.abspath(__file__)))+"/"+nDict['dataMapDir'] + 'totalWeightMap' \
                                                         + 'I' + '_' + psa + '_' + psaFreqs[0]  + '_fromenlib.fits') 
 
 
@@ -382,7 +382,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
 
         return getActpolNoiseSim(noiseSeed = noiseSeed, \
                                  psa = psa, \
-                                 noisePsdDir = nDict['dataMapDir'],
+                                 noisePsdDir = os.path.dirname(os.path.abspath(__file__))+"/"+nDict['dataMapDir'],
                                  freqs = psaFreqs, 
                                  verbose = verbose)
 
@@ -393,7 +393,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                                # box = enmap.box(sampleMap.shape, sampleMap.wcs),
                                shape = sampleMap.shape, wcs = sampleMap.wcs,
                                iterationNum = iterationNum,
-                               cmbDir = sDict['cmbDir'],
+                               cmbDir = os.path.dirname(os.path.abspath(__file__))+"/"+sDict['cmbDir'],
                                freqs = psaFreqs,
                                psa = psa,
                                cmbSet = 0, 
