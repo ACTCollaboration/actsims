@@ -285,7 +285,7 @@ import itertools
 
 doAll = True
 
-debugFlag = True
+debugFlag = False
 if not justUseIWeights:
     raise ValueError('we need to use I weights for now')
 
@@ -436,7 +436,7 @@ if doAll:
                     firstTime = False
 
                 bigMatrixNoisePsds[index, indexPrime, :, :] = meanAutoPowers_enlib - meanCrossPowers_enlib
-
+                bigMatrixNoisePsds[indexPrime, index, :, :] = meanAutoPowers_enlib - meanCrossPowers_enlib
 
 
                 totalWeightMap = sum(weightMapsForSimgen)
@@ -448,6 +448,8 @@ if doAll:
 
                 fullCoadd, weightMapTotal = coaddMapsWithWeights( actMaps, weightMapsForSimgen, doNull = False)
                 enmap.write_fits(dataMapDir + "coaddMaps" + iqu + '_' + psa + '_' + freq + '.fits', fullCoadd)
+
+                
                 
                 gc.collect()
 

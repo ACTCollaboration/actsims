@@ -185,8 +185,15 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
 
         maskMaps = enmap.enmap(np.stack(stackOfMaskMaps), thisWcs)
 
-        covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' )
+        #first one is for IXI, QxQ, UXU only
+        if False:
+            print 'loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits HACKING' 
+            covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits' )
+        if True:
+            print 'loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' 
+            covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' )
 
+        
         if verbose:
             print 'getActpolNoiseSim(): running map_mul to make random phases'
 
