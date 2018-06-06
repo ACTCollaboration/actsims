@@ -45,7 +45,7 @@ def phi2kappa(phiMap, LMAX):
 
     phiAlm = curvedsky.map2alm(phiMap, lmax = LMAX)
     ells = np.arange(LMAX-1)
-    kappaAlm = healpy.sphtfunc.almxfl(phiAlm, -ells * (ells + 1) / 2.)
+    kappaAlm = healpy.sphtfunc.almxfl(phiAlm, ells * (ells + 1) / 2.)
     kappaMap = curvedsky.alm2map(kappaAlm, phiMap.copy() )
     return kappaMap
 
