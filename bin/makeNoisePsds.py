@@ -367,6 +367,45 @@ if doAll:
                         #FLATTEN
                         mapsForSimgen[s] *= np.sqrt(weightMapForSimgenPrime)
 
+
+                    # elif p['isPlanckArr'][pi]:
+
+                    #     mapNameFull = dirList[pi] + mapNameList[pi].format(freq) + str(s) +  endNameList[pi] + '.fits'
+                    #     actMaps[s]  = enmap.read_map(mapNameFull,
+                    #                                       sel = np.s_[IQUs.index(iqu), :, :])
+                    #     # if p['useWeightMap']:
+                    #     weightNameFull = dirList[pi] + mapNameList[pi].format(freq) + str(s) +  weightEndNameList[pi] + '.fits'
+                    #     weightMapsForSimgen[s] = enmap.read_map(weightNameFull, sel = np.s_[0, 0, :, :])
+                    #     # else:
+                    #     #     noiseNameFull =  dirList[pi] + mapNameList[pi].format(freq) + str(s) +  noiseEndNameList[pi] + '.fits'
+                    #     #     weightMapsForSimgen[s] = 1./enmap.read_map(noiseNameFull)**2
+
+
+                    #     #FLATTEN
+                    #     mapsForSimgen[s] = actMaps[s] * np.sqrt(weightMapsForSimgen[s])
+
+                    #     ###################################
+
+                    #     mapNameFullPrime = dirList[piPrime] + mapNameList[piPrime].format(freqPrime) + str(s) +  endNameList[piPrime] + '.fits'
+                    #     mapsForSimgenPrime[s] = enmap.read_map(mapNameFullPrime,
+                    #                                       sel = np.s_[IQUs.index(iquPrime), :, :])
+                    #     # if p['useWeightMap']:
+
+                    #     #note hits maps don't seem to exist for sigurd's maps, so do weight maps no matter what.
+                    #     weightNameFullPrime = dirList[piPrime] + mapNameList[piPrime].format(freqPrime) + str(s)   \
+                    #                               + weightEndNameList[piPrime] + '.fits'
+
+                    #     weightMapForSimgenPrime = enmap.read_map(weightNameFullPrime, sel = np.s_[0, 0, :, :])
+
+                    #     # else:
+                    #     #     noiseNameFullPrime =  dirList[piPrime] + mapNameList[piPrime].format(freqPrime) + str(s) \
+                    #     #                           + noiseEndNameList[piPrime] + '.fits'
+                    #     #     weightMapsForSimgenPrime[s] = 1./enmap.read_map(noiseNameFullPrime)**2
+
+                    #     #FLATTEN
+                    #     mapsForSimgen[s] *= np.sqrt(weightMapForSimgenPrime)
+
+
                     else:
                         #ONLY DO THIS FOR SIMONE's MAPS - NO LEADING ZEROS
                         freqFile = 'f90' if freq == 'f090' else freq
