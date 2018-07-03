@@ -337,7 +337,11 @@ if doAll:
                                                           sel = np.s_[IQUs.index(iqu), :, :])
                         # if p['useWeightMap']:
                         weightNameFull = dirList[pi] + mapNameList[pi].format(freq) + str(s) +  weightEndNameList[pi] + '.fits'
-                        weightMapsForSimgen[s] = enmap.read_map(weightNameFull, sel = np.s_[0, 0, :, :])
+                        weightMapsForSimgen[s] = enmap.read_map(weightNameFull)
+
+                        if len(weightMapsForSimgen[s].shape)  > 2:
+                        
+                            weightMapsForSimgen[s] = enmap.read_map(weightNameFull, sel = np.s_[0, 0, :, :])
                         # else:
                         #     noiseNameFull =  dirList[pi] + mapNameList[pi].format(freq) + str(s) +  noiseEndNameList[pi] + '.fits'
                         #     weightMapsForSimgen[s] = 1./enmap.read_map(noiseNameFull)**2
@@ -357,7 +361,10 @@ if doAll:
                         weightNameFullPrime = dirList[piPrime] + mapNameList[piPrime].format(freqPrime) + str(s)   \
                                                   + weightEndNameList[piPrime] + '.fits'
 
-                        weightMapForSimgenPrime = enmap.read_map(weightNameFullPrime, sel = np.s_[0, 0, :, :])
+                        weightMapForSimgenPrime = enmap.read_map(weightNameFullPrime)
+
+                        if len(weightMapForSimgenPrime.shape)  > 2:
+                            weightMapForSimgenPrime = enmap.read_map(weightNameFullPrime, sel = np.s_[0, 0, :, :])
 
                         # else:
                         #     noiseNameFullPrime =  dirList[piPrime] + mapNameList[piPrime].format(freqPrime) + str(s) \
@@ -478,7 +485,7 @@ if doAll:
                 bigMatrixNoisePsds[indexPrime, index, :, :] = meanAutoPowers_enlib - meanCrossPowers_enlib
 
 
-                totalWeightMap = sum(weightMapsForSimgen)
+                totalWeightMap = enmap.ndmap(np.sum(weightMapsForSimgen, axis = 0), powerWindow.wcs)
                 totalWeightMap.write(dataMapDir + 'totalWeightMap' + iqu + '_' + psa + '_' + freq  + '_fromenlib.fits')
 
 
@@ -496,7 +503,7 @@ if doAll:
         start = time.time()
         print 'saving bigMatrixNoisePsds'
         # np.save(dataMapDir + 'bigMatrixNoisePsds_' + psa + '.np', bigMatrixNoisePsds )
-        enmap.write_fits(dataMapDir + 'bigMatrixNoisePsds_' + psa + '.np', bigMatrixNoisePsds )
+        enmap.write_fits(dataMapDir + 'bigMatrixNoisePsds_' + psa + '.fits', bigMatrixNoisePsds )
         
 
         print 'done', time.time() - start
