@@ -266,12 +266,15 @@ def getActpolForegroundSim(beamfileDict ,
 
     #This is rescaled ACT foregrounds best-fit for: TT 95x95, 95x150, 150x150, EE 95x95, 95x150, 150x150, TE 95x95, 95x150, 150x150.
 
+    #This means it is expand = 'row' according to the documentation of powspec.compressed_order()
+    #We could add polarization to the sims without the argument ncol = 3 -- set to T only for now.
 
     temperaturePowers \
         = powspec.read_spectrum(os.path.join(os.path.dirname(os.path.abspath(__file__)),
                                              '../data/',
                                              foregroundPowerFile),
-                                ncol = 3)
+                                ncol = 3,
+                                expand = 'row')
 
     if verbose:
         print 'getActpolForegroundSim(): Getting foreground map '
@@ -290,12 +293,14 @@ def getActpolForegroundSim(beamfileDict ,
             output[fi, 'TQU'.index('T'), :, :]  \
                 = outputTT_90_150[outputFreqs.index(freq), :, :]
 
+
+
     if doBeam or applyWindow:
         for fi, freq in enumerate(freqs):
             if doBeam:
                 if verbose:
                     print 'getActpolForegroundSim(): Convolving foregrounds with beam for frequency ', freq
-
+                    print os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq]
                 beamData = np.loadtxt(os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq] )
 
                 beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1],

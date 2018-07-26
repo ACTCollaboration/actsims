@@ -92,7 +92,7 @@ doJan2016Split3Tweak = False
 useRealNoiseMapInSim = False
 
 beamBase = '/global/cscratch1/sd/engelen/Beams/171206/beam_tform_171206_'
-
+ 
 
 
 beamList = {'deep1_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_map.txt', \
