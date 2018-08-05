@@ -13,7 +13,7 @@ import flipper.flipperDict as flipperDict
 import numpy, numpy as np
 import pickle
 import os
-import liteMapPol
+# import liteMapPol
 # import cmblens.util as util
 # import cmblens.config as conf
 # import cmblens.mpi as mpi
@@ -164,14 +164,14 @@ def meanAutoSpec_enlib(mapList,applySlepianTaper=False,nresForSlepian=3.0, windo
             temp_i_prime = secondMapList[i].copy()
 
 
-        if window != None :
+        if window is not None :
 
             # window_enmap = enmap.from_flipper(window)
             print 'meanCrossSpec: doing windowing, doEnlibWay'
             temp_i *= window / np.sqrt(np.mean(window**2))
 
-            if secondMapList != None:
-
+            if secondMapList is not None:
+                
 
                 temp_i_prime *= secondWindow / np.sqrt(np.mean(secondWindow**2))
             else:
@@ -179,7 +179,7 @@ def meanAutoSpec_enlib(mapList,applySlepianTaper=False,nresForSlepian=3.0, windo
 
                     
         temp_i = np.nan_to_num(temp_i)
-        if temp_i_prime != None:
+        if temp_i_prime is not None:
             temp_i_prime = np.nan_to_num(temp_i_prime)
 
         # p2d = (np.conj(enmap.fft(temp_i, normalize = enlibNorm)) \
@@ -200,6 +200,8 @@ def meanAutoSpec_enlib(mapList,applySlepianTaper=False,nresForSlepian=3.0, windo
 
 
 
+
+
 def meanCrossSpec_enlib(mapList,applySlepianTaper=False,nresForSlepian=3.0, window = None, secondMapList = None, secondWindow = None , enlibNorm = True):
 
     count = 0 
@@ -216,13 +218,13 @@ def meanCrossSpec_enlib(mapList,applySlepianTaper=False,nresForSlepian=3.0, wind
             # temp_j = enmap.from_flipper( mapList[j] )
 
 
-            if window != None :
+            if window is not None :
                 # window_enmap = enmap.from_flipper(window)
                 print 'meanCrossSpec: doing windowing, doEnlibWay'
                 temp_i *= window / np.sqrt(np.mean(window**2))
                 temp_i = np.nan_to_num(temp_i)
 
-            if secondWindow != None:
+            if secondWindow is not None:
 
                 temp_j *= secondWindow / np.sqrt(np.mean(secondWindow**2))
                 temp_j = np.nan_to_num(temp_j)
@@ -320,6 +322,10 @@ if doAll:
                 mapsForSimgen = onedl(nSplits[pi])
                 weightMapsForSimgen = onedl(nSplits[pi])
                 actMaps = onedl(nSplits[pi])
+                actMapsPrime = onedl(nSplits[pi])
+                mapsForPsds = onedl(nSplits[pi])
+                mapsForPsdsPrime = onedl(nSplits[pi])
+                
                 # piPrime = psaList.index()
                 mapsForSimgenPrime = onedl(nSplits[pi])
 
@@ -349,11 +355,12 @@ if doAll:
 
                         #FLATTEN
                         mapsForSimgen[s] = actMaps[s] * np.sqrt(weightMapsForSimgen[s])
-
+                        mapsForPsds[s] = actMaps[s] * (weightMapsForSimgen[s])
+                        
                         ###################################
 
                         mapNameFullPrime = dirList[piPrime] + mapNameList[piPrime].format(freqPrime) + str(s) +  endNameList[piPrime] + '.fits'
-                        mapsForSimgenPrime[s] = enmap.read_map(mapNameFullPrime,
+                        actMapsPrime[s] = enmap.read_map(mapNameFullPrime,
                                                           sel = np.s_[IQUs.index(iquPrime), :, :])
                         # if p['useWeightMap']:
 
@@ -372,8 +379,8 @@ if doAll:
                         #     weightMapsForSimgenPrime[s] = 1./enmap.read_map(noiseNameFullPrime)**2
 
                         #FLATTEN
-                        mapsForSimgen[s] *= np.sqrt(weightMapForSimgenPrime)
-
+                        mapsForSimgenPrime[s] = actMapsPrime[s] * np.sqrt(weightMapForSimgenPrime)
+                        mapsForPsds[s] = actMapsPrime[s] * (weightMapForSimgenPrime)
 
                     # elif p['isPlanckArr'][pi]:
 
@@ -449,43 +456,45 @@ if doAll:
                                                  +  noiseEndNameList[piPrime] + '.fits'
                             weightMapPrime = 1./enmap.read_map(noiseNameFullPrime)**2
                         mapsForSimgenPrime[s] *= np.sqrt(weightMapPrime)
+                        
 
-
-
-                powerWindow = enmap.read_fits(p['crossLinkDict'][psa])
-                powerWindowPrime = enmap.read_fits(p['crossLinkDict'][psaPrime])
-
-
-                meanCrossPowers_enlib = meanCrossSpec_enlib(mapsForSimgen, \
-                                                            secondMapList = mapsForSimgenPrime,
-                                                            window = powerWindow,
-                                                            secondWindow = powerWindowPrime)
-
-                meanAutoPowers_enlib = meanAutoSpec_enlib(mapsForSimgen, \
-                                                          secondMapList = mapsForSimgenPrime,
-                                                          window = powerWindow,
-                                                          secondWindow = powerWindowPrime)
-
-                (meanAutoPowers_enlib - meanCrossPowers_enlib).write(dataMapDir + "noisePower" + iqu + '_' + iquPrime + 'Alt_'\
-                                                                     +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
-                (meanAutoPowers_enlib).write(dataMapDir + "splitAutoPower" + iqu + '_' + iquPrime + 'Alt_'\
-                                                                     +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
-                (meanCrossPowers_enlib).write(dataMapDir + "splitCrossPower" + iqu + '_' + iquPrime + 'Alt_'\
-                                                                     +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
-
-                
                 if firstTime:
-                    bigMatrixNoisePsds = enmap.ndmap(np.zeros((len(psaFreqs) * len(IQUs),
-                                                               len(psaFreqs)  * len(IQUs),
-                                                               mapsForSimgen[s].shape[0],
-                                                               mapsForSimgen[s].shape[1])), powerWindow.wcs)
+                    psdsForSimgen = enmap.ndmap(np.zeros((len(psaFreqs) * len(IQUs),
+                                                           len(psaFreqs)  * len(IQUs),
+                                                           mapsForSimgen[s].shape[0],
+                                                           mapsForSimgen[s].shape[1])), actMaps[0].wcs)
+
+                    noisePsds = enmap.ndmap(np.zeros(psdsForSimgen.shape), psdsForSimgen.wcs)
                     firstTime = False
 
-                bigMatrixNoisePsds[index, indexPrime, :, :] = meanAutoPowers_enlib - meanCrossPowers_enlib
-                bigMatrixNoisePsds[indexPrime, index, :, :] = meanAutoPowers_enlib - meanCrossPowers_enlib
 
+                for pt, powerType in enumerate(['flattened', 'unflattened']):
+                    crossLinkWindow = enmap.read_fits(p['crossLinkDict'][psa])
+                    crossLinkWindowPrime = enmap.read_fits(p['crossLinkDict'][psaPrime])
 
-                totalWeightMap = enmap.ndmap(np.sum(weightMapsForSimgen, axis = 0), powerWindow.wcs)
+                    mapListToUse = [mapsForSimgen, actMaps][pt]
+                    mapPrimeListToUse = [mapsForSimgenPrime, actMapsPrime][pt]
+
+                    outputPsd = [psdsForSimgen, noisePsds][pt]
+                    
+                    # #second element is a product of all four splits with the crosslinkwindow
+                    # powerWindowToUse = [crossLinkWindow, weightMapsForSimgen * crossLinkWindow ][pt]
+                    # powerWindowPrimeToUse = [crossLinkWindowPrime, crossLinkWindowPrime * weightMapPrime][pt]
+
+                    meanCrossPowers_enlib = meanCrossSpec_enlib(mapListToUse, \
+                                                                secondMapList = mapPrimeListToUse,
+                                                                window = crossLinkWindow,
+                                                                secondWindow = crossLinkWindowPrime)
+
+                    meanAutoPowers_enlib = meanAutoSpec_enlib(mapListToUse, \
+                                                              secondMapList = mapPrimeListToUse,
+                                                              window = crossLinkWindow,
+                                                              secondWindow = crossLinkWindowPrime)
+
+                    outputPsd[index, indexPrime, :, :] = meanAutoPowers_enlib - meanCrossPowers_enlib
+                    outputPsd[indexPrime, index, :, :] = meanAutoPowers_enlib - meanCrossPowers_enlib
+
+                totalWeightMap = enmap.ndmap(np.sum(weightMapsForSimgen, axis = 0), weightMapsForSimgen[0].wcs)
                 totalWeightMap.write(dataMapDir + 'totalWeightMap' + iqu + '_' + psa + '_' + freq  + '_fromenlib.fits')
 
 
@@ -496,40 +505,43 @@ if doAll:
                 enmap.write_fits(dataMapDir + "coaddMaps" + iqu + '_' + psa + '_' + freq + '.fits', fullCoadd)
 
                 
-                
-                gc.collect()
 
-        import time
-        start = time.time()
-        print 'saving bigMatrixNoisePsds'
-        # np.save(dataMapDir + 'bigMatrixNoisePsds_' + psa + '.np', bigMatrixNoisePsds )
-        enmap.write_fits(dataMapDir + 'bigMatrixNoisePsds_' + psa + '.fits', bigMatrixNoisePsds )
-        
+        for pt, powerType in enumerate(['flattened', 'unflattened']):
+            outputPsd = [psdsForSimgen, noisePsds][pt]
 
-        print 'done', time.time() - start
+            gc.collect()
 
-        print 'making bigMatrixNoisePsdsCovSqrt - diagonals'
-        start = time.time()
-        covsqrtDiagsOnly = enmap.enmap(np.zeros(bigMatrixNoisePsds.shape), bigMatrixNoisePsds.wcs)        
-        for i in range(len(IQUs)):
-            covsqrtDiagsOnly[i::3, i::3, : , :] \
-                = array_ops.eigpow(bigMatrixNoisePsds[i::3,i::3, :, :], 0.5, axes = [0,1])
-        print 'done', time.time() - start
+            import time
+            start = time.time()
+            print 'saving ', powerType
+            # np.save(dataMapDir + 'bigMatrixNoisePsds_' + psa + '.np', bigMatrixNoisePsds )
+            enmap.write_fits(dataMapDir + 'noisePsds_%s_' % powerType + psa + '.fits',  outputPsd)
+            print 'done', time.time() - start
 
- 
-        print 'saving bigMatrixNoisePsdsCovSqrt - diagonals'
-        start = time.time()
-        enmap.write_fits(dataMapDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits', covsqrtDiagsOnly )
-        print 'done', time.time() - start
+            print 'making covsqrt of %s - diagonals' % powerType
+            start = time.time()
+            covsqrtDiagsOnly = enmap.enmap(np.zeros(outputPsd.shape), outputPsd.wcs)        
+            for i in range(len(IQUs)):
+                covsqrtDiagsOnly[i::3, i::3, : , :] \
+                    = array_ops.eigpow(outputPsd[i::3,i::3, :, :], 0.5, axes = [0,1])
+            print 'done', time.time() - start
 
-        print 'making bigMatrixNoisePsdsCovSqrt'
-        start = time.time()
-        covsqrt = array_ops.eigpow(bigMatrixNoisePsds, 0.5, axes = [0,1])
-        print 'done', time.time() - start
+            print 'writing covsqrt of %s - diagonals' % powerType
+            start = time.time()
+            enmap.write_fits(dataMapDir + '/noisePsds_%s_covSqrtDiags_' %powerType + psa + '.fits', covsqrtDiagsOnly )
+            print 'done', time.time() - start
 
-        print 'saving bigMatrixNoisePsdsCovSqrt'
-        enmap.write_fits(dataMapDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits', covsqrt )
-        print 'done'        
+            print 'making covsqrt of %s' % powerType
+            start = time.time()
+            covsqrt = array_ops.eigpow(outputPsd, 0.5, axes = [0,1])
+            print 'done', time.time() - start
+
+            print 'saving covsqrt of %s' % powerType
+            start = time.time()
+            enmap.write_fits(dataMapDir + '/noisePsds_%s_covSqrt_' %powerType + psa + '.fits', covsqrt )
+            print 'done'        , time.time() - start
+
+
         
         # bigMatrixNoisePsds
 
@@ -749,4 +761,17 @@ if doAll:
 #                 # print 'smoothing power with width of ', p['smoothingWidthInPixels'], 'pixels'
 #                 # meanAutoPowers.powerMap = scipy.ndimage.filters.gaussian_filter(meanAutoPowers.powerMap, \
 #                 #                                                                 p['smoothingWidthInPixels'])
+
+
+
+
+#USED TO SAVE EACH MAP SEPARATELY
+
+
+                # (meanAutoPowers_enlib - meanCrossPowers_enlib).write(dataMapDir + "noisePower" + iqu + '_' + iquPrime + 'Alt_'\
+                #                                                      +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
+                # (meanAutoPowers_enlib).write(dataMapDir + "splitAutoPower" + iqu + '_' + iquPrime + 'Alt_'\
+                #                                                      +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
+                # (meanCrossPowers_enlib).write(dataMapDir + "splitCrossPower" + iqu + '_' + iquPrime + 'Alt_'\
+                #                                                      +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
 
