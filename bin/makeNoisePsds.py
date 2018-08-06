@@ -285,7 +285,7 @@ print 'rank %i will do patches:' %rank, psaList[piMin:piMax]
 
 import itertools
 
-doAll = True
+doAll = False
 
 debugFlag = False
 if not justUseIWeights:
@@ -701,8 +701,6 @@ if doAll:
                 # (meanCrossPowers_enlib).write(dataMapDir + "splitCrossPower" + iqu + '_' + iquPrime + 'Alt_'\
                 #                                                      +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
 
-<<<<<<< HEAD
-=======
 
 
 
@@ -782,5 +780,3 @@ if doAll:
                 #                                  +  noiseEndNameList[piPrime] + '.fits'
                 #             weightMapPrime = 1./enmap.read_map(noiseNameFullPrime)**2
                 #         mapsForSimgenPrime[s] *= np.sqrt(weightMapPrime)
-                        
->>>>>>> speedup
