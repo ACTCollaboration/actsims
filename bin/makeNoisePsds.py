@@ -285,7 +285,7 @@ print 'rank %i will do patches:' %rank, psaList[piMin:piMax]
 
 import itertools
 
-doAll = False
+doAll = True
 
 debugFlag = False
 if not justUseIWeights:
@@ -355,7 +355,7 @@ if doAll:
 
                         #FLATTEN
                         mapsForSimgen[s] = actMaps[s] * np.sqrt(weightMapsForSimgen[s])
-                        mapsForPsds[s] = actMaps[s] * (weightMapsForSimgen[s])
+                        mapsForPsds[s] = actMaps[s] * weightMapsForSimgen[s] / np.mean(weightMapsForSimgen[s]**2)
                         
                         ###################################
 
@@ -380,8 +380,8 @@ if doAll:
 
                         #FLATTEN
                         mapsForSimgenPrime[s] = actMapsPrime[s] * np.sqrt(weightMapForSimgenPrime)
-                        mapsForPsdsPrime[s] = actMapsPrime[s] * (weightMapForSimgenPrime)
-
+                        mapsForPsdsPrime[s] = actMapsPrime[s] * (weightMapForSimgenPrime) / np.mean(weightMapForSimgenPrime**2)
+                        
 
                 if firstTime:
                     psdsForSimgen = enmap.ndmap(np.zeros((len(psaFreqs) * len(IQUs),
@@ -397,8 +397,12 @@ if doAll:
                     crossLinkWindow = enmap.read_fits(p['crossLinkDict'][psa])
                     crossLinkWindowPrime = enmap.read_fits(p['crossLinkDict'][psaPrime])
 
+
+
                     mapListToUse = [mapsForSimgen, actMaps][pt]
                     mapPrimeListToUse = [mapsForSimgenPrime, actMapsPrime][pt]
+
+                    
 
                     outputPsd = [psdsForSimgen, noisePsds][pt]
                     
