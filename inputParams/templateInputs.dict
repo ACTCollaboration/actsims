@@ -1,0 +1,135 @@
+syncRoot = '/project/projectdirs/act/data/synced_maps/mr2_20170608_20170816/'
+
+dataMapDir = '../templateData/'
+
+useCrossLinkMaps = True
+
+
+
+freqsInArrays =  {'pa1': ['f150'], \
+                'pa2':  ['f150'], \
+                'pa3': ['f090', 'f150']}
+
+
+psaList =  [ ['deep1_s13_pa1'] ,\
+             ['deep5_s13_pa1'],\
+             ['deep6_s13_pa1'],\
+
+             ['deep56_s14_pa1'],\
+             ['deep56_s14_pa2'],\
+
+             ['deep56_s15_pa1'],\
+             ['deep56_s15_pa2'],\
+             ['deep56_s15_pa3'],\
+
+             ['deep8_s15_pa1'],\
+             ['deep8_s15_pa2'],\
+             ['deep8_s15_pa3'],\
+
+             ['boss_s15_pa1'],\
+             ['boss_s15_pa2'],\
+             ['boss_s15_pa3']]
+
+
+
+dirList = [syncRoot + 's13/' + 'deep1/', \
+           syncRoot + 's13/' + 'deep5/', \
+           syncRoot + 's13/' + 'deep6/' ] \
+           + [syncRoot + 's14/' + 'deep56/' ] * 2 \
+           + [syncRoot + 's15/' + 'deep56/' ] * 3 \
+           + [syncRoot + 's15/' + 'deep8/'] * 3 \
+           + [syncRoot + 's15/' + 'boss_north/'] * 3
+
+mapNameList = ['s13_mr2_deep1_pa1_{}_night_set', \
+               's13_mr2_deep5_pa1_{}_night_set', \
+               's13_mr2_deep6_pa1_{}_night_set', \
+               
+               's14_mr2_deep56_pa1_{}_night_set', \
+               's14_mr2_deep56_pa2_{}_night_set', \
+               
+               's15_mr2_deep56_pa1_{}_night_set',\ 
+               's15_mr2_deep56_pa2_{}_night_set', \
+               's15_mr2_deep56_pa3_{}_night_set', \
+               # 's15_mr2_deep56_pa3_f150_night_set', \
+
+               's15_mr2_deep8_pa1_{}_night_set', \
+               's15_mr2_deep8_pa2_{}_night_set', \
+               's15_mr2_deep8_pa3_{}_night_set', \
+
+               's15_boss_pa3_{}_night_nohwp_4way_', \
+               's15_boss_pa3_{}_night_nohwp_4way_', \
+               's15_boss_pa3_{}_night_nohwp_4way_', \
+               's15_boss_pa3_{}_night_nohwp_4way_']
+
+
+
+endNameList =  [  '_wpoly_500'] * 11 + ['_sky_map0500_mono'] * 3
+
+useIQUs = False
+
+nSplits = [4] * 14  #number of splits can be 2 or 4 
+     
+justUseIWeights = True
+
+useWeightMap = False #if False, use Noise Map
+weightEndNameList = [  '_hits' ] * 11 +   [  '_sky_div_mono' ] * 3
+noiseEndNameList = ['_noise'] * 14
+
+
+isEnkiArr = [False] * 11 + [True] * 3
+
+addInputUsed = False
+
+dirPolList = dirList                  
+mapNamePolList = mapNameList
+weightEndNamePolList = weightEndNameList
+endNamePolList = endNameList
+
+makeSplits = True
+
+doJan2016Split3Tweak = False
+
+useRealNoiseMapInSim = False
+
+beamBase = '/global/cscratch1/sd/engelen/Beams/171206/beam_tform_171206_'
+ 
+
+
+beamList = {'deep1_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_map.txt', \
+             'deep5_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_map.txt', \
+             'deep6_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_map.txt', \
+             'deep56_s14_pa1_f150': beamBase +'pa1_150GHz_4_410_s14_map.txt', \
+             'deep56_s14_pa2_f150': beamBase +'pa2_150GHz_6_410_s14_map.txt',\
+             'deep56_s15_pa1_f150': beamBase + 'pa1_150GHz_3_310_s15_map.txt',\
+             'deep56_s15_pa2_f150': beamBase + 'pa2_150GHz_4_410_s15_map.txt',\
+             'deep56_s15_pa3_f090': beamBase +'pa3_90GHz_5_420_s15_map.txt',\
+             'deep56_s15_pa3_f150': beamBase +'pa3_90GHz_5_420_s15_map.txt',\
+             'deep8_s15_pa1_f150': beamBase + 'pa1_150GHz_3_310_s15_map.txt',\
+             'deep8_s15_pa2_f150': beamBase + 'pa2_150GHz_4_410_s15_map.txt',\
+             'deep8_s15_pa3_f090': beamBase + 'pa3_90GHz_5_420_s15_map.txt', \
+             'deep8_s15_pa3_f150': beamBase + 'pa3_150GHz_6_410_s15_map.txt',\
+             'boss_s15_pa1_f150': beamBase + 'pa1_150GHz_3_310_s15_map.txt',\
+             'boss_s15_pa2_f150': beamBase + 'pa2_150GHz_4_410_s15_map.txt',\
+             'boss_s15_pa3_f090': beamBase + 'pa3_90GHz_5_420_s15_map.txt', \
+             'boss_s15_pa3_f150': beamBase + 'pa3_150GHz_6_410_s15_map.txt'}
+
+
+crossLinkRoot = '/global/cscratch1/sd/engelen/crosslink_maps/mask_run_180323/'
+
+crossLinkEnd = '_mask_run_180323_master_apo_w0.fits'
+
+crossLinkDict = {'deep1_s13_pa1': crossLinkRoot + 'deep1' + crossLinkEnd, \
+                 'deep5_s13_pa1': crossLinkRoot + 'deep5' + crossLinkEnd, \
+                 'deep6_s13_pa1': crossLinkRoot + 'deep6' + crossLinkEnd, \
+                 'deep56_s14_pa1':crossLinkRoot + 'deep56' + crossLinkEnd, \
+                 'deep56_s14_pa2':crossLinkRoot + 'deep56' + crossLinkEnd, \
+                 'deep56_s15_pa1':crossLinkRoot + 'deep56' + crossLinkEnd, \
+                 'deep56_s15_pa2':crossLinkRoot + 'deep56' + crossLinkEnd, \
+                 'deep56_s15_pa3':crossLinkRoot + 'deep56' + crossLinkEnd, \
+                 'deep8_s15_pa1':crossLinkRoot + 'deep8' + crossLinkEnd, \
+                 'deep8_s15_pa2':crossLinkRoot + 'deep8' + crossLinkEnd, \
+                 'deep8_s15_pa3':crossLinkRoot + 'deep8' + crossLinkEnd, \
+                 'boss_s15_pa1': crossLinkRoot + 'boss' + crossLinkEnd, \
+                 'boss_s15_pa2': crossLinkRoot + 'boss' + crossLinkEnd, \
+                 'boss_s15_pa3': crossLinkRoot + 'boss' + crossLinkEnd}
+
