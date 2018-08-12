@@ -2,7 +2,7 @@
 # syncRoot = '/project/projectdirs/act/data/synced_maps/mr2_20170608_20170816/'
 syncRoot = '/project/projectdirs/act/data/synced_maps/mr3/'
 
-dataMapDir = '../templateDataMr3Testing/'
+dataMapDir = '../templateDataMr3TestingSandbox/'
 
 useCrossLinkMaps = True
 
