@@ -163,7 +163,7 @@ def freqsInPsas(psa, freqsInArraysDict):
 
 
 def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
-                      useCovSqrt = True,  killFactor = 30., fillValue = 0.):
+                      useCovSqrt = True,  killFactor = 30., fillValue = 0., noiseDiagsOnly = False):
     #return array of T, Q, U
     #to-do: these are currently using numpy.FFT and are slow; switch to FFTW if installed.
 
@@ -192,10 +192,14 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         if False:
             print 'loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' 
             covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' )
-        if True:
+
+        if noiseDiagsOnly:
+            print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' 
+            covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' )
+        elif True:
             print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' 
             covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' )
-
+        
         
         if verbose:
             print 'getActpolNoiseSim(): running map_mul to make random phases'
@@ -341,7 +345,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                  verbose = True,\
                  simType = 'noise',
                  cmbSet = 0,
-                 doBeam = True, applyWindow = True):
+                 doBeam = True, applyWindow = True, noiseDiagsOnly = False):
                  #update the last one to True if possible
 
 
@@ -392,7 +396,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                                  psa = psa, \
                                  noisePsdDir = os.path.dirname(os.path.abspath(__file__))+"/"+nDict['dataMapDir'],
                                  freqs = psaFreqs, 
-                                 verbose = verbose)
+                                 verbose = verbose, noiseDiagsOnly = noiseDiagsOnly)
 
     elif simType == 'cmb':
         
