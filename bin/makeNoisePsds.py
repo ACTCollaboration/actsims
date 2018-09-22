@@ -393,8 +393,7 @@ if doAll:
                     firstTime = False
 
 
-                for pt, powerType in enumerate(['flattened']):
-                    #, 'unflattened']):
+                for pt, powerType in enumerate(['flattened', 'unflattened']):
                     crossLinkWindow = enmap.read_fits(p['crossLinkDict'][psa])
                     crossLinkWindowPrime = enmap.read_fits(p['crossLinkDict'][psaPrime])
 
@@ -436,8 +435,7 @@ if doAll:
 
                 
 
-        for pt, powerType in enumerate(['flattened']):
-        #, 'unflattened']):
+        for pt, powerType in enumerate(['flattened', 'unflattened']) :       #, 'unflattened']):
             outputPsd = [psdsForSimgen, noisePsds][pt]
 
             gc.collect()
