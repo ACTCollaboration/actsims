@@ -7,7 +7,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 
-from enlib import enmap, fft, powspec, resample
+from enlib import enmap, fft, powspec# , resample
 
 import pdb
 import os
@@ -86,7 +86,9 @@ def getActpolCmbSim(beamfileDict,
 
     shapeFull,wcsFull = enmap.fullsky_geometry(res=1.0*np.pi/180./60.)
 
-    flipperized = [None] * 3
+    import pdb
+    pdb.set_trace()
+
 
     # coordsForEnmap = np.array([[coords[1,0], coords[0,1]],[ coords[0,0],coords[1,1]]]) \
     #                  * np.pi / 180.
