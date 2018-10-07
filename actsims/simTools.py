@@ -7,7 +7,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 
-from enlib import enmap, fft, powspec# , resample
+from enlib import enmap, fft, powspec, curvedsky# , resample
 
 import pdb
 import os
@@ -80,71 +80,74 @@ def getActpolCmbSim(beamfileDict,
                     #box,  #this is what it used to be..
                     iterationNum, cmbDir, freqs, psa,
                     cmbSet = 0, \
-                    doBeam = True, pixelFac = 2, applyWindow = True, verbose = True,
-                    inscribe = True): #set to True to inscribe inside the shape of the ACTPol map
-    #wcs fix per https://phy-wiki.princeton.edu/polwiki/pmwiki.php?n=ACTpolLensingAnalysisTelecon.SomePreliminarySignalSims.  
-
-    shapeFull,wcsFull = enmap.fullsky_geometry(res=1.0*np.pi/180./60.)
-
-    import pdb
-    pdb.set_trace()
+                    doBeam = True, pixelFac = 2, applyWindow = True, verbose = True, cmbMaptype = 'Lensed'):
 
 
-    # coordsForEnmap = np.array([[coords[1,0], coords[0,1]],[ coords[0,0],coords[1,1]]]) \
-    #                  * np.pi / 180.
-
-        
     nTQUs = len('TQU')
     firstTime = True
 
-    for tqui in range(0, 3):
-        if verbose:
-            print 'getActpolCmbSim(): cutting out %s map ' % 'TQU'[tqui]
-        lowresMap = enmap.read_fits(cmbDir + \
-                                  "fullskyLensedMap_%s_%05d.fits" \
-                                  % ('TQU'[tqui], iterationNum), \
-                                  box = enmap.box(shape, wcs), \
-                                  wcs_override = wcsFull )
+    output   = enmap.empty((len(freqs), nTQUs,)+shape[-2:], wcs)
+    outputTemp = enmap.empty(( nTQUs,)+shape[-2:], wcs)
 
-        
+    filename = cmbDir + "/fullsky%s_alm_set%02d_%05d.npy" % ( cmbMaptype, cmbSet , iterationNum)
+    if verbose:
+        print 'getActpolCmbSim(): loading a_lms from %s' % filename
+    almTebFullsky = np.load(filename)
+    if verbose:
+        print 'getActpolCmbSim(): done'
 
-        for fi, freq in enumerate(freqs):
-            beamData = np.loadtxt(os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq] ) if doBeam else None
+    almTebFullskyBeamconv = np.zeros((len(freqs),) + almTebFullsky.shape, dtype = np.complex128)
 
+    #Convolve with beam on full sky
+    for fi, freq in enumerate(freqs):
+        if doBeam:
+            beamFile = os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq]
             if verbose:
-                print 'getActpolCmbSim(): upsampling by a factor %d for %s.  Beam is %s, pixel window is %s'\
-                    % (pixelFac, freq, ('on' if doBeam else 'off'), ('on ' if applyWindow else 'off'))
+                print 'getActpolCmbSim(): applying beam from %s' % beamFile
+            beamData = (np.loadtxt(beamFile ))[:,1]
+        else:
+            if verbose:
+                print 'getActpolCmbSim(): not convolving with beam'
+            beamData = np.repeat(1., almTebFullsky.shape[-1])
 
-            upsampled = resample_fft_withbeam(lowresMap, \
-                                              shape, \
-                                              doBeam = doBeam, 
-                                              beamData = beamData, applyWindow = applyWindow)
-
-
-
-            if False: #we used to do this check.  But now the output shape should
-                #just be equal to the input size
-                oshape, owcs = enmap.scale_geometry(lowresMap.shape, lowresMap.wcs, pixelFac )
-
-                if oshape != upsampled.shape:
-                    raise ValueError('shape mismatch.  ' + oshape + ' vs. ' \
-                                     + 'upsampled.shape')
-            if firstTime:
-                
-                # output = enmap.enmap(np.zeros([len(freqs), 3] \
-                #                               +  (list(actpolShape[-2:]) if inscribe else oshape[-2:]) ), owcs)
-
-                output = enmap.enmap(np.zeros([len(freqs), 3] \
-                                              +  list( shape[-2:]) )
-                                     , wcs)
-
-                firstTime = False
-
-
-            output[fi, tqui,:, :] = upsampled
+        import healpy
+        #couldn't quickly figure out how to vectorize this so loop from 0 to 2.
         
-    return output
-    
+        curvedsky.alm2map(almTebFullsky, outputTemp)
+        
+        for tqui in range(nTQUs):
+            almTebFullskyBeamconv[fi, tqui] = healpy.sphtfunc.almxfl(almTebFullsky[tqui].copy(), beamData)
+
+    #These lines stolen from curvedsky.rand_map
+    curvedsky.alm2map(almTebFullskyBeamconv, output, spin = 2,  verbose = True)
+    # if len(shape) == 2: output = output[0]
+
+
+    if applyWindow:
+        from enlib import fft
+
+        #The axes along which to FFT
+        axes = [-2, -1]
+        if verbose:
+            print 'getActpolCmbSim(): applying pixel window function'
+
+	fd = fft.fft(output, axes = axes)
+
+        wy, wx = enmap.calc_window(fd.shape)
+
+        twoDWindow = wy[:,None]**1 * wx[None,:]**1
+
+        #Careful, this is quietly multiplying an array with shape [N_freq, N_TQU, N_y, N_x] with one of shape [N_y, N_x]
+        fd *= twoDWindow
+        if verbose:
+            print 'getActpolCmbSim(): done'
+        output = (fft.ifft(fd, axes = axes)).real
+        del fd
+
+
+
+    return enmap.ndmap(output, wcs)
+
 
 
 def clPowerFactor(inEnkiMap):
@@ -347,7 +350,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                  verbose = True,\
                  simType = 'noise',
                  cmbSet = 0,
-                 doBeam = True, applyWindow = True, noiseDiagsOnly = False):
+                 doBeam = True, applyWindow = True, noiseDiagsOnly = False, cmbMaptype = 'Lensed'):
                  #update the last one to True if possible
 
 
@@ -412,7 +415,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                                psa = psa,
                                cmbSet = 0, 
                                doBeam = doBeam, applyWindow = applyWindow,
-                               verbose = verbose)
+                               verbose = verbose, cmbMaptype = cmbMaptype)
 
     elif simType == 'foregrounds':
 

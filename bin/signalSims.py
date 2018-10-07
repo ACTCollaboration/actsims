@@ -101,17 +101,19 @@ if doAll:
 
         if True:
             print 'temporarily doing a gaussian random field -- lensed = unlensed'
-            uTquMap = curvedsky.rand_map((3,)+shape, wcs, ps, lmax = p['LMAX'],
+            print 'calling curvedsky.rand_map'
+            uTquMap = curvedsky.rand_map((3,)+shape, wcs, ps[1:, 1:, :], lmax = p['LMAX'],
                                          seed = iii * 100)
 
             mapList = [uTquMap]
 
-            mapNameList = [ 'fullskyUnLensed']
-
+            mapNameList = [ 'fullskyUnlensed']
+            stop
         if p['doAberration']:
             unaberrated = lTquMap.copy()
 
             from enlib import aberration
+            print 'doing aberration'
             lTquMap = aberration.aberrate(lTquMap,
                                           aberration.dir_equ,
                                           aberration.beta, modulation = False)
@@ -120,13 +122,15 @@ if doAll:
             mapNameList += 'fullskyLensedUnabberated'
 
         for mi, mmm in enumerate(mapList):
+            print 'calling curvedsky.map2alm'
             alm = curvedsky.map2alm(mmm, lmax=p['LMAX'])
 
             cmbDir = p['dataDir']
+            print 'writing to disk'
             filename = cmbDir + "/%s_alm_set%02d_%05d.npy" % ( mapNameList[mi], cmbSet , iii)
 
             np.save(filename ,
-                            np.float32(alm))
+                            np.complex64(alm))
 
 
         stop

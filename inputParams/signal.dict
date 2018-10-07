@@ -4,8 +4,7 @@
 
 
 
-
-cmbDir = '../cmb_sim_data/'
+cmbDir = '../simsS1516_v0.4/data/'
 
 # coordsEpsilonArcminCMBSim = [[0, -1.], [1.5, 0]]
 # coordsEpsilonArcminCMBSim = [[0, 0], [2.5, 0]]
