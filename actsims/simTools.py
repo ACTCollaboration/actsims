@@ -1,5 +1,7 @@
+
+
 import numpy as np, flipper.flipperDict as flipperDict, pickle
-    # flipper.liteMap as liteMap
+
 import astropy.wcs
 
 import warnings
@@ -11,117 +13,79 @@ from enlib import enmap, fft, powspec, curvedsky# , resample
 
 import pdb
 import os
-import scipy.interpolate
-
-def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None, applyWindow = False):
-	"""Resample numpy array d via fourier-reshaping. Requires periodic data.
-	n indicates the desired output lengths of the axes that are to be
-	resampled. By the fault the last len(n) axes are resampled, but this
-	can be controlled via the axes argument.
-
-        van Engelen Jan 2018:
-        tweaked version which allows to simultaneaously convolve with a beam file and window function.
-        stolen from enlib.resample.
-
-        """
-	d = np.asanyarray(d)
-	# Compute output lengths from factors if necessary
-	n = np.atleast_1d(n)
-	if axes is None: axes = np.arange(-len(n),0)
-	else: axes = np.atleast_1d(axes)
-	if len(n) == 1: n = np.repeat(n, len(axes))
-	else: assert len(n) == len(axes)
-	assert len(n) <= d.ndim
-	# Nothing to do?
-	if np.all(d.shape[-len(n):] == n): return d
-	# Use the simple version if we can. It has lower memory overhead
-	if d.ndim == 2 and len(n) == 1 and (axes[0] == 1 or axes[0] == -1):
-		return resample_fft_simple(d, n[0])
-	# Perform the fourier transform
-
-	fd = fft.fft(d, axes=axes)
-        if doBeam:
-            beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1])(d.modlmap())
-            fd *= beam2d
-	# Frequencies are 0 1 2 ... N/2 (-N)/2 (-N)/2+1 .. -1
-	# Ex 0* 1 2* -1 for n=4 and 0* 1 2 -2 -1 for n=5
-	# To upgrade,   insert (n_new-n_old) zeros after n_old/2
-	# To downgrade, remove (n_old-n_new) values after n_new/2
-	# The idea is simple, but arbitrary dimensionality makes it
-	# complicated.
-	norm = 1.0
-	for ax, nnew in zip(axes, n):
-		ax %= d.ndim
-		nold = d.shape[ax]
-		dn   = nnew-nold
-		if dn > 0:
-			padvals = np.zeros(fd.shape[:ax]+(dn,)+fd.shape[ax+1:],fd.dtype)
-			spre  = tuple([slice(None)]*ax+[slice(0,nold//2)]+[slice(None)]*(fd.ndim-ax-1))
-			spost = tuple([slice(None)]*ax+[slice(nold//2,None)]+[slice(None)]*(fd.ndim-ax-1))
-			fd = np.concatenate([fd[spre],padvals,fd[spost]],axis=ax)
-		elif dn < 0:
-			spre  = tuple([slice(None)]*ax+[slice(0,nnew//2)]+[slice(None)]*(fd.ndim-ax-1))
-			spost = tuple([slice(None)]*ax+[slice(nnew//2-dn,None)]+[slice(None)]*(fd.ndim-ax-1))
-			fd = np.concatenate([fd[spre],fd[spost]],axis=ax)
-		norm *= float(nnew)/nold
-        #AvE hacking
-        if applyWindow:
-            wy, wx = enmap.calc_window(fd.shape)
-            fd *= wy[:,None]**1 * wx[None,:]**1
-	# And transform back
-	res  = fft.ifft(fd, axes=axes, normalize=True)
-	del fd
-	res *= norm
-	return res if np.issubdtype(d.dtype, np.complexfloating) else res.real
 
 
-def getActpolCmbSim(beamfileDict,
-                    shape, wcs,
-                    #box,  #this is what it used to be..
-                    iterationNum, cmbDir, freqs, psa,
-                    cmbSet = 0, \
-                    doBeam = True, pixelFac = 2, applyWindow = True, verbose = True, cmbMaptype = 'Lensed'):
+def getActpolCmbFgSim(beamfileDict,
+                      shape, wcs,
+                      iterationNum, cmbDir, freqs, psa,
+                      cmbSet = 0, \
+                      doBeam = True, applyWindow = True, verbose = True, cmbMaptype = 'Lensed',
+                      foregroundSeed = 0, simType = 'cmb', foregroundPowerFile = None):
 
 
     nTQUs = len('TQU')
     firstTime = True
 
     output   = enmap.empty((len(freqs), nTQUs,)+shape[-2:], wcs)
-    outputTemp = enmap.empty(( nTQUs,)+shape[-2:], wcs)
 
-    filename = cmbDir + "/fullsky%s_alm_set%02d_%05d.npy" % ( cmbMaptype, cmbSet , iterationNum)
-    if verbose:
-        print 'getActpolCmbSim(): loading a_lms from %s' % filename
-    almTebFullsky = np.load(filename)
-    if verbose:
-        print 'getActpolCmbSim(): done'
 
-    almTebFullskyBeamconv = np.zeros((len(freqs),) + almTebFullsky.shape, dtype = np.complex128)
+    if simType == 'cmb':
+
+        filename = cmbDir + "/fullsky%s_alm_set%02d_%05d.npy" % ( cmbMaptype, cmbSet , iterationNum)
+        if verbose:
+            print 'getActpolCmbFgSim(): loading CMB a_lms from %s' % filename
+        almTebFullskyOnecopy = np.load(filename)
+
+        #Now tile the same for all the frequencies requested (i.e. CMB is same at all frequencies).
+        #The beam convolution happens below.
+        almTebFullsky = np.tile(almTebFullskyOnecopy, (len(freqs), 1, 1))
+
+        if verbose:
+            print 'getActpolCmbFgSim(): done'
+
+    elif simType == 'foregrounds':
+        outputFreqs = ['f090', 'f150']
+
+        foregroundPowers \
+            = powspec.read_spectrum(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                                 '../data/',
+                                                 foregroundPowerFile),
+                                ncol = 3,
+                                expand = 'row')
+
+
+        if verbose:
+            print 'getActpolCmbFgSim(): getting foreground a_lms'
+        almTFullsky90and150 = curvedsky.rand_alm(foregroundPowers, seed = foregroundSeed)
+
+        almTebFullsky = np.zeros((len(freqs), nTQUs,) + (len(almTFullsky90and150[-1]),), dtype = np.complex128)
+
+        for fi, freq in enumerate(freqs):
+            if freq in outputFreqs:
+                almTebFullsky[fi, 'TQU'.index('T'), :]  \
+                    = almTFullsky90and150[outputFreqs.index(freq), :]
 
     #Convolve with beam on full sky
     for fi, freq in enumerate(freqs):
         if doBeam:
             beamFile = os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq]
             if verbose:
-                print 'getActpolCmbSim(): applying beam from %s' % beamFile
+                print 'getActpolCmbFgSim(): applying beam from %s' % beamFile
             beamData = (np.loadtxt(beamFile ))[:,1]
         else:
             if verbose:
-                print 'getActpolCmbSim(): not convolving with beam'
+                print 'getActpolCmbFgSim(): not convolving with beam'
             beamData = np.repeat(1., almTebFullsky.shape[-1])
 
         import healpy
+
         #couldn't quickly figure out how to vectorize this so loop from 0 to 2.
-        
-        curvedsky.alm2map(almTebFullsky, outputTemp)
-        
         for tqui in range(nTQUs):
-            almTebFullskyBeamconv[fi, tqui] = healpy.sphtfunc.almxfl(almTebFullsky[tqui].copy(), beamData)
+            almTebFullsky[fi, tqui] = healpy.sphtfunc.almxfl(almTebFullsky[fi, tqui].copy(), beamData)
 
     #These lines stolen from curvedsky.rand_map
-    curvedsky.alm2map(almTebFullskyBeamconv, output, spin = 2,  verbose = True)
+    curvedsky.alm2map(almTebFullsky, output, spin = 2,  verbose = True)
     # if len(shape) == 2: output = output[0]
-
 
     if applyWindow:
         from enlib import fft
@@ -129,7 +93,7 @@ def getActpolCmbSim(beamfileDict,
         #The axes along which to FFT
         axes = [-2, -1]
         if verbose:
-            print 'getActpolCmbSim(): applying pixel window function'
+            print 'getActpolCmbFgSim(): applying pixel window function'
 
 	fd = fft.fft(output, axes = axes)
 
@@ -140,14 +104,11 @@ def getActpolCmbSim(beamfileDict,
         #Careful, this is quietly multiplying an array with shape [N_freq, N_TQU, N_y, N_x] with one of shape [N_y, N_x]
         fd *= twoDWindow
         if verbose:
-            print 'getActpolCmbSim(): done'
-        output = (fft.ifft(fd, axes = axes)).real
+            print 'getActpolCmbFgSim(): done'
+        output = (fft.ifft(fd, axes = axes, normalize = True)).real
         del fd
 
-
-
     return enmap.ndmap(output, wcs)
-
 
 
 def clPowerFactor(inEnkiMap):
@@ -258,86 +219,6 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
 
 
 
-def getActpolForegroundSim(beamfileDict ,
-                           shape,
-                           wcs,
-                           iterationNum ,
-                           coordsEpsilonArcmin , 
-                           doBeam  , applyWindow,
-                           foregroundPowerFile,
-                           freqs,
-                           psa,
-                           foregroundSeed, verbose = True):
-
-
-    from enlib import curvedsky
-    # inPowers = np.loadtxt(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-    #                                    '../data/',
-    #                                    foregroundPowerFile))
-    
-
-    #This is rescaled ACT foregrounds best-fit for: TT 95x95, 95x150, 150x150, EE 95x95, 95x150, 150x150, TE 95x95, 95x150, 150x150.
-
-    #This means it is expand = 'row' according to the documentation of powspec.compressed_order()
-    #We could add polarization to the sims without the argument ncol = 3 -- set to T only for now.
-
-    temperaturePowers \
-        = powspec.read_spectrum(os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                             '../data/',
-                                             foregroundPowerFile),
-                                ncol = 3,
-                                expand = 'row')
-
-    if verbose:
-        print 'getActpolForegroundSim(): Getting foreground map '
-    outputTT_90_150 = curvedsky.rand_map((2,shape[0], shape[1]),
-                                         wcs,
-                                         temperaturePowers,
-                                         spin = 0,
-                                         seed = foregroundSeed)
-    outputFreqs = ['f090', 'f150']
-
-    output = enmap.enmap(np.zeros([len(freqs), 3] + list(shape)), wcs)
-
-    for fi, freq in enumerate(freqs):
-        if freq in outputFreqs:
-            
-            output[fi, 'TQU'.index('T'), :, :]  \
-                = outputTT_90_150[outputFreqs.index(freq), :, :]
-
-
-
-    if doBeam or applyWindow:
-        for fi, freq in enumerate(freqs):
-            if doBeam:
-                if verbose:
-                    print 'getActpolForegroundSim(): Convolving foregrounds with beam for frequency ', freq
-                    print os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq]
-                beamData = np.loadtxt(os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq] )
-
-                beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1],
-                                                    bounds_error = False, fill_value = 0.)(output.modlmap())
-            else:
-                beam2d = np.ones(shape)
-
-            if applyWindow:
-                print 'getActpolForegroundSim(): Applying pixel window function for frequency ', freq
-
-                wy, wx = enmap.calc_window(shape)
-
-            else :
-                wy = np.ones(shape[-2])
-                wx = np.ones(shape[-1])
-
-            #beam-convolve all of T, Q, and U at once.
-            #also apply the pixel window functions; this line stolen from enmap.apply_window().
-            output[fi] = enmap.ifft(enmap.fft(output[fi]) * beam2d * wy[:,None]**1 * wx[None,:]**1).real
-
-    if verbose:
-        print 'getActpolForegroundSim(): done '
-
-    return output
-
 
 def getActpolSim(iterationNum = 0, patch = 'deep5', 
                  season = 's13', \
@@ -403,35 +284,19 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                                  freqs = psaFreqs, 
                                  verbose = verbose, noiseDiagsOnly = noiseDiagsOnly)
 
-    elif simType == 'cmb':
+    elif simType == 'cmb' or simType == 'foregrounds':
         
-        #note dec comes first in the array ordering for enmap, so follow that here
-        return getActpolCmbSim(beamfileDict = sDict['beamNames'],
-                               # box = enmap.box(sampleMap.shape, sampleMap.wcs),
-                               shape = sampleMap.shape, wcs = sampleMap.wcs,
-                               iterationNum = iterationNum,
-                               cmbDir = os.path.dirname(os.path.abspath(__file__))+"/"+sDict['cmbDir'],
-                               freqs = psaFreqs,
-                               psa = psa,
-                               cmbSet = 0, 
-                               doBeam = doBeam, applyWindow = applyWindow,
-                               verbose = verbose, cmbMaptype = cmbMaptype)
 
-    elif simType == 'foregrounds':
-
-        return getActpolForegroundSim(beamfileDict = sDict['beamNames'],
-                                      shape = sampleMap.shape,
-                                      wcs = sampleMap.wcs,
-                                      iterationNum = iterationNum,
-                                      foregroundPowerFile = sDict['foregroundPowerFile'],
-                                      coordsEpsilonArcmin = np.array(sDict['coordsEpsilonArcminCMBSim']),\
-                                      doBeam = doBeam, applyWindow = applyWindow,
-                                      psa = psa,
-                                      freqs = psaFreqs,
-                                      foregroundSeed = foregroundSeed,
-                                      verbose = verbose)
-
-
+        return getActpolCmbFgSim(beamfileDict = sDict['beamNames'],
+                                 shape = sampleMap.shape, wcs = sampleMap.wcs,
+                                 iterationNum = iterationNum,
+                                 cmbDir = os.path.dirname(os.path.abspath(__file__))+"/"+sDict['cmbDir'],
+                                 freqs = psaFreqs,
+                                 psa = psa,
+                                 cmbSet = 0, 
+                                 doBeam = doBeam, applyWindow = applyWindow,
+                                 verbose = verbose, cmbMaptype = cmbMaptype, foregroundSeed = foregroundSeed,
+                                 simType = simType,        foregroundPowerFile = sDict['foregroundPowerFile'])
 
 
     else:
@@ -439,30 +304,4 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
     
 
 
-
-
-
-#A BUNCH OF LEGACY STUFF -- WHEN WE WERE LOADING NOISE TEMPLATES IN ANOTHER WAY.  MOVED HERE TO KEEP MAIN CODE CLEANER.
-    # sqrtmask = mask.copy()
-    # sqrtmask.data = np.sqrt(sqrtmask.data)
-    # loc = np.where(mask.data == 0.)
-    # loc2 = np.where(mask.data < 0.)
-        # for iquind , iqu in enumerate(['I', 'Q', 'U']):
-        #     noisePsd = enmap.read_map(noisePsdDir + "noisePower" + iqu + 'Alt_'+patch+'_fromenlib.fits')
-            
-        #     # noise = enmap.rand_gauss(noisePsd.shape,noisePsd.wcs)
-        #     realPart = np.random.randn(noisePsd.shape[0], noisePsd.shape[1]) * np.sqrt(noisePsd / clPowerFactor(noisePsd))
-        #     imagPart = np.random.randn(noisePsd.shape[0], noisePsd.shape[1]) * np.sqrt(noisePsd / clPowerFactor(noisePsd))
-
-        #     noise = enmap.ifft(realPart + 1j * imagPart, normalize = True).real / (noisePsd.shape[0] * noisePsd.shape[1])**.5
-        #     #Simone had this line, turned off for now.
-        #     ##NOTE: if I use np.sqrt(hi), with i=0,1,2,3 I can get 4-way noise realization... which is what Steve wants. 
-        #     ##noise = enmap.project(noise,ht.shape,ht.wcs)*np.sqrt(ht)
-            
-        #     # pdb.set_trace()
-
-        #     noise /= sqrtmask.data
-        #     noise[loc] = 0
-        #     noise[loc2] = 0
-        #     output[iquind] = noise.to_flipper()
 
