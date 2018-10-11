@@ -23,7 +23,7 @@ The code will return an `enmap` object of stacked maps; the shape is `[N_freq, 3
 ## Installation
 To install: `pip install -e . --user`
 
-Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merged in Mat's fix for an [issue](https://github.com/amaurea/enlib/issues/34) on that date)
+Make sure that you have pulled a version of enlib after Jan 25 2018 (Sigurd merged an important fix for an [issue](https://github.com/amaurea/enlib/issues/34) on that date)
 
 ### Feynman installation
 
