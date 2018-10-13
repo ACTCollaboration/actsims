@@ -9,7 +9,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 
-from enlib import enmap, fft, powspec, curvedsky# , resample
+from pixell import enmap, fft, powspec, curvedsky# , resample
 
 import pdb
 import os

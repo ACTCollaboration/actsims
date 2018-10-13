@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('../../')
 
-from enlib import enmap, utils # lensing, 
-from enlib import powspec, curvedsky
+from pixell import enmap, utils , lensing
+from pixell import powspec, curvedsky
 import numpy as np
 import healpy
 import matplotlib.pyplot as plt
@@ -80,26 +80,30 @@ doAll = True
 cmbSet = 0 # still to-do: loop over sets.
 
 if doAll:
-    uTebCls = aveTools.onedl(p['iStop'] - p['iStart'])
-    lTebCls = aveTools.onedl(p['iStop'] - p['iStart'])
-
-
+    
     for iii in range(iMin, iMax):
         print 'rank', rank, 'doing iii' , iii, ', iMin', iMin, ', iMax', iMax
 
         #Turn this off for now as the interpol routine is not compiling for me ATM
-        if False:
+        if True:
+            if False:
+                uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
+                                                          separate_phi_from_cmb = True,
+                                                          phi_seed = iii,
+                                                          seed = iii * 100)
+            if True:
+                uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
+                                                          # separate_phi_from_cmb = True,
+                                                          # phi_seed = iii,
+                                                          seed = iii * 100)
 
-            uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
-                                                      separate_phi_from_cmb = True,
-                                                      phi_seed = iii,
-                                                      seed = iii * 100)
+
 
             mapList = [uTquMap, lTquMap, pMap]
 
             mapNameList = ['fullskyUnlensed', 'fullskyLensed', 'fullskyPhi']
 
-        if True:
+        if False:
             print 'temporarily doing a gaussian random field -- lensed = unlensed'
             print 'calling curvedsky.rand_map'
             uTquMap = curvedsky.rand_map((3,)+shape, wcs, ps[1:, 1:, :], lmax = p['LMAX'],
@@ -108,7 +112,7 @@ if doAll:
             mapList = [uTquMap]
 
             mapNameList = [ 'fullskyUnlensed']
-            stop
+
         if p['doAberration']:
             unaberrated = lTquMap.copy()
 
@@ -121,20 +125,34 @@ if doAll:
             mapList += [unaberrated]
             mapNameList += 'fullskyLensedUnabberated'
 
+        cls[iii] = [None] * len(mapList)
+
         for mi, mmm in enumerate(mapList):
             print 'calling curvedsky.map2alm'
             alm = curvedsky.map2alm(mmm, lmax=p['LMAX'])
 
             cmbDir = p['dataDir']
             print 'writing to disk'
-            filename = cmbDir + "/%s_alm_set%02d_%05d.npy" % ( mapNameList[mi], cmbSet , iii)
 
-            np.save(filename ,
-                            np.complex64(alm))
+            # filename = cmbDir + "/%s_alm_set%02d_%05d.npy" % ( mapNameList[mi], cmbSet , iii)
+
+            # np.save(filename ,
+            #                 np.complex64(alm))
+
+            filename = cmbDir + "/%s_alm_set%02d_%05d.fits" % ( mapNameList[mi], cmbSet , iii)
+
+            healpy.fitsfunc.write_alm((filename ,
+                                       np.complex64(alm))
+
+            # cls[iii] += [healpy.sphtfunc.alm2cl(alm)]
 
 
-        stop
+
+
+    stop
         # uTebMap, uTebAlms, uTebCls[iii] = tqu2teb(uTquMap,p['LMAX_NYQ'], wantAlmAndCl = True)
+
+
         # lTebMap, uTebAlms, lTebCls[iii] = tqu2teb(lTquMap,p['LMAX_NYQ'], wantAlmAndCl = True)
         
 
@@ -197,14 +215,14 @@ if doAll:
 
         #     # enmap.write_map(phiDir + "kappaMap_%05d.fits" % iii,  kappaMap)
 
-    aveTools.mpiSendReceiveList(uTebCls, MPI.COMM_WORLD, iMin, iMax, delta)
-    aveTools.mpiSendReceiveList(lTebCls, MPI.COMM_WORLD, iMin, iMax, delta)
+    # aveTools.mpiSendReceiveList(uTebCls, MPI.COMM_WORLD, iMin, iMax, delta)
+    # aveTools.mpiSendReceiveList(lTebCls, MPI.COMM_WORLD, iMin, iMax, delta)
 
 
-    if rank == 0:
-        pickle.dump(uTebCls, open(p['dataDir'] +  'uTebClsFullsky.pkl', "wb"))
-        pickle.dump(lTebCls, open(p['dataDir'] +  'lTebClsFullsky.pkl', "wb"))
-    print 'finished, took' , time.clock() - startTime
+    # if rank == 0:
+    #     pickle.dump(uTebCls, open(p['dataDir'] +  'uTebClsFullsky.pkl', "wb"))
+    #     pickle.dump(lTebCls, open(p['dataDir'] +  'lTebClsFullsky.pkl', "wb"))
+    # print 'finished, took' , time.clock() - startTime
 
 
 
