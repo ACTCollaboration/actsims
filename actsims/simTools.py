@@ -192,14 +192,14 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         if False:
             print 'loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits HACKING' 
             covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits' )
-        if True:
+        if False:
             print 'loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' 
             covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' )
 
         if noiseDiagsOnly:
             print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' 
             covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' )
-        elif False:
+        elif True:
             print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' 
             covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' )
         

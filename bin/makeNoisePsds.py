@@ -37,6 +37,17 @@ def clPowerFactor(inEnkiMap, flipperNorm = False):
         return 1
 
 
+def my_smoothing(inmap, N = 100):
+
+    smoothed = scipy.ndimage.filters.gaussian_filter(inmap, N)
+    
+    new = np.zeros(smoothed.shape)
+    new[smoothed > .9] = 1.
+
+    smoothedagain = scipy.ndimage.filters.gaussian_filter(new, N)
+
+    return smoothedagain
+
 
 
 
@@ -396,6 +407,15 @@ if doAll:
                 for pt, powerType in enumerate(['flattened', 'unflattened']):
                     crossLinkWindow = enmap.read_fits(p['crossLinkDict'][psa])
                     crossLinkWindowPrime = enmap.read_fits(p['crossLinkDict'][psaPrime])
+
+                    if p['doWindowSmoothing']:
+                        from actsims import noisePrep
+                        if 'smoothingWidth' in p:
+                            crossLinkWindow = noisePrep.mySmoothing(crossLinkWindow, N = p['smoothingWidth'])
+                            crossLinkWindowPrime = noisePrep.mySmoothing(crossLinkWindowPrime, N = p['smoothingWidth'])
+                        else:
+                            crossLinkWindow = noisePrep.mySmoothing(crossLinkWindow, N = p['smoothingWidth'])
+                            crossLinkWindowPrime = noisePrep.mySmoothing(crossLinkWindowPrime, N = p['smoothingWidth'])
 
 
 
