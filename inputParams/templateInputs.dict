@@ -1,6 +1,6 @@
 syncRoot = '/project/projectdirs/act/data/synced_maps/mr2_20170608_20170816/'
 
-dataMapDir = '../templateData/'
+dataMapDir = '../templateDataMr3/'
 
 useCrossLinkMaps = True
 
