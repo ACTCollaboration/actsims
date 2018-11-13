@@ -98,8 +98,8 @@ def getActpolCmbSim(beamfileDict,
     for tqui in range(0, 3):
         if verbose:
             print 'getActpolCmbSim(): cutting out %s map ' % 'TQU'[tqui]
-        lowresMap = enmap.read_fits(cmbDir + '/cmb_set00_%05d/' % iterationNum\
-                                  + "fullskyLensedMap_%s_%05d.fits" \
+        lowresMap = enmap.read_fits(cmbDir + '/cmb_set%02d_%05d/' % (cmbSet, iterationNum)\
+                                  + "fullskyLensedMap_%s_%05d.fits" 
                                   % ('TQU'[tqui], iterationNum), \
                                   box = enmap.box(shape, wcs))
 
@@ -411,7 +411,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                                cmbDir = os.path.dirname(os.path.abspath(__file__))+"/"+sDict['cmbDir'],
                                freqs = psaFreqs,
                                psa = psa,
-                               cmbSet = 0, 
+                               cmbSet = cmbSet, 
                                doBeam = doBeam, applyWindow = applyWindow,
                                verbose = verbose)
 
