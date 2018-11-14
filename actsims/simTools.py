@@ -272,7 +272,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
         raise ValueError('psa %s not found in psaList; options are ' % (psa ), psaList)
 
     # noiseSeed = psaList.index(psa) * 1000000 + iterationNum 
-    noiseSeed = (psaList.index(psa), noiseSeedInd, iterationNum)
+    noiseSeed = (cmbSet, psaList.index(psa), noiseSeedInd, iterationNum)
 
     #load up one sample map, just to get the shape and wcs info.  Do this for "I" at one frequency
     sampleMap = enmap.read_map(os.path.join(os.path.dirname(os.path.abspath(__file__)))+"/"+nDict['dataMapDir'] + 'totalWeightMap' \
@@ -281,7 +281,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
 
     #Note! Foreground seed is the same for every sky patch, season, and frequency!
     #This is because they are used to generate fullsky alm's
-    foregroundSeed = (0, fgSeedInd, iterationNum)
+    foregroundSeed = (cmbSet, 0, fgSeedInd, iterationNum)
 
 
 

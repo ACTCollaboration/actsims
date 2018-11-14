@@ -18,7 +18,13 @@ sys.path.append('../../aveTools/')
 import aveTools
 import pickle
 import cmblens.flipper.flipperDict
+
+print 'hacking paths--remove this after merging to master'
+# from actsims import simTools
+
+sys.path.append('../actsims/')
 import simTools
+
 
 # p = flipper.flipperDict.flipperDict()
 p = cmblens.flipper.flipperDict.flipperDict()
@@ -28,14 +34,10 @@ p.read_from_file('../inputParams/' + sys.argv[1])
 import time
 startTime = time.clock()
 
-
-
 iMin, iMax, delta, rank, size = aveTools.mpiMinMax(MPI.COMM_WORLD, p['iStop'])
 
 
 
-
-# import pdb
 def tqu2teb(tqu, LMAX, wantCl = False, wantAlmAndCl = False):
     alm = curvedsky.map2alm(tqu, lmax=LMAX)
     teb = curvedsky.alm2map(alm[:,None], tqu.copy()[:,None], spin=0)[:,0]
@@ -58,21 +60,6 @@ def phi2kappa(phiMap, LMAX):
 
 
 
-
-#######################
-
-# LMAX = 5000
-# LMAX_NYQ = 5400
-# PIX_SIZE = 2.0
-
-# doAll = True
-# scratch = "/global/cscratch1/sd/engelen/"
-# dataDir = '%s/simsS1516/data/' % scratch
-
-# inputSpecRoot = '../input/cosmo2017' #erminia cosmology
-
-
-
 shape, wcs = enmap.fullsky_geometry(p['PIX_SIZE']*utils.arcmin)
 ps = powspec.read_camb_full_lens(p['inputSpecRoot'] + "_lenspotentialCls.dat")
 lPs = powspec.read_spectrum(p['inputSpecRoot'] + "_lensedCls.dat")
@@ -86,29 +73,28 @@ ps[0, 1:, :] = 0.
 ps[1:, 0, :] = 0.
 
 
+start = time.time()
 
+for cmbSet in range(p['N_CMB_SETS']):    
 
-if doAll:
-    
     for iii in range(iMin, iMax):
-        print 'rank', rank, 'doing iii' , iii, ', iMin', iMin, ', iMax', iMax
+        print 'rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
+            ', iMin', iMin, ', iMax', iMax, 'calling lensing.rand_map', time.time() - start
 
         #Turn this off for now as the interpol routine is not compiling for me ATM
-        if True:
-            if True:
-                phiSeed = (0, simTools.phiSeedInd, iii)
-                cmbSeed = (cmbSet, simTools.cmbSeedInd, iii)
+        phiSeed = (0, 0, simTools.phiSeedInd, iii)
+        cmbSeed = (cmbSet, 0, simTools.cmbSeedInd, iii)
 
 
-                uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
+        uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
                                                           phi_seed = phiSeed,
                                                           seed = cmbSeed)
 
 
                 
-            mapList = [uTquMap, lTquMap, pMap]
+        mapList = [uTquMap, lTquMap, pMap]
 
-            mapNameList = ['fullskyUnlensed', 'fullskyLensed', 'fullskyPhi']
+        mapNameList = ['fullskyUnlensedCMB', 'fullskyLensedCMB', 'fullskyPhi']
 
         if False:
             print 'temporarily doing a gaussian random field -- lensed = unlensed'
@@ -129,6 +115,8 @@ if doAll:
             # lTquMap = aberration.aberrate(lTquMap,
             #                               aberration.dir_equ,
             #                               aberration.beta, modulation = False)
+            print 'rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
+                ', iMin', iMin, ', iMax', iMax, 'calling aberration.boost_map', time.time() - start
 
             lTquMap, AForMod = aberration.boost_map(lTquMap,
                                                     aberration.dir_equ,
@@ -136,11 +124,9 @@ if doAll:
                                                     modulation = None,
                                                     return_modulation = True)
 
-
-
             mapList += [unaberrated]
-            mapNameList += ['fullskyLensedUnabberated']
-
+            mapNameList += ['fullskyLensedUnabberatedCMB']
+            
 
 
         for mi, mmm in enumerate(mapList):
@@ -150,15 +136,61 @@ if doAll:
             cmbDir = p['dataDir']
             print 'writing to disk'
 
-            # filename = cmbDir + "/%s_alm_set%02d_%05d.npy" % ( mapNameList[mi], cmbSet , iii)
 
-            # np.save(filename ,
-            #                 np.complex64(alm))
-
-            filename = cmbDir + "/%s_alm_set%02d_%05d.fits" % ( mapNameList[mi], cmbSet , iii)
+            filename = cmbDir + "/%s_alm_%s%05d.fits" \
+                       % ( mapNameList[mi],
+                           ('set%02d_' % cmbSet if 'CMB' in mapNameList[mi] else '' ) ,
+                           iii)
 
             healpy.fitsfunc.write_alm(filename ,
                                        np.complex64(alm), overwrite = True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
             # cls[iii] += [healpy.sphtfunc.alm2cl(alm)]
                                       

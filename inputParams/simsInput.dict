@@ -24,7 +24,7 @@ iStart = 0
 iStop = 2048
 # iStop = 4
 
-
+N_CMB_SETS = 2
 
 
 
