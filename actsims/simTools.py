@@ -15,6 +15,12 @@ import pdb
 import os
 
 
+#indices for RNG seeds
+cmbSeedInd = 0
+fgSeedInd = 1
+phiSeedInd = 2
+noiseSeedInd = 3
+
 def getActpolCmbFgSim(beamfileDict,
                       shape, wcs,
                       iterationNum, cmbDir, freqs, psa,
@@ -265,7 +271,8 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
     if psa not in psaList:
         raise ValueError('psa %s not found in psaList; options are ' % (psa ), psaList)
 
-    noiseSeed = psaList.index(psa) * 1000000 + iterationNum 
+    # noiseSeed = psaList.index(psa) * 1000000 + iterationNum 
+    noiseSeed = (psaList.index(psa), noiseSeedInd, iterationNum)
 
     #load up one sample map, just to get the shape and wcs info.  Do this for "I" at one frequency
     sampleMap = enmap.read_map(os.path.join(os.path.dirname(os.path.abspath(__file__)))+"/"+nDict['dataMapDir'] + 'totalWeightMap' \
@@ -274,7 +281,9 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
 
     #Note! Foreground seed is the same for every sky patch, season, and frequency!
     #This is because they are used to generate fullsky alm's
-    foregroundSeed =  100000000 + iterationNum 
+    foregroundSeed = (0, fgSeedInd, iterationNum)
+
+
 
     if simType == 'noise':
 

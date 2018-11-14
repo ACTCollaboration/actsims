@@ -18,6 +18,7 @@ sys.path.append('../../aveTools/')
 import aveTools
 import pickle
 import cmblens.flipper.flipperDict
+import simTools
 
 # p = flipper.flipperDict.flipperDict()
 p = cmblens.flipper.flipperDict.flipperDict()
@@ -86,6 +87,7 @@ ps[1:, 0, :] = 0.
 
 
 
+
 if doAll:
     
     for iii in range(iMin, iMax):
@@ -94,9 +96,13 @@ if doAll:
         #Turn this off for now as the interpol routine is not compiling for me ATM
         if True:
             if True:
+                phiSeed = (0, simTools.phiSeedInd, iii)
+                cmbSeed = (cmbSet, simTools.cmbSeedInd, iii)
+
+
                 uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
-                                                          phi_seed = iii,
-                                                          seed = (iii + 2000) * 100)
+                                                          phi_seed = phiSeed,
+                                                          seed = cmbSeed)
 
 
                 
@@ -139,7 +145,7 @@ if doAll:
 
         for mi, mmm in enumerate(mapList):
             print iii, ' calling curvedsky.map2alm for ', mmm
-            alm = curvedsky.map2alm(mmm, lmax=p['LMAX'])
+            alm = curvedsky.map2alm(mmm, lmax=p['LMAX_WRITE'])
 
             cmbDir = p['dataDir']
             print 'writing to disk'
