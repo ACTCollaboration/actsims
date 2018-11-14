@@ -7,7 +7,7 @@ with warnings.catch_warnings():
     warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 
-from enlib import enmap, fft, powspec, resample
+from pixell import enmap, fft, powspec, resample
 
 import pdb
 import os
@@ -222,7 +222,7 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         if verbose:
             print 'getActpolNoiseSim(): inverse transforming'
 
-        outMaps = enmap.harm2map(kmap, iau = True)
+        outMaps = enmap.harm2map(kmap, iau = True, spin = 0)
         #now reshape to have shape [nfreqs, 3, Ny, Nx]
         #The "order = 'F' (row vs. column ordering) is due to the ordering that is done
         #in makeNoisePsds.py for the dichroic arrays,
