@@ -20,8 +20,8 @@ LMAX_NYQ = 10800
 PIX_SIZE = 1.0
 
 iStart = 0
-# iStop = 2048
-iStop = 4
+iStop = 2048
+# iStop = 4
 
 
 
@@ -30,7 +30,7 @@ iStop = 4
 
 
 
-doAberration = False
+doAberration = True
 
 
 

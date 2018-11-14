@@ -79,6 +79,13 @@ lPs = powspec.read_spectrum(p['inputSpecRoot'] + "_lensedCls.dat")
 doAll = True    
 cmbSet = 0 # still to-do: loop over sets.
 
+
+#make phi totally uncorrelated with both T and E.  This is necessary due to the way that separate phi and CMB seeds were put forward in an update to the pixell library around mid-Nov 2018
+ps[0, 1:, :] = 0.
+ps[1:, 0, :] = 0.
+
+
+
 if doAll:
     
     for iii in range(iMin, iMax):
@@ -86,19 +93,13 @@ if doAll:
 
         #Turn this off for now as the interpol routine is not compiling for me ATM
         if True:
-            if False:
-                uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
-                                                          separate_phi_from_cmb = True,
-                                                          phi_seed = iii,
-                                                          seed = iii * 100)
             if True:
                 uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
-                                                          # separate_phi_from_cmb = True,
-                                                          # phi_seed = iii,
-                                                          seed = iii * 100)
+                                                          phi_seed = iii,
+                                                          seed = (iii + 2000) * 100)
 
 
-
+                
             mapList = [uTquMap, lTquMap, pMap]
 
             mapNameList = ['fullskyUnlensed', 'fullskyLensed', 'fullskyPhi']
@@ -116,19 +117,28 @@ if doAll:
         if p['doAberration']:
             unaberrated = lTquMap.copy()
 
-            from enlib import aberration
+            from pixell import aberration
             print 'doing aberration'
-            lTquMap = aberration.aberrate(lTquMap,
-                                          aberration.dir_equ,
-                                          aberration.beta, modulation = False)
+            #This was Sigurd's old version
+            # lTquMap = aberration.aberrate(lTquMap,
+            #                               aberration.dir_equ,
+            #                               aberration.beta, modulation = False)
+
+            lTquMap, AForMod = aberration.boost_map(lTquMap,
+                                                    aberration.dir_equ,
+                                                    aberration.beta,
+                                                    modulation = None,
+                                                    return_modulation = True)
+
+
 
             mapList += [unaberrated]
-            mapNameList += 'fullskyLensedUnabberated'
+            mapNameList += ['fullskyLensedUnabberated']
 
-        cls[iii] = [None] * len(mapList)
+
 
         for mi, mmm in enumerate(mapList):
-            print 'calling curvedsky.map2alm'
+            print iii, ' calling curvedsky.map2alm for ', mmm
             alm = curvedsky.map2alm(mmm, lmax=p['LMAX'])
 
             cmbDir = p['dataDir']
@@ -141,15 +151,15 @@ if doAll:
 
             filename = cmbDir + "/%s_alm_set%02d_%05d.fits" % ( mapNameList[mi], cmbSet , iii)
 
-            healpy.fitsfunc.write_alm((filename ,
-                                       np.complex64(alm))
+            healpy.fitsfunc.write_alm(filename ,
+                                       np.complex64(alm), overwrite = True)
 
             # cls[iii] += [healpy.sphtfunc.alm2cl(alm)]
+                                      
 
 
 
-
-    stop
+                                      
         # uTebMap, uTebAlms, uTebCls[iii] = tqu2teb(uTquMap,p['LMAX_NYQ'], wantAlmAndCl = True)
 
 
