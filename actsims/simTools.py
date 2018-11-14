@@ -166,7 +166,8 @@ def freqsInPsas(psa, freqsInArraysDict):
 
 
 def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
-                      useCovSqrt = True,  killFactor = 30., fillValue = 0., noiseDiagsOnly = False):
+                      useCovSqrt = True,  killFactor = 30., fillValue = 0., noiseDiagsOnly = False,
+                      splitWanted = None):
     #return array of T, Q, U
     #to-do: these are currently using numpy.FFT and are slow; switch to FFTW if installed.
 
@@ -180,10 +181,16 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         iqu = 'I' #FOR NOW
 
 
+        if splitWanted is None:
+            
+            stackOfMaskMaps = [enmap.read_map(noisePsdDir + 'totalWeightMap' \
+                                              + iqu + '_' + psa + '_' + freq  + '_fromenlib.fits') \
+                               for freq in freqs ]
+        else:
+            stackOfMaskMaps = [enmap.read_map(noisePsdDir + 'weightMap_split' + str(splitWanted) \
+                                              + iqu + '_' + psa + '_' + freq  + '_fromenlib.fits') \
+                               for freq in freqs ]
 
-        stackOfMaskMaps = [enmap.read_map(noisePsdDir + 'totalWeightMap' \
-                                                        + iqu + '_' + psa + '_' + freq  + '_fromenlib.fits') \
-                                         for freq in freqs ]
         thisWcs  = stackOfMaskMaps[0].wcs
 
         maskMaps = enmap.enmap(np.stack(stackOfMaskMaps), thisWcs)
@@ -200,9 +207,9 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
             print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' 
             covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' )
         elif True:
+
             print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' 
             covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' )
-        
         
         if verbose:
             print 'getActpolNoiseSim(): running map_mul to make random phases'
@@ -348,7 +355,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                  verbose = True,\
                  simType = 'noise',
                  cmbSet = 0,
-                 doBeam = True, applyWindow = True, noiseDiagsOnly = False):
+                 doBeam = True, applyWindow = True, noiseDiagsOnly = False, splitWanted = None):
                  #update the last one to True if possible
 
 
@@ -382,8 +389,9 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
     if psa not in psaList:
         raise ValueError('psa %s not found in psaList; options are ' % (psa ), psaList)
 
-    noiseSeed = psaList.index(psa) * 1000000 + iterationNum 
-
+    noiseSeed = (psaList.index(psa) + 1) * 1000000 + iterationNum 
+    if splitWanted is not None:
+        noiseSeed += 12345678* (splitWanted + 1)
     #load up one sample map, just to get the shape and wcs info.  Do this for "I" at one frequency
     sampleMap = enmap.read_map(os.path.join(os.path.dirname(os.path.abspath(__file__)))+"/"+nDict['dataMapDir'] + 'totalWeightMap' \
                                                         + 'I' + '_' + psa + '_' + psaFreqs[0]  + '_fromenlib.fits') 
@@ -399,7 +407,8 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                                  psa = psa, \
                                  noisePsdDir = os.path.dirname(os.path.abspath(__file__))+"/"+nDict['dataMapDir'],
                                  freqs = psaFreqs, 
-                                 verbose = verbose, noiseDiagsOnly = noiseDiagsOnly)
+                                 verbose = verbose, noiseDiagsOnly = noiseDiagsOnly,
+                                 splitWanted = splitWanted)
 
     elif simType == 'cmb':
         
