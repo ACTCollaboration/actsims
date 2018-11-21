@@ -1,5 +1,5 @@
-import numpy as np, flipper.flipperDict as flipperDict, pickle
-    # flipper.liteMap as liteMap
+import numpy as np, pickle
+from . import flipperDict
 import astropy.wcs
 
 import warnings
@@ -40,9 +40,9 @@ def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None, appl
 	# Perform the fourier transform
 
 	fd = fft.fft(d, axes=axes)
-        if doBeam:
-            beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1])(d.modlmap())
-            fd *= beam2d
+	if doBeam:
+	    beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1])(d.modlmap())
+	    fd *= beam2d
 	# Frequencies are 0 1 2 ... N/2 (-N)/2 (-N)/2+1 .. -1
 	# Ex 0* 1 2* -1 for n=4 and 0* 1 2 -2 -1 for n=5
 	# To upgrade,   insert (n_new-n_old) zeros after n_old/2
@@ -64,10 +64,10 @@ def resample_fft_withbeam(d, n, axes=None, doBeam = False, beamData = None, appl
 			spost = tuple([slice(None)]*ax+[slice(nnew//2-dn,None)]+[slice(None)]*(fd.ndim-ax-1))
 			fd = np.concatenate([fd[spre],fd[spost]],axis=ax)
 		norm *= float(nnew)/nold
-        #AvE hacking
-        if applyWindow:
-            wy, wx = enmap.calc_window(fd.shape)
-            fd *= wy[:,None]**1 * wx[None,:]**1
+	#AvE hacking
+	if applyWindow:
+	    wy, wx = enmap.calc_window(fd.shape)
+	    fd *= wy[:,None]**1 * wx[None,:]**1
 	# And transform back
 	res  = fft.ifft(fd, axes=axes, normalize=True)
 	del fd
@@ -97,7 +97,7 @@ def getActpolCmbSim(beamfileDict,
 
     for tqui in range(0, 3):
         if verbose:
-            print 'getActpolCmbSim(): cutting out %s map ' % 'TQU'[tqui]
+            print('getActpolCmbSim(): cutting out %s map ' % 'TQU'[tqui])
         lowresMap = enmap.read_fits(cmbDir + '/cmb_set00_%05d/' % iterationNum\
                                   + "fullskyLensedMap_%s_%05d.fits" \
                                   % ('TQU'[tqui], iterationNum), \
@@ -113,8 +113,8 @@ def getActpolCmbSim(beamfileDict,
             beamData = np.loadtxt(os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq] ) if doBeam else None
 
             if verbose:
-                print 'getActpolCmbSim(): upsampling by a factor %d for %s.  Beam is %s, pixel window is %s'\
-                    % (pixelFac, freq, ('on' if doBeam else 'off'), ('on ' if applyWindow else 'off'))
+                print('getActpolCmbSim(): upsampling by a factor %d for %s.  Beam is %s, pixel window is %s'\
+                    % (pixelFac, freq, ('on' if doBeam else 'off'), ('on ' if applyWindow else 'off')))
 
             upsampled = resample_fft_withbeam(lowresMap, \
                                               shape, \
@@ -175,7 +175,7 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
     if useCovSqrt:
         #in this case it was the CovSqrt's that were saved.  This is based on Mat's code in orphics.
         if verbose:
-            print 'getActpolNoiseSim(): getting weight maps; assuming I for all'
+            print('getActpolNoiseSim(): getting weight maps; assuming I for all')
         
         iqu = 'I' #FOR NOW
 
@@ -190,22 +190,22 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
 
         #first one is for IXI, QxQ, UXU only
         if False:
-            print 'loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits HACKING' 
+            print('loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits HACKING' )
             covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits' )
         if False:
-            print 'loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' 
+            print('loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' )
             covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' )
 
         if noiseDiagsOnly:
-            print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' 
+            print('loading' + noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' )
             covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' )
         elif True:
-            print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' 
+            print('loading' + noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' )
             covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' )
         
         
         if verbose:
-            print 'getActpolNoiseSim(): running map_mul to make random phases'
+            print('getActpolNoiseSim(): running map_mul to make random phases')
 
         #get the right normalization
         covsqrt *= np.sqrt(np.prod(covsqrt.shape[-2:]) / enmap.area(covsqrt.shape[-2:], thisWcs ))
@@ -220,7 +220,7 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         # kmap /= sqrt(mask)
 
         if verbose:
-            print 'getActpolNoiseSim(): inverse transforming'
+            print('getActpolNoiseSim(): inverse transforming')
 
         outMaps = enmap.harm2map(kmap, iau = True)
         #now reshape to have shape [nfreqs, 3, Ny, Nx]
@@ -244,7 +244,7 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
                     = fillValue
 
         if verbose:
-            print 'getActpolNoiseSim(): done '
+            print('getActpolNoiseSim(): done ')
 
 
 
@@ -287,7 +287,7 @@ def getActpolForegroundSim(beamfileDict ,
                                 expand = 'row')
 
     if verbose:
-        print 'getActpolForegroundSim(): Getting foreground map '
+        print('getActpolForegroundSim(): Getting foreground map ')
     outputTT_90_150 = curvedsky.rand_map((2,shape[0], shape[1]),
                                          wcs,
                                          temperaturePowers,
@@ -309,8 +309,8 @@ def getActpolForegroundSim(beamfileDict ,
         for fi, freq in enumerate(freqs):
             if doBeam:
                 if verbose:
-                    print 'getActpolForegroundSim(): Convolving foregrounds with beam for frequency ', freq
-                    print os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq]
+                    print('getActpolForegroundSim(): Convolving foregrounds with beam for frequency ', freq)
+                    print(os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq])
                 beamData = np.loadtxt(os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq] )
 
                 beam2d = scipy.interpolate.interp1d(beamData[:,0], beamData[:,1],
@@ -319,7 +319,7 @@ def getActpolForegroundSim(beamfileDict ,
                 beam2d = np.ones(shape)
 
             if applyWindow:
-                print 'getActpolForegroundSim(): Applying pixel window function for frequency ', freq
+                print('getActpolForegroundSim(): Applying pixel window function for frequency ', freq)
 
                 wy, wx = enmap.calc_window(shape)
 
@@ -332,7 +332,7 @@ def getActpolForegroundSim(beamfileDict ,
             output[fi] = enmap.ifft(enmap.fft(output[fi]) * beam2d * wy[:,None]**1 * wx[None,:]**1).real
 
     if verbose:
-        print 'getActpolForegroundSim(): done '
+        print('getActpolForegroundSim(): done ')
 
     return output
 
