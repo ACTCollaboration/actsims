@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 import sys
 sys.path.append('../../')
 
-from enlib import enmap, utils, lensing, powspec, curvedsky
+from pixell import enmap, utils, lensing, powspec, curvedsky
 import numpy as np
 import healpy
 import matplotlib.pyplot as plt
