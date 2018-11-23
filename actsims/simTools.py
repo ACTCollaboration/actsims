@@ -13,7 +13,7 @@ from pixell import enmap, fft, powspec, curvedsky# , resample
 
 import pdb
 import os
-
+import healpy
 
 #indices for RNG seeds
 cmbSeedInd = 0
@@ -37,10 +37,11 @@ def getActpolCmbFgSim(beamfileDict,
 
     if simType == 'cmb':
 
-        filename = cmbDir + "/fullsky%s_alm_set%02d_%05d.npy" % ( cmbMaptype, cmbSet , iterationNum)
+        filename = cmbDir + "/fullsky%s_alm_set%02d_%05d.fits" % ( cmbMaptype, cmbSet , iterationNum)
         if verbose:
             print 'getActpolCmbFgSim(): loading CMB a_lms from %s' % filename
-        almTebFullskyOnecopy = np.load(filename)
+
+        almTebFullskyOnecopy = healpy.fitsfunc.read_alm(filename, hdu = 3)
 
         #Now tile the same for all the frequencies requested (i.e. CMB is same at all frequencies).
         #The beam convolution happens below.
@@ -230,7 +231,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                  season = 's13', \
                  array = 'pa1', \
                  psa = None,\
-                 noiseDictFile = 'templateInputs.dict', \
+                 noiseDictFile = 'templateInputsMr3.dict', \
                  noiseDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'), \
                  signalDictFile = 'signal.dict',\
                  signalDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'),\

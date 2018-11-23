@@ -75,7 +75,7 @@ ps[1:, 0, :] = 0.
 
 start = time.time()
 
-for cmbSet in range(p['N_CMB_SETS']):    
+for cmbSet in range(p['START_SET'], p['STOP_SET']):    
 
     for iii in range(iMin, iMax):
         print 'rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
@@ -130,7 +130,7 @@ for cmbSet in range(p['N_CMB_SETS']):
 
 
         for mi, mmm in enumerate(mapList):
-            print iii, ' calling curvedsky.map2alm for ', mmm
+            print iii, ' calling curvedsky.map2alm for ', mapNameList[mi]
             alm = curvedsky.map2alm(mmm, lmax=p['LMAX_WRITE'])
 
             cmbDir = p['dataDir']
@@ -274,7 +274,7 @@ for cmbSet in range(p['N_CMB_SETS']):
 
 
 
-    exit()
+
 # else:
 #     uTebCls = pickle.dump(uTebCls, open(dataDir + 'uTebCls.dat', "wb"))
 #     pickle.dump(lTebCls, open(dataDir + 'uTebCls.dat', "wb"))
@@ -285,4 +285,4 @@ for cmbSet in range(p['N_CMB_SETS']):
                                             # pickle.dump(powers, open(p['workDir'] + p['basename'] + 'PowersSandbox.pkl', "wb"))
 
     
-    stop                                                
+
