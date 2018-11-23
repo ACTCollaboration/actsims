@@ -25,7 +25,7 @@ def getActpolCmbFgSim(beamfileDict,
                       shape, wcs,
                       iterationNum, cmbDir, freqs, psa,
                       cmbSet = 0, \
-                      doBeam = True, applyWindow = True, verbose = True, cmbMaptype = 'Lensed',
+                      doBeam = True, applyWindow = True, verbose = True, cmbMaptype = 'LensedCMB',
                       foregroundSeed = 0, simType = 'cmb', foregroundPowerFile = None):
 
 
@@ -40,8 +40,8 @@ def getActpolCmbFgSim(beamfileDict,
         filename = cmbDir + "/fullsky%s_alm_set%02d_%05d.fits" % ( cmbMaptype, cmbSet , iterationNum)
         if verbose:
             print 'getActpolCmbFgSim(): loading CMB a_lms from %s' % filename
-
-        almTebFullskyOnecopy = healpy.fitsfunc.read_alm(filename, hdu = 3)
+        import healpy
+        almTebFullskyOnecopy = np.complex128(healpy.fitsfunc.read_alm(filename, hdu = (1,2,3)))
 
         #Now tile the same for all the frequencies requested (i.e. CMB is same at all frequencies).
         #The beam convolution happens below.
@@ -91,7 +91,7 @@ def getActpolCmbFgSim(beamfileDict,
             almTebFullsky[fi, tqui] = healpy.sphtfunc.almxfl(almTebFullsky[fi, tqui].copy(), beamData)
 
     #These lines stolen from curvedsky.rand_map
-    curvedsky.alm2map(almTebFullsky, output, spin = 2,  verbose = True)
+    curvedsky.alm2map(almTebFullsky, output, spin = [0,2],  verbose = True)
     # if len(shape) == 2: output = output[0]
 
     if applyWindow:
@@ -238,7 +238,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                  verbose = True,\
                  simType = 'noise',
                  cmbSet = 0,
-                 doBeam = True, applyWindow = True, noiseDiagsOnly = False, cmbMaptype = 'Lensed'):
+                 doBeam = True, applyWindow = True, noiseDiagsOnly = False, cmbMaptype = 'LensedCMB'):
                  #update the last one to True if possible
 
 
@@ -303,7 +303,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                                  cmbDir = os.path.dirname(os.path.abspath(__file__))+"/"+sDict['cmbDir'],
                                  freqs = psaFreqs,
                                  psa = psa,
-                                 cmbSet = 0, 
+                                 cmbSet = cmbSet, 
                                  doBeam = doBeam, applyWindow = applyWindow,
                                  verbose = verbose, cmbMaptype = cmbMaptype, foregroundSeed = foregroundSeed,
                                  simType = simType,        foregroundPowerFile = sDict['foregroundPowerFile'])

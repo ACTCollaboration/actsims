@@ -22,8 +22,8 @@ from actsims import simTools
 
 #Alternatively, you can pass the info separately, e.g: season = 's13', pa = 'pa1', freqGHz = 150, region = 'deep5'
 
-patch = 'deep6'
-season = 's13'
+patch = 'deep56'
+season = 's14'
 array = 'pa1'
 
 
@@ -38,7 +38,8 @@ cmbSim = simTools.getActpolSim(iterationNum = 0, \
                                simType = 'cmb', \
                                patch = patch, \
                                season = season, \
-                               array = array, noiseDictFile = 'templateInputsMr3b.dict')
+                               array = array, noiseDictFile = 'templateInputsMr3.dict', cmbSet = 1)
+
 
 # fgSim = simTools.getActpolSim(iterationNum = 0, \
 #                               simType = 'foregrounds', \
