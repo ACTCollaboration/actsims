@@ -23,8 +23,8 @@ from actsims import simTools
 #Alternatively, you can pass the info separately, e.g: season = 's13', pa = 'pa1', freqGHz = 150, region = 'deep5'
 
 patch = 'deep56'
-season = 's14'
-array = 'pa1'
+season = 's15'
+array = 'pa3'
 
 
 

@@ -90,9 +90,20 @@ def getActpolCmbFgSim(beamfileDict,
         for tqui in range(nTQUs):
             almTebFullsky[fi, tqui] = healpy.sphtfunc.almxfl(almTebFullsky[fi, tqui].copy(), beamData)
 
-    #These lines stolen from curvedsky.rand_map
-    curvedsky.alm2map(almTebFullsky, output, spin = [0,2],  verbose = True)
-    # if len(shape) == 2: output = output[0]
+        #These lines stolen from curvedsky.rand_map
+        #doing all freqs at once gives error:
+        #sharp.pyx in sharp.execute_dp (cython/sharp.c:12118)()
+        #ValueError: ndarray is not C-contiguous
+        #so loop over all freqs once for now.
+        # curvedsky.alm2map(almTebFullsky, output, spin = [0,2],  verbose = True)
+        # outputThisfreq   = enmap.empty(( nTQUs,)+shape[-2:], wcs)
+        # curvedsky.alm2map(almTebFullsky[fi,:,:], outputThisfreq, spin = [0,2],  verbose = True)
+        # output[fi,...] = outputThisfreq
+
+
+        curvedsky.alm2map(almTebFullsky[fi,:,:], output[fi,:,:,:], spin = [0,2],  verbose = True)
+
+
 
     if applyWindow:
         from enlib import fft
