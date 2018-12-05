@@ -95,13 +95,13 @@ def getActpolCmbFgSim(beamfileDict,
         #sharp.pyx in sharp.execute_dp (cython/sharp.c:12118)()
         #ValueError: ndarray is not C-contiguous
         #so loop over all freqs once for now.
-        # curvedsky.alm2map(almTebFullsky, output, spin = [0,2],  verbose = True)
+    curvedsky.alm2map(almTebFullsky, output, spin = [0,2],  verbose = True)
         # outputThisfreq   = enmap.empty(( nTQUs,)+shape[-2:], wcs)
         # curvedsky.alm2map(almTebFullsky[fi,:,:], outputThisfreq, spin = [0,2],  verbose = True)
         # output[fi,...] = outputThisfreq
 
 
-        curvedsky.alm2map(almTebFullsky[fi,:,:], output[fi,:,:,:], spin = [0,2],  verbose = True)
+        # curvedsky.alm2map(almTebFullsky[fi,:,:], output[fi,:,:,:], spin = [0,2],  verbose = True)
 
 
 
