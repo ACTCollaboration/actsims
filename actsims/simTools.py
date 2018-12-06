@@ -113,7 +113,7 @@ def getActpolCmbFgSim(beamfileDict,
         if verbose:
             print 'getActpolCmbFgSim(): applying pixel window function'
 
-        nfreq = output.shape[0]
+        nfreq = len(freqs)
         for idx in range(nfreq):
             fd = fft.fft(output[idx], axes = axes)
             wy, wx = enmap.calc_window(fd.shape)
