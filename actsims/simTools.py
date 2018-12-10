@@ -203,8 +203,8 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
 
         if verbose:
             print 'getActpolNoiseSim(): inverse transforming'
-
-        outMaps = enmap.harm2map(kmap, iau = True)
+            print 'you are transforming %d maps' % kmap.shape[0]
+        outMaps = enmap.harm2map(kmap, iau = True, spin = np.repeat([0], kmap.shape[0]))
         #now reshape to have shape [nfreqs, 3, Ny, Nx]
         #The "order = 'F' (row vs. column ordering) is due to the ordering that is done
         #in makeNoisePsds.py for the dichroic arrays,
