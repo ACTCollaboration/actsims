@@ -1,5 +1,5 @@
 import numpy as np, pickle
-from . import flipperDict
+from flipper import flipperDict
 import astropy.wcs
 
 import warnings
