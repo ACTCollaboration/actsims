@@ -243,7 +243,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                  season = 's13', \
                  array = 'pa1', \
                  psa = None,\
-                 noiseDictFile = 'templateInputsMr3.dict', \
+                 noiseDictFile = 'templateInputsMr3c.dict', \
                  noiseDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'), \
                  signalDictFile = 'signal.dict',\
                  signalDictFilePath = os.path.join(os.path.dirname(os.path.abspath(__file__)),'../inputParams/'),\
