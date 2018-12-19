@@ -40,7 +40,7 @@ def getActpolCmbFgSim(beamfileDict,
 
         filename = cmbDir + "/fullsky%s_alm_set%02d_%05d.fits" % ( cmbMaptype, cmbSet , iterationNum)
         if verbose:
-            print(('getActpolCmbFgSim(): loading CMB a_lms from %s' % filename))
+            print('getActpolCmbFgSim(): loading CMB a_lms from %s' % filename)
         import healpy
         almTebFullskyOnecopy = np.complex128(healpy.fitsfunc.read_alm(filename, hdu = (1,2,3)))
 
@@ -78,7 +78,7 @@ def getActpolCmbFgSim(beamfileDict,
         if doBeam:
             beamFile = os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq]
             if verbose:
-                print(('getActpolCmbFgSim(): applying beam from %s' % beamFile))
+                print('getActpolCmbFgSim(): applying beam from %s' % beamFile)
             beamData = (np.loadtxt(beamFile ))[:,1]
         else:
             if verbose:
