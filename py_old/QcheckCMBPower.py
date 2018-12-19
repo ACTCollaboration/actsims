@@ -10,7 +10,7 @@ import statsTools
 import aveTools
 import pickle
 
-print "Reading dict file"
+print("Reading dict file")
 p = flipperDict.flipperDict()
 p.read_from_file(sys.argv[1])
 
@@ -23,7 +23,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
     
-print rank, size
+print(rank, size)
 
 iStart = p['iStart']
 iStop = p['iStop']
@@ -33,7 +33,7 @@ delta = (iStop - iStart)/size
 if delta == 0:
 	raise ValueError, 'Too many processors for too small a  loop!'
 
-print delta
+print(delta)
 iMin = iStart+rank*delta
 iMax = iStart+(rank+1)*delta
 
@@ -228,10 +228,10 @@ if doAll:
 
                 for n, subarrName in enumerate(nsNamesSubarr[i]):
 
-                    print '*** iter ', iii, 'from ', iMin, 'to ', iMax , \
+                    print('*** iter ', iii, 'from ', iMin, 'to ', iMax , \
                         ' -- set ', cmbSet, ' of ', numCMBsets, \
                         ' -- patch ', patch, i, ' of ', len(nsNames), \
-                        ' -- subarr ' , subarrName, n, ' of ', len(nsNamesSubarr[i])
+                        ' -- subarr ' , subarrName, n, ' of ', len(nsNamesSubarr[i]))
                     sampleCutoutMap = liteMap.liteMapFromFits(lensDir+'/order%d_lensedCMB_'%TaylOrder + 'T_beam%s_cutout_%s.fits'%(subarrName,patch))
 
                     # tapers[i] = liteMapPol.initializeCosineWindow(sampleCutoutMap, cosineApod['lenApod'], cosineApod['pad'])  # taper weight map
@@ -294,7 +294,7 @@ if doAll:
                             
 
 
-print 'got here'
+print('got here')
 
 
 def myplot(inDict, name = ''):

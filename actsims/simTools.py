@@ -1,6 +1,7 @@
 
 
-import numpy as np, flipper.flipperDict as flipperDict, pickle
+import numpy as np, pickle
+from . import flipperDict
 
 import astropy.wcs
 
@@ -39,7 +40,7 @@ def getActpolCmbFgSim(beamfileDict,
 
         filename = cmbDir + "/fullsky%s_alm_set%02d_%05d.fits" % ( cmbMaptype, cmbSet , iterationNum)
         if verbose:
-            print 'getActpolCmbFgSim(): loading CMB a_lms from %s' % filename
+            print(('getActpolCmbFgSim(): loading CMB a_lms from %s' % filename))
         import healpy
         almTebFullskyOnecopy = np.complex128(healpy.fitsfunc.read_alm(filename, hdu = (1,2,3)))
 
@@ -48,7 +49,7 @@ def getActpolCmbFgSim(beamfileDict,
         almTebFullsky = np.tile(almTebFullskyOnecopy, (len(freqs), 1, 1))
 
         if verbose:
-            print 'getActpolCmbFgSim(): done'
+            print('getActpolCmbFgSim(): done')
 
     elif simType == 'foregrounds':
         outputFreqs = ['f090', 'f150']
@@ -62,7 +63,7 @@ def getActpolCmbFgSim(beamfileDict,
 
 
         if verbose:
-            print 'getActpolCmbFgSim(): getting foreground a_lms'
+            print('getActpolCmbFgSim(): getting foreground a_lms')
         almTFullsky90and150 = curvedsky.rand_alm(foregroundPowers, seed = foregroundSeed)
 
         almTebFullsky = np.zeros((len(freqs), nTQUs,) + (len(almTFullsky90and150[-1]),), dtype = np.complex128)
@@ -77,11 +78,11 @@ def getActpolCmbFgSim(beamfileDict,
         if doBeam:
             beamFile = os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq]
             if verbose:
-                print 'getActpolCmbFgSim(): applying beam from %s' % beamFile
+                print(('getActpolCmbFgSim(): applying beam from %s' % beamFile))
             beamData = (np.loadtxt(beamFile ))[:,1]
         else:
             if verbose:
-                print 'getActpolCmbFgSim(): not convolving with beam'
+                print('getActpolCmbFgSim(): not convolving with beam')
             beamData = np.repeat(1., almTebFullsky.shape[-1])
 
         import healpy
@@ -111,7 +112,7 @@ def getActpolCmbFgSim(beamfileDict,
         #The axes along which to FFT
         axes = [-2, -1]
         if verbose:
-            print 'getActpolCmbFgSim(): applying pixel window function'
+            print('getActpolCmbFgSim(): applying pixel window function')
 
         nfreq = len(freqs)
         for idx in range(nfreq):
@@ -125,7 +126,7 @@ def getActpolCmbFgSim(beamfileDict,
             output[idx] = (fft.ifft(fd, axes = axes, normalize = True)).real
             del fd
         if verbose:
-            print 'getActpolCmbFgSim(): done'
+            print('getActpolCmbFgSim(): done')
 
     return enmap.ndmap(output, wcs)
 
@@ -157,7 +158,7 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
     if useCovSqrt:
         #in this case it was the CovSqrt's that were saved.  This is based on Mat's code in orphics.
         if verbose:
-            print 'getActpolNoiseSim(): getting weight maps; assuming I for all'
+            print('getActpolNoiseSim(): getting weight maps; assuming I for all')
         
         iqu = 'I' #FOR NOW
 
@@ -171,30 +172,37 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         maskMaps = enmap.enmap(np.stack(stackOfMaskMaps), thisWcs)
 
         #first one is for IXI, QxQ, UXU only
+        print("loading")
         if False:
-            print 'loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits HACKING' 
+            print('loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits HACKING') 
             covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrtDiags_' + psa + '.fits' )
         if False:
-            print 'loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' 
+            print('loading' + noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits') 
             covsqrt = enmap.read_fits(noisePsdDir + '/bigMatrixNoisePsdsCovSqrt_' + psa + '.fits' )
 
         if noiseDiagsOnly:
-            print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' 
+            print('loading' + noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits') 
             covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrtDiags_' + psa + '.fits' )
         elif True:
-            print 'loading' + noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' 
+            print('loading' + noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits') 
             covsqrt = enmap.read_fits(noisePsdDir + '/noisePsds_flattened_covSqrt_' + psa + '.fits' )
+        print("loading done")
         
         
         if verbose:
-            print 'getActpolNoiseSim(): running map_mul to make random phases'
+            print('getActpolNoiseSim(): running map_mul to make random phases')
 
         #get the right normalization
         covsqrt *= np.sqrt(np.prod(covsqrt.shape[-2:]) / enmap.area(covsqrt.shape[-2:], thisWcs ))
 
         np.random.seed(noiseSeed)
-        kmap = enmap.map_mul(covsqrt, enmap.rand_gauss_harm((covsqrt.shape[0], covsqrt.shape[-2:][0], covsqrt.shape[-2:][1]),
-                                                            thisWcs))
+        print("randmap")
+        rmap = enmap.rand_gauss_harm((covsqrt.shape[0], covsqrt.shape[-2:][0], covsqrt.shape[-2:][1]),
+                                                            thisWcs)
+        print("randmap done")
+        print("map_mul")
+        kmap = enmap.map_mul(covsqrt, rmap)
+        print("map_mul done")
 
         #old way:
         # kmapReshape = kmap.reshape((4, kmap.shape[-2:][0], kmap.shape[-2:][1]))
@@ -202,9 +210,12 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         # kmap /= sqrt(mask)
 
         if verbose:
-            print 'getActpolNoiseSim(): inverse transforming'
-            print 'you are transforming %d maps' % kmap.shape[0]
-        outMaps = enmap.harm2map(kmap, iau = True, spin = np.repeat([0], kmap.shape[0]))
+            print('getActpolNoiseSim(): inverse transforming')
+            print('you are transforming %d maps' % kmap.shape[0])
+        spin = np.repeat([0], kmap.shape[0])
+        print("fft")
+        outMaps = enmap.harm2map(kmap, iau = False, spin = spin)
+        print("fft done")
         #now reshape to have shape [nfreqs, 3, Ny, Nx]
         #The "order = 'F' (row vs. column ordering) is due to the ordering that is done
         #in makeNoisePsds.py for the dichroic arrays,
@@ -226,7 +237,7 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
                     = fillValue
 
         if verbose:
-            print 'getActpolNoiseSim(): done '
+            print('getActpolNoiseSim(): done ')
 
 
 

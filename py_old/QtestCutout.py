@@ -62,7 +62,7 @@ def lensMaps(phi,T_map,Q_map,U_map):#,iii,count): van Engelen commented out the 
         cont.data[:]=0
         for k in range(n+1):
                 
-            print k, n-k, binomial(n,k), scipy.misc.factorial(n)
+            print(k, n-k, binomial(n,k), scipy.misc.factorial(n))
                 
             fac=1j**n*binomial(n,k)*lx_array**(n-k)*ly_array**k/(scipy.misc.factorial(n))
             T_add=numpy.real(numpy.fft.ifft2(fac*ft.kMap))[(iy+alphaY0)%T_map.Ny, (ix+alphaX0)%T_map.Nx]*delta_alphaX**(n-k)*delta_alphaY**k
@@ -81,7 +81,7 @@ def lensMaps(phi,T_map,Q_map,U_map):#,iii,count): van Engelen commented out the 
 
 
 
-print "Reading dict file"
+print("Reading dict file")
 p = flipperDict.flipperDict()
 p.read_from_file(sys.argv[1])
 
@@ -91,7 +91,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
     
-print rank, size
+print(rank, size)
 
 iStart = p['iStart']
 iStop = p['iStop']
@@ -101,7 +101,7 @@ delta = (iStop - iStart)/size
 if delta == 0:
 	raise ValueError, 'Too many processors for too small a  loop!'
 
-print delta
+print(delta)
 iMin = iStart+rank*delta
 iMax = iStart+(rank+1)*delta
 
@@ -221,7 +221,7 @@ globalnum = 10 * iMin + seedbase2
 # dataMapDir = '/scratch2/r/rbond/engelen/lensRecon/maps/dataMaps/actpolDeep/'
 #changing for local beams files...
 dataMapDir = '../data/'
-print 'got here'
+print('got here')
 
 
 
