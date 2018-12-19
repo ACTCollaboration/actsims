@@ -275,13 +275,13 @@ iqusForInputWeights = ['I', 'QQ', 'UU']
 justUseIWeights = p['justUseIWeights'] if 'justUseIWeights' in p else False
 
 
-print(('len(psaList) = ', len(psaList)))
+print('len(psaList) = ', len(psaList))
 piMin, piMax, delta, rank, size = mpiTools.mpiMinMax(MPI.COMM_WORLD, len(psaList))
 
 # piMin, piMax, delta, rank, size = mpiTools.mpiMinMax(MPI.COMM_WORLD, len(psaList))
-print(('piMin %i, piMax %i, delta %i, rank %i, size %i' % (piMin, piMax, delta, rank, size)))
+print('piMin %i, piMax %i, delta %i, rank %i, size %i' % (piMin, piMax, delta, rank, size))
 
-print(('rank %i will do patches:' %rank, psaList[piMin:piMax]))
+print('rank %i will do patches:' %rank, psaList[piMin:piMax])
 
 import itertools
 
@@ -316,7 +316,7 @@ if doAll:
                 if indexPrime > index:
                     continue
 
-                print((psa, ': doing ' , freq , 'with ', freqPrime, '; doing ', iqu , 'with ', iquPrime))
+                print(psa, ': doing ' , freq , 'with ', freqPrime, '; doing ', iqu , 'with ', iquPrime)
 
 
                 mapsForSimgen = onedl(nSplits[pi])
@@ -444,34 +444,34 @@ if doAll:
 
             import time
             start = time.time()
-            print(('saving ', powerType))
+            print('saving ', powerType)
             # np.save(dataMapDir + 'bigMatrixNoisePsds_' + psa + '.np', bigMatrixNoisePsds )
             enmap.write_fits(dataMapDir + 'noisePsds_%s_' % powerType + psa + '.fits',  outputPsd)
-            print(('done', time.time() - start))
+            print('done', time.time() - start)
 
 
-            print(('making covsqrt of %s - diagonals' % powerType))
+            print('making covsqrt of %s - diagonals' % powerType)
             start = time.time()
             covsqrtDiagsOnly = enmap.enmap(np.zeros(outputPsd.shape), outputPsd.wcs)        
             for i in range(len(IQUs)):
                 covsqrtDiagsOnly[i::3, i::3, : , :] \
                     = array_ops.eigpow(outputPsd[i::3,i::3, :, :], 0.5, axes = [0,1])
-            print(('done', time.time() - start))
+            print('done', time.time() - start)
 
-            print(('writing covsqrt of %s - diagonals' % powerType))
+            print('writing covsqrt of %s - diagonals' % powerType)
             start = time.time()
             enmap.write_fits(dataMapDir + '/noisePsds_%s_covSqrtDiags_' %powerType + psa + '.fits', covsqrtDiagsOnly )
-            print(('done', time.time() - start))
+            print('done', time.time() - start)
 
-            print(('making covsqrt of %s' % powerType))
+            print('making covsqrt of %s' % powerType)
             start = time.time()
             covsqrt = array_ops.eigpow(outputPsd, 0.5, axes = [0,1])
-            print(('done', time.time() - start))
+            print('done', time.time() - start)
 
-            print(('saving covsqrt of %s' % powerType))
+            print('saving covsqrt of %s' % powerType)
             start = time.time()
             enmap.write_fits(dataMapDir + '/noisePsds_%s_covSqrt_' %powerType + psa + '.fits', covsqrt )
-            print(('done'        , time.time() - start))
+            print('done'        , time.time() - start)
 
 
         
