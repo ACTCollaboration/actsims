@@ -23,22 +23,15 @@ from actsims import simTools
 #Alternatively, you can pass the info separately, e.g: season = 's13', pa = 'pa1', freqGHz = 150, region = 'deep5'
 
 patch = 'deep56'
-season = 's15'
-array = 'pa3'
+season = 'planck'
+array = 'smica'
 
-
-
-# noiseSim = simTools.getActpolSim(iterationNum = 0, \
-#                                  simType = 'noise', \
-#                                  patch = patch, \
-#                                  season = season, \
-#                                  array = array)
 
 cmbSim = simTools.getActpolSim(iterationNum = 0, \
                                simType = 'cmb', \
                                patch = patch, \
                                season = season, \
-                               array = array, noiseDictFile = 'templateInputsMr3.dict', cmbSet = 1)
+                               array = array, noiseDictFile = 'templateInputsPlanck.dict', cmbSet = 0)
 
 
 # fgSim = simTools.getActpolSim(iterationNum = 0, \

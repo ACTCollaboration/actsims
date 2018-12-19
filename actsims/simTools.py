@@ -150,7 +150,7 @@ def freqsInPsas(psa, freqsInArraysDict):
 def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
                       useCovSqrt = True,  killFactor = 30., fillValue = 0., noiseDiagsOnly = False):
     #return array of T, Q, U
-    #to-do: these are currently using numpy.FFT and are slow; switch to FFTW if installed.
+
 
     #Could also have an alternative version of this using enlib tools.
 
@@ -162,7 +162,7 @@ def getActpolNoiseSim(noiseSeed, psa, noisePsdDir, freqs, verbose = True,
         iqu = 'I' #FOR NOW
 
 
-
+        
         stackOfMaskMaps = [enmap.read_map(noisePsdDir + 'totalWeightMap' \
                                                         + iqu + '_' + psa + '_' + freq  + '_fromenlib.fits') \
                                          for freq in freqs ]
@@ -285,7 +285,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
         raise ValueError('psa %s not found in psaList; options are ' % (psa ), psaList)
 
     # noiseSeed = psaList.index(psa) * 1000000 + iterationNum 
-    noiseSeed = (cmbSet, psaList.index(psa), noiseSeedInd, iterationNum)
+    noiseSeed = (cmbSet, psaList.index(psa), noiseSeedInd + p['rngBase'], iterationNum)
 
     #load up one sample map, just to get the shape and wcs info.  Do this for "I" at one frequency
     sampleMap = enmap.read_map(os.path.join(os.path.dirname(os.path.abspath(__file__)))+"/"+nDict['dataMapDir'] + 'totalWeightMap' \

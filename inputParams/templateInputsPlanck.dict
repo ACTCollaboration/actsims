@@ -1,0 +1,58 @@
+
+# syncRoot = '/project/projectdirs/act/data/synced_maps/mr2_20170608_20170816/'
+# syncRoot = '/project/projectdirs/act/data/synced_maps/mr3/'
+
+# syncRoot = '/project/projectdirs/act/data/synced_maps/mr3_20180914/'
+
+syncRoot = '/project/projectdirs/act/data/synced_maps/mr3c_20181012/'
+dataMapDir = '../templateDataPlanck/'
+
+useCrossLinkMaps = True
+
+
+
+
+
+freqsInArrays =  {'pa1': ['f150'], \
+                'pa2':  ['f150'], \
+                'pa3': ['f090', 'f150']}
+
+# spaList = [['s14_deep56_pa1']]
+
+spaList = [['planck_deep56_smica'],\
+           ['planck_boss_smica']]
+
+# psaList = [['deep56_s14_pa1']]
+# very ugly hacking here..
+psaList = [['deep56_planck_smica'],
+          ['boss_planck_smica']]
+
+
+beamBase = '/global/cscratch1/sd/engelen/templateDataPlanck/'
+
+doWindowSmoothing = True
+smoothingWidth = 75
+rngBase = 100
+beamList = {'deep56_planck_smica': beamBase + 'beamSMICANoSZ.txt',\
+            'boss_planck_smica': beamBase + 'beamSMICANoSZ.txt'}
+
+
+# crossLinkRoot = '/global/cscratch1/sd/engelen/crosslink_maps/mask_run_180323/'
+
+# crossLinkEnd = '_mask_run_180323_master_apo_w0.fits'
+
+# crossLinkDict = {'deep1_s13_pa1': crossLinkRoot + 'deep1' + crossLinkEnd, \
+#                  'deep5_s13_pa1': crossLinkRoot + 'deep5' + crossLinkEnd, \
+#                  'deep6_s13_pa1': crossLinkRoot + 'deep6' + crossLinkEnd, \
+#                  'deep56_s14_pa1':crossLinkRoot + 'deep56' + crossLinkEnd, \
+#                  'deep56_s14_pa2':crossLinkRoot + 'deep56' + crossLinkEnd, \
+#                  'deep56_s15_pa1':crossLinkRoot + 'deep56' + crossLinkEnd, \
+#                  'deep56_s15_pa2':crossLinkRoot + 'deep56' + crossLinkEnd, \
+#                  'deep56_s15_pa3':crossLinkRoot + 'deep56' + crossLinkEnd, \
+#                  'deep8_s15_pa1':crossLinkRoot + 'deep8' + crossLinkEnd, \
+#                  'deep8_s15_pa2':crossLinkRoot + 'deep8' + crossLinkEnd, \
+#                  'deep8_s15_pa3':crossLinkRoot + 'deep8' + crossLinkEnd, \
+#                  'boss_s15_pa1': crossLinkRoot + 'boss' + crossLinkEnd, \
+#                  'boss_s15_pa2': crossLinkRoot + 'boss' + crossLinkEnd, \
+#                  'boss_s15_pa3': crossLinkRoot + 'boss' + crossLinkEnd}
+
