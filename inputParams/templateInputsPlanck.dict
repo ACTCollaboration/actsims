@@ -14,8 +14,8 @@ useCrossLinkMaps = True
 
 
 freqsInArrays =  {'pa1': ['f150'], \
-                'pa2':  ['f150'], \
-                'pa3': ['f090', 'f150']}
+                  'pa2':  ['f150'], \
+                  'pa3': ['f090', 'f150'], 'smica' : ['cmb']}
 
 # spaList = [['s14_deep56_pa1']]
 
@@ -24,8 +24,8 @@ spaList = [['planck_deep56_smica'],\
 
 # psaList = [['deep56_s14_pa1']]
 # very ugly hacking here..
-psaList = [['deep56_planck_smica'],
-          ['boss_planck_smica']]
+psaList = [['deep56_planck_smica'],\
+           ['boss_planck_smica']]
 
 
 beamBase = '/global/cscratch1/sd/engelen/templateDataPlanck/'
@@ -33,8 +33,8 @@ beamBase = '/global/cscratch1/sd/engelen/templateDataPlanck/'
 doWindowSmoothing = True
 smoothingWidth = 75
 rngBase = 100
-beamList = {'deep56_planck_smica': beamBase + 'beamSMICANoSZ.txt',\
-            'boss_planck_smica': beamBase + 'beamSMICANoSZ.txt'}
+beamList = {'deep56_planck_smica_cmb': beamBase + 'beamSMICANoSZ.txt',\
+            'boss_planck_smica_cmb': beamBase + 'beamSMICANoSZ.txt'}
 
 
 # crossLinkRoot = '/global/cscratch1/sd/engelen/crosslink_maps/mask_run_180323/'

@@ -33,6 +33,17 @@ cmbSim = simTools.getActpolSim(iterationNum = 0, \
                                season = season, \
                                array = array, noiseDictFile = 'templateInputsPlanck.dict', cmbSet = 0)
 
+# patch = 'deep5'
+# season = 's13'
+# array = 'pa1'
+
+
+# cmbSim = simTools.getActpolSim(iterationNum = 0, \
+#                                simType = 'cmb', \
+#                                patch = patch, \
+#                                season = season, \
+#                                array = array, cmbSet = 0)
+
 
 # fgSim = simTools.getActpolSim(iterationNum = 0, \
 #                               simType = 'foregrounds', \

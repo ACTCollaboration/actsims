@@ -16,7 +16,7 @@ coordsEpsilonArcminCMBSim = [[0, 0], [0, 0]]
 
 beamBase = '../beams/171206/beam_tform_171206_'
 
-
+beamBasePlanck = '../beamsPlanck/'
 
 beamNames = {'deep1_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_instant.txt', \
              'deep5_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_instant.txt', \
@@ -34,7 +34,10 @@ beamNames = {'deep1_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_instant.txt'
              'boss_s15_pa1_f150': beamBase + 'pa1_150GHz_3_310_s15_instant.txt',\
              'boss_s15_pa2_f150': beamBase + 'pa2_150GHz_4_410_s15_instant.txt',\
              'boss_s15_pa3_f090': beamBase + 'pa3_90GHz_5_420_s15_instant.txt', \
-             'boss_s15_pa3_f150': beamBase + 'pa3_150GHz_6_410_s15_instant.txt'}
+             'boss_s15_pa3_f150': beamBase + 'pa3_150GHz_6_410_s15_instant.txt',\
+             'deep56_planck_smica_cmb': beamBasePlanck + 'beamSMICANoSZ.txt',\
+             'boss_planck_smica_cmb': beamBasePlanck + 'beamSMICANoSZ.txt'}
+
 
 
 foregroundPowerFile = 'fg.dat'
