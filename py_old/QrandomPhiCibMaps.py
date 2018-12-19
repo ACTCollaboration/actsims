@@ -64,14 +64,14 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
 
-print rank, size
+print(rank, size)
 
 delta = (iStop - iStart)/size
 
 if delta == 0:
 	raise ValueError, 'Too many processors for too small a  loop!'
 
-print delta
+print(delta)
 iMin = iStart+rank*delta
 iMax = iStart+(rank+1)*delta
 
@@ -110,7 +110,7 @@ globalnum = 10 * iMin + seedbase1
 
 for iii in xrange(iMin,iMax):
     phiDir = "%s_%05d"%(phiDirRoot,iii)
-    print 'iteration' ,iii, iMin, iMax
+    print('iteration' ,iii, iMin, iMax)
     try:
         os.mkdir(phiDir)
     except:
@@ -119,7 +119,7 @@ for iii in xrange(iMin,iMax):
     count = 0 
 
     for i, patch in enumerate(nsNames):
-        print "reading template %03d"%count
+        print("reading template %03d"%count)
         m = liteMap.liteMapFromFits(mapFiles[i])
         m.data[:] = 0.
 
@@ -131,7 +131,7 @@ for iii in xrange(iMin,iMax):
                                          Ra1Array[i] + buffer, Dec1Array[i] + buffer)
 
 
-        print globalnum
+        print(globalnum)
         # (phiMap, cibMap) = simCorrelatedMaps(m,l_limber,clphi_limber,clcib_limber,clcibphi_limber, seed = globalnum)        
         (phiMap, cibMap) = simCorrelatedMaps(m,lphi,clphi, cibPower,cibPhiPower, seed = globalnum)        
 
@@ -155,15 +155,15 @@ for iii in xrange(iMin,iMax):
         # select the relevant part
         # m=m.selectSubMap(Ra0Array[count]-buffer,Ra1Array[count]+buffer,Dec0Array[count]-buffer,Dec1Array[count]+buffer)
         
-        print '='*10
-        print 'Map Coordinates'
+        print('='*10)
+        print('Map Coordinates')
         phiMap.info()
-        print '='*10
+        print('='*10)
         
-        print '='*10
-        print 'Map Coordinates'
+        print('='*10)
+        print('Map Coordinates')
         cibMap.info()
-        print '='*10
+        print('='*10)
         
         
         # fill it with a Gaussian Random realization of Phi
@@ -178,15 +178,15 @@ for iii in xrange(iMin,iMax):
         kappaMap.writeFits('%s/kappaMap_%s.fits'%(phiDir, patch),overWrite=True)
         cibMap.writeFits('%s/cibMap_%s.fits'%(phiDir, patch),overWrite=True)
 
-        print ''
+        print('')
         count += 1
 
         #this was just to check the cutout coords.
         if False:
             cutoutphi =    phiMap.selectSubMap(Ra0Array[i],Ra1Array[i],Dec0Array[i],Dec1Array[i])
-            print '='*10
-            print 'Cutout Coordinates'
+            print('='*10)
+            print('Cutout Coordinates')
             cutoutphi.info()
-            print '='*10
+            print('='*10)
 
     

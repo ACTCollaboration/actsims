@@ -17,9 +17,9 @@ from mpi4py import MPI
 sys.path.append('../../aveTools/')
 import aveTools
 import pickle
-import cmblens.flipper.flipperDict
+from actsims import flipperDict
 
-print 'hacking paths--remove this after merging to master'
+print('hacking paths--remove this after merging to master')
 # from actsims import simTools
 
 sys.path.append('../actsims/')
@@ -27,7 +27,7 @@ import simTools
 
 
 # p = flipper.flipperDict.flipperDict()
-p = cmblens.flipper.flipperDict.flipperDict()
+p = flipperDict.flipperDict()
 
 p.read_from_file('../inputParams/' + sys.argv[1])
 
@@ -78,8 +78,8 @@ start = time.time()
 for cmbSet in range(p['START_SET'], p['STOP_SET']):    
 
     for iii in range(iMin, iMax):
-        print 'rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
-            ', iMin', iMin, ', iMax', iMax, 'calling lensing.rand_map', time.time() - start
+        print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
+            ', iMin', iMin, ', iMax', iMax, 'calling lensing.rand_map', time.time() - start)
 
         #Turn this off for now as the interpol routine is not compiling for me ATM
         phiSeed = (0, 0, simTools.phiSeedInd, iii)
@@ -97,8 +97,8 @@ for cmbSet in range(p['START_SET'], p['STOP_SET']):
         mapNameList = ['fullskyUnlensedCMB', 'fullskyLensedCMB', 'fullskyPhi']
 
         if False:
-            print 'temporarily doing a gaussian random field -- lensed = unlensed'
-            print 'calling curvedsky.rand_map'
+            print('temporarily doing a gaussian random field -- lensed = unlensed')
+            print('calling curvedsky.rand_map')
             uTquMap = curvedsky.rand_map((3,)+shape, wcs, ps[1:, 1:, :], lmax = p['LMAX'],
                                          seed = iii * 100)
 
@@ -110,13 +110,13 @@ for cmbSet in range(p['START_SET'], p['STOP_SET']):
             unaberrated = lTquMap.copy()
 
             from pixell import aberration
-            print 'doing aberration'
+            print('doing aberration')
             #This was Sigurd's old version
             # lTquMap = aberration.aberrate(lTquMap,
             #                               aberration.dir_equ,
             #                               aberration.beta, modulation = False)
-            print 'rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
-                ', iMin', iMin, ', iMax', iMax, 'calling aberration.boost_map', time.time() - start
+            print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
+                ', iMin', iMin, ', iMax', iMax, 'calling aberration.boost_map', time.time() - start)
 
             lTquMap, AForMod = aberration.boost_map(lTquMap,
                                                     aberration.dir_equ,
@@ -130,11 +130,11 @@ for cmbSet in range(p['START_SET'], p['STOP_SET']):
 
 
         for mi, mmm in enumerate(mapList):
-            print iii, ' calling curvedsky.map2alm for ', mapNameList[mi]
+            print(iii, ' calling curvedsky.map2alm for ', mapNameList[mi])
             alm = curvedsky.map2alm(mmm, lmax=p['LMAX_WRITE'])
 
             cmbDir = p['dataDir']
-            print 'writing to disk'
+            print('writing to disk')
 
 
             filename = cmbDir + "/%s_alm_%s%05d.fits" \

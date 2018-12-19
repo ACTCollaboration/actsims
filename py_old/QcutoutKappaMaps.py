@@ -12,7 +12,7 @@ import statsTools
 
 
 
-print "Reading dict file"
+print("Reading dict file")
 p = flipperDict.flipperDict()
 p.read_from_file(sys.argv[1])
 
@@ -22,7 +22,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
     
-print rank, size
+print(rank, size)
 
 iStart = p['iStart']
 iStop = p['iStop']
@@ -32,7 +32,7 @@ delta = (iStop - iStart)/size
 if delta == 0:
 	raise ValueError, 'Too many processors for too small a  loop!'
 
-print delta
+print(delta)
 iMin = iStart+rank*delta
 iMax = iStart+(rank+1)*delta
 
@@ -194,7 +194,7 @@ globalnum = 10 * iMin + seedbase2
 # dataMapDir = '/scratch2/r/rbond/engelen/lensRecon/maps/dataMaps/actpolDeep/'
 #changing for local beams files...
 dataMapDir = '../data/'
-print 'got here'
+print('got here')
 
 
 
@@ -211,9 +211,9 @@ for iii in xrange(iMin,iMax):
 
         for n, subarrName in enumerate(nsNamesSubarr[i]):
 
-            print '*** iter ', iii, 'from ', iMin, 'to ', iMax , \
+            print('*** iter ', iii, 'from ', iMin, 'to ', iMax , \
                 ' -- patch ', patch, i, ' of ', len(nsNames), \
-                ' -- subarr ' , subarrName, n, ' of ', len(nsNamesSubarr[i])
+                ' -- subarr ' , subarrName, n, ' of ', len(nsNamesSubarr[i]))
 
             kappa_cutout = kappa.selectSubMap(Ra0ArraySubarr[i][n],Ra1ArraySubarr[i][n],
                                               Dec0ArraySubarr[i][n],Dec1ArraySubarr[i][n])

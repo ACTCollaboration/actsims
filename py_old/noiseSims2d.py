@@ -81,7 +81,7 @@ from flipper import *
 import pickle
 
 
-print "Reading dict file"
+print("Reading dict file")
 p = flipperDict.flipperDict()
 p.read_from_file(sys.argv[1])
 
@@ -92,7 +92,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
     
-print rank, size
+print(rank, size)
 
 # print 'temporary 10'
 # iMax = 10
@@ -106,7 +106,7 @@ delta = (iStop - iStart)/size
 if delta == 0:
 	raise ValueError, 'Too many processors for too small a  loop!'
 
-print delta
+print(delta)
 iMin = iStart+rank*delta
 iMax = iStart+(rank+1)*delta
 
@@ -136,7 +136,7 @@ patchList = p['patchList']
 
 
 dataMapDir = '../data/'
-print 'got here'
+print('got here')
 
 import statsTools
 powers = statsTools.threedl(numCMBsets, iMax - iMin, len(patchList))
@@ -162,7 +162,7 @@ for iii in xrange(iMin,iMax):
 
     
         for patchNum, patch in enumerate(p['patchList']):
-            print 'rank ', rank, 'of ', size , ', iii = ', iii, ' within %d to %d, patch =', patch
+            print('rank ', rank, 'of ', size , ', iii = ', iii, ' within %d to %d, patch =', patch)
             tNoise = pickle.load(open(noisePsdDir+'noisePowerIAlt_'+patch+'.pkl'))
             qNoise = pickle.load(open(noisePsdDir+'noisePowerQAlt_'+patch+'.pkl'))
             uNoise = pickle.load(open(noisePsdDir+'noisePowerUAlt_'+patch+'.pkl'))

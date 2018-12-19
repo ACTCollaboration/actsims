@@ -53,7 +53,7 @@ def lensMaps(phi,T_map, Q_map, U_map, TaylOrder = 5):#,iii,count): van Engelen c
         cont.data[:]=0
         for k in range(n+1):
                 
-            print k, n-k, binomial(n,k), scipy.misc.factorial(n)
+            print(k, n-k, binomial(n,k), scipy.misc.factorial(n))
                 
             fac=1j**n*binomial(n,k)*lx_array**(n-k)*ly_array**k/(scipy.misc.factorial(n))
             T_add=numpy.real(numpy.fft.ifft2(fac*ft.kMap))[(iy+alphaY0)%T_map.Ny, (ix+alphaX0)%T_map.Nx]*delta_alphaX**(n-k)*delta_alphaY**k

@@ -20,7 +20,7 @@ import pickle
 
 
 
-print "Reading dict file"
+print("Reading dict file")
 p = flipperDict.flipperDict()
 p.read_from_file(sys.argv[1])
 
@@ -33,7 +33,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
     
-print rank, size
+print(rank, size)
 
 iStart = p['iStart']
 iStop = p['iStop']
@@ -43,7 +43,7 @@ delta = (iStop - iStart)/size
 if delta == 0:
 	raise ValueError, 'Too many processors for too small a  loop!'
 
-print delta
+print(delta)
 iMin = iStart+rank*delta
 iMax = iStart+(rank+1)*delta
 
@@ -206,7 +206,7 @@ if doAll:
     for i, patch in enumerate(nsNames):
         for n, subarrName in enumerate(nsNamesSubarr[i]):
                 
-            print 'got here!'
+            print('got here!')
 
             # inmapSample = liteMap.liteMapFromFits(mapDir + '/global/cscratch1/sd/engelen/lensSims_201709/data/noiseMaps_set00_00000/noise_2dPSD_v2_T_7ar1.fits') #sample map
 
@@ -222,7 +222,7 @@ if doAll:
 
             for iii in xrange(iMin,iMax):
 
-                print i, n, iii 
+                print(i, n, iii) 
 
                 for cmbSet in numpy.arange(0,numCMBsets):
                     noiseDir = '%s_set%02d_%05d'%(noiseDirRoot, cmbSet, iii)
@@ -232,7 +232,7 @@ if doAll:
                                                                          # '/scratch2/r/rbond/engelen/new4/maps/actpolDeep/dataCoadd_', '_' + subarrName + '.fits')
 
 for fi, figureToDraw in enumerate( ['noisePower', 'noisePowerCompare']  ):
-    print figureToDraw
+    print(figureToDraw)
     plt.figure(figureToDraw, figsize = (15,10))
     plt.clf()
     lbin = power_data[0][0]['lbin']
