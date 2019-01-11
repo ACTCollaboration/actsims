@@ -28,17 +28,17 @@ array = 'pa3'
 
 
 
-# noiseSim = simTools.getActpolSim(iterationNum = 0, \
-#                                  simType = 'noise', \
-#                                  patch = patch, \
-#                                  season = season, \
-#                                  array = array)
+noiseSim = simTools.getActpolSim(iterationNum = 0, \
+                                 simType = 'noise', \
+                                 patch = patch, \
+                                 season = season, \
+                                 array = array)
 
-cmbSim = simTools.getActpolSim(iterationNum = 0, \
-                               simType = 'cmb', \
-                               patch = patch, \
-                               season = season, \
-                               array = array, noiseDictFile = 'templateInputsMr3.dict', cmbSet = 1)
+# cmbSim = simTools.getActpolSim(iterationNum = 0, \
+#                                simType = 'cmb', \
+#                                patch = patch, \
+#                                season = season, \
+#                                array = array, noiseDictFile = 'templateInputsMr3.dict', cmbSet = 1)
 
 
 # fgSim = simTools.getActpolSim(iterationNum = 0, \
