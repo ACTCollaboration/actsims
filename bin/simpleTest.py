@@ -37,11 +37,11 @@ noiseSim = simTools.getActpolSim(iterationNum = 0, \
                                  season = season, \
                                  array = array)
 
-noiseSimSplit = simTools.getActpolSim(iterationNum = 0, \
-                                 simType = 'noise', \
-                                 patch = patch, \
-                                 season = season, \
-                                      array = array, splitWanted = 0)
+# noiseSimSplit = simTools.getActpolSim(iterationNum = 0, \
+#                                  simType = 'noise', \
+#                                  patch = patch, \
+#                                  season = season, \
+#                                       array = array, splitWanted = 0)
 
 # cmbSim = simTools.getActpolSim(iterationNum = 0, \
 #                                simType = 'cmb', \
