@@ -11,7 +11,7 @@ import lensingTools
 
 
 
-print "Reading dict file"
+print("Reading dict file")
 p = flipperDict.flipperDict()
 p.read_from_file(sys.argv[1])
 
@@ -21,7 +21,7 @@ comm = MPI.COMM_WORLD
 rank = comm.Get_rank()
 size = comm.Get_size()
     
-print rank, size
+print(rank, size)
 
 iStart = p['iStart']
 iStop = p['iStop']
@@ -31,7 +31,7 @@ delta = (iStop - iStart)/size
 if delta == 0:
 	raise ValueError, 'Too many processors for too small a  loop!'
 
-print delta
+print(delta)
 iMin = iStart+rank*delta
 iMax = iStart+(rank+1)*delta
 
@@ -194,7 +194,7 @@ globalnum = 10 * iMin + seedbase2
 #changing for local beams files...
 dataMapDir = '/scratch2/r/rbond/engelen/new7/lensRecon/maps/dataMaps/actpolDeep/'
 
-print 'got here'
+print('got here')
 
 doLensing = True
 
@@ -243,7 +243,7 @@ for iii in xrange(iMin,iMax):
 
 
 
-                print time.time()-t
+                print(time.time()-t)
 
                 T_map_lensed.writeFits(lensDir+'/order%d_periodic_lensedCMB_T_%s.fits'%(TaylOrder,patch), overWrite=True)
                 Q_map_lensed.writeFits(lensDir+'/order%d_periodic_lensedCMB_Q_%s.fits'%(TaylOrder,patch), overWrite=True)
@@ -265,10 +265,10 @@ for iii in xrange(iMin,iMax):
 
             for n, subarrName in enumerate(nsNamesSubarr[i]):
 
-                print '*** iter ', iii, 'from ', iMin, 'to ', iMax , \
+                print('*** iter ', iii, 'from ', iMin, 'to ', iMax , \
                     ' -- set ', cmbSet, ' of ', numCMBsets, \
                     ' -- patch ', patch, i, ' of ', len(nsNames), \
-                    ' -- subarr ' , subarrName, n, ' of ', len(nsNamesSubarr[i])
+                    ' -- subarr ' , subarrName, n, ' of ', len(nsNamesSubarr[i]))
 
 
                 
