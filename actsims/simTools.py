@@ -23,12 +23,14 @@ fgSeedInd = 1
 phiSeedInd = 2
 noiseSeedInd = 3
 
+freqStrToValGhz = {'f090' : 90., 'f150' : 150.}
+
 def getActpolCmbFgSim(beamfileDict,
                       shape, wcs,
                       iterationNum, cmbDir, freqs, psa,
                       cmbSet = 0, \
                       doBeam = True, applyWindow = True, verbose = True, cmbMaptype = 'LensedCMB',
-                      foregroundSeed = 0, simType = 'cmb', foregroundPowerFile = None):
+                      foregroundSeed = 0, simType = 'cmb', foregroundPowerFile = None, applyModulation = True):
 
 
     nTQUs = len('TQU')
@@ -51,6 +53,7 @@ def getActpolCmbFgSim(beamfileDict,
 
         if verbose:
             print('getActpolCmbFgSim(): done')
+
 
     elif simType == 'foregrounds':
         outputFreqs = ['f090', 'f150']
@@ -106,6 +109,18 @@ def getActpolCmbFgSim(beamfileDict,
         # curvedsky.alm2map(almTebFullsky[fi,:,:], output[fi,:,:,:], spin = [0,2],  verbose = True)
 
 
+
+    if applyModulation:
+        from pixell import aberration
+        for fi, freq in enumerate(freqs):
+
+            print('applying modulation for frequency %s' %freq )
+            output, A = aberration.boost_map(output, 
+                                             aberration.dir_equ,
+                                             aberration.beta,
+                                             return_modulation = True,
+                                             do_aberration = False,
+                                             freq = freqStrToValGhz[freq] * 1e9)
 
     if applyWindow:
         from pixell import fft
