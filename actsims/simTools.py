@@ -292,7 +292,8 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                  verbose = True,\
                  simType = 'noise',
                  cmbSet = 0,
-                 doBeam = True, applyWindow = True, noiseDiagsOnly = False, cmbMaptype = 'LensedCMB', splitWanted = None):
+                 doBeam = True, applyWindow = True, noiseDiagsOnly = False, cmbMaptype = 'LensedCMB', splitWanted = None,
+                 applyModulation = True):
                  #update the last one to True if possible
 
 
@@ -362,7 +363,8 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
                                  cmbSet = cmbSet, 
                                  doBeam = doBeam, applyWindow = applyWindow,
                                  verbose = verbose, cmbMaptype = cmbMaptype, foregroundSeed = foregroundSeed,
-                                 simType = simType,        foregroundPowerFile = sDict['foregroundPowerFile'])
+                                 simType = simType,        foregroundPowerFile = sDict['foregroundPowerFile'],
+                                 applyModulation = applyModulation)
 
 
     else:
