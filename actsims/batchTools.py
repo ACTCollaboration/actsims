@@ -18,7 +18,7 @@ data_dir        = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../d
 
 class MR3PATCH_HELPER(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, set_idx, sim_idx, patch, cmb_type='LensedCMB', noisediag_only=False, lmax=5100, dobeam=True, add_foregrounds=True, apply_window=True):
+    def __init__(self, set_idx, sim_idx, patch, cmb_type='LensedCMB', noisediag_only=False, dobeam=True, add_foregrounds=True, apply_window=True):
         self.patch    = patch.lower()
         assert(self.patch in ['boss', 'deep1', 'deep56', 'deep5', 'deep6', 'deep8'])
         assert(cmb_type in ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB'])
@@ -34,7 +34,6 @@ class MR3PATCH_HELPER(object):
         self.psafs      = []
         freqs           = [] 
         self.template   = None
-        self.lmax       = lmax
         self.dobeam     = dobeam
         for key in signal_dict['beamNames'].keys():
             if self.patch in key: 
@@ -47,6 +46,8 @@ class MR3PATCH_HELPER(object):
         self.psafs.sort()
         self.freqs = list(set(freqs))
         self.freqs.sort()
+        for psaf in self.psafs:
+            self.noises[psaf] = {}
         self.noisediag_only  = noisediag_only
         self.add_foregrounds = add_foregrounds
         self.apply_window    = apply_window
@@ -69,7 +70,7 @@ class MR3PATCH_HELPER(object):
             alm_patch = self.alms_base[freq].copy()
             if self.dobeam:
                 print "apply beam for alm {}".format(psaf)
-                beam_file = signal_dict['beamNames'][psaf]
+                beam_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),signal_dict['beamNames'][psaf])
                 beam_data = (np.loadtxt(beam_file))[:,1]
                 for idx in range(alm_patch.shape[0]):
                     alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
@@ -94,6 +95,33 @@ class MR3PATCH_HELPER(object):
         if save_map: self.signals[psaf] = signal.copy()
         return signal
 
+    def get_noise_sim(self, psaf, seed=None, save_map=False):
+        assert(psaf in self.psafs)
+        ## should we preload noise templates
+
+        if seed is None: seed = self.sim_idx
+        patch, season, array, freq = psaf.split('_')
+        print "loading noise sims for {} seed {}".format(psaf, seed) 
+
+        if seed is not None and self.noises[psaf].has_key(seed): 
+            print "loading precomputed sim for {} seed {}".format(psaf, seed)
+            return self.noises[psaf][seed].copy()
+        else:
+            noise = simTools.getActpolSim(iterationNum=seed,
+                        patch=patch, season=season, array=array, simType='noise', 
+                        noiseDiagsOnly=self.noisediag_only, cmbSet=self.set_idx)
+            if save_map:
+                if 'pa3' not in psaf:
+                    self.noises[psaf][seed] = noise[0].copy()
+                else:
+                    psaf_temp = '%s_{}' %('_'.join([patch,season,array]))
+                    self.noises[psaf_temp.format('f090')][seed] = noise[0].copy()
+                    self.noises[psaf_temp.format('f150')][seed] = noise[1].copy()
+
+            freq_idx = 1 if noise.shape[0] == 2 and freq == 'f150' else 0
+            noise = noise[freq_idx]
+            return noise
+ 
 
     def get_template(self):
         if self.template is None:
@@ -126,58 +154,25 @@ class MR3PATCH_HELPER(object):
                 freq_idx = 1 if freq == 'f150' else 0
                 alm_out[idx, 0, :] = alm_fg90_150[freq_idx, :].copy()
             
-            # need to match lmax between alm_signal and alm_fg. Is there a better way? 
             for m in range(lmax_sg+1):
                 lmin = m
                 lmax = lmax_sg
-                
+
                 idx_ssidx = hp.Alm.getidx(lmax_sg, lmin, m)
                 idx_seidx = hp.Alm.getidx(lmax_sg, lmax, m)
-
                 idx_fsidx = hp.Alm.getidx(lmax_fg, lmin, m)
                 idx_feidx = hp.Alm.getidx(lmax_fg, lmax, m)
 
-
                 alm_out[..., idx_fsidx:idx_feidx+1] = alm_out[..., idx_fsidx:idx_feidx+1] + alm_signal[..., idx_ssidx:idx_seidx+1]
-                #print m, lmin, idx_ssidx, idx_seidx, idx_fsidx, idx_feidx, alm_out[..., idx_fsidx:idx_feidx+1].shape
 
             alm_signal = alm_out.copy()
             del alm_out, alm_fg90_150
-
-
-        
-
-            #alm_temp     = alm_signal[:1,...].copy()
-            #map_temp     = curvedsky.alm2map(alm_temp, spin = [0,2])
-            #alm_temp     = curvedsky.map2alm(map_temp, lmax=lmax_fg)
-            #alm_signal   = np.tile(alm_temp, (len(self.freqs), 1, 1))
-            #del map_temp , alm_temp
-            #alm_signal = alm_signal + alm_fg
-            
-            '''
-            lmax_sg   = hp.Alm.getlmax(alm_signal.shape[-1])
-            lmax_fg   = hp.Alm.getlmax(alm_fg.shape[-1])
-            lmax_temp = max(lmax_sg, lmax_fg)
-            temp =  np.zeros((len(self.freqs), 3, max(alm_signal.shape[-1], alm_fg.shape[-1])), dtype = np.complex128)
-            
-            # some dumb operation
-            for idx in range(temp.shape[-1]):
-                l, m = hp.Alm.getlm(lmax_temp, idx)
-                if l <= lmax_sg: 
-                    print 'signal', hp.Alm.getidx(lmax_sg, l, m)
-                    temp[...,idx] = temp[...,idx] + alm_signal[..., hp.Alm.getidx(lmax_sg, l, m)]
-                if l <= lmax_fg:
-                    print 'fg',  hp.Alm.getidx(lmax_fg, l, m)
-                    temp[...,idx] = temp[...,idx] + alm_fg[..., hp.Alm.getidx(lmax_fg, l, m)]
-
-            alm_signal = temp
-            '''
 
         for i, freq in enumerate(self.freqs):
             self.alms_base[freq] = alm_signal[i].copy()
         del alm_signal
 
-    def clean(self):
+    def clear(self):
         for key in self.alms_base.keys():
             del self.alms_base[key]
         for key in self.alms_patch.keys():
