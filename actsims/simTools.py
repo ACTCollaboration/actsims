@@ -3,7 +3,7 @@
 
 import numpy as np, pickle
 from . import flipperDict
-
+from . import act_data_model
 import astropy.wcs
 
 import warnings
@@ -23,8 +23,7 @@ fgSeedInd = 1
 phiSeedInd = 2
 noiseSeedInd = 3
 
-def getActpolCmbFgSim(beamfileDict,
-                      shape, wcs,
+def getActpolCmbFgSim(shape, wcs,
                       iterationNum, cmbDir, freqs, psa,
                       cmbSet = 0, \
                       doBeam = True, applyWindow = True, verbose = True, cmbMaptype = 'LensedCMB',
@@ -77,10 +76,10 @@ def getActpolCmbFgSim(beamfileDict,
     #Convolve with beam on full sky
     for fi, freq in enumerate(freqs):
         if doBeam:
-            beamFile = os.path.dirname(os.path.abspath(__file__))+"/"+beamfileDict[psa + '_' + freq]
+            patch, season, array = psa.split('_')
             if verbose:
-                print('getActpolCmbFgSim(): applying beam from %s' % beamFile)
-            beamData = (np.loadtxt(beamFile ))[:,1]
+                print('getActpolCmbFgSim(): applying beam for %s %s' %(psa, freq))
+            _, beamData = act_data_model.load_normalized_beam(patch, season, array, freq)
         else:
             if verbose:
                 print('getActpolCmbFgSim(): not convolving with beam')
@@ -338,8 +337,7 @@ def getActpolSim(iterationNum = 0, patch = 'deep5',
     elif simType == 'cmb' or simType == 'foregrounds':
         
 
-        return getActpolCmbFgSim(beamfileDict = sDict['beamNames'],
-                                 shape = sampleMap.shape, wcs = sampleMap.wcs,
+        return getActpolCmbFgSim(shape = sampleMap.shape, wcs = sampleMap.wcs,
                                  iterationNum = iterationNum,
                                  cmbDir = os.path.dirname(os.path.abspath(__file__))+"/"+sDict['cmbDir'],
                                  freqs = psaFreqs,
