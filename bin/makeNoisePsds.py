@@ -19,7 +19,7 @@ import os
 # import cmblens.mpi as mpi
 # import statsTools
 from enlib import enmap, array_ops
-import mpiTools
+from actsims import mpiTools
 import fnmatch
 from mpi4py import MPI
 import scipy
@@ -137,7 +137,7 @@ def coaddMapsWithWeights(mapList, weightList, doNull = False):
         if len(mapList) % 2 != 0:
             raise ValueError('bad input, not even length')
 
-        signs[0:len(mapList)/2] *= -1
+        signs[0:len(mapList)//2] *= -1
 
 
     for i in range(len(mapList)):
@@ -154,7 +154,7 @@ def coaddMapsWithWeights(mapList, weightList, doNull = False):
 
 def meanAutoSpec_enlib(mapList,applySlepianTaper=False,nresForSlepian=3.0, window = None, secondMapList = None, secondWindow = None, enlibNorm = True):
     count = 0 
-    for i in xrange(len(mapList)):
+    for i in range(len(mapList)):
 
         # temp_i = enmap.from_flipper(mapList[i])
         # temp_i_prime = enmap.from_flipper(secondMapList[i]) if secondMapList != None else None
@@ -206,8 +206,8 @@ def meanCrossSpec_enlib(mapList,applySlepianTaper=False,nresForSlepian=3.0, wind
 
     count = 0 
 
-    for i in xrange(len(mapList)):
-        for j in xrange(i ):
+    for i in range(len(mapList)):
+        for j in range(i ):
 
             temp_i = mapList[i].copy()
             if secondMapList != None:
@@ -280,7 +280,6 @@ piMin, piMax, delta, rank, size = mpiTools.mpiMinMax(MPI.COMM_WORLD, len(psaList
 
 # piMin, piMax, delta, rank, size = mpiTools.mpiMinMax(MPI.COMM_WORLD, len(psaList))
 print('piMin %i, piMax %i, delta %i, rank %i, size %i' % (piMin, piMax, delta, rank, size))
-
 print('rank %i will do patches:' %rank, psaList[piMin:piMax])
 
 import itertools
@@ -315,6 +314,9 @@ if doAll:
                 
                 if indexPrime > index:
                     continue
+
+                print(pi,psa,index,indexPrime,iqu,iquPrime,freq,freqPrime)
+                continue
 
                 print(psa, ': doing ' , freq , 'with ', freqPrime, '; doing ', iqu , 'with ', iquPrime)
 
@@ -475,314 +477,3 @@ if doAll:
 
 
         
-        # bigMatrixNoisePsds
-
-# pickle.dump(bigMatrixNoisePsds, open(resultDir + 'bigMatrixNoisePsds.pkl', 'wb'))
-
-# pickle.dump(enmap.multi_pow(bitMatrixNoisePsds,          0.5),
-#             open(resultDir + 'noisePsdsCovSqrt.pkl', 'wb'))
-
-
-
-
-
-
-# for s in range(nSplits[pi]):
-#             print 'patch %i, loading split %i for map %s' % (pi, s, iqu)
-            
-#             if p['isEnkiArr'][pi] or p['isEnki']:
-#                 actMaps[s] =  loadSigurdMapInFlipper(dir+mapName+ str(s) +  EndName + '.fits', i)
-#             else:
-#                 actMaps[s] = liteMap.liteMapFromFits(
-#                     dir+mapName+ str(s) +EndName+'_'+ (str(i) if (p['isEnki'] ) else iqu)  +'.fits')
-
-#             if p['addInputUsed']:
-#                 actMaps_i[s] = liteMap.liteMapFromFits(
-#                     dir+mapName+ str(s) +weightEndName+'_input_used_' + iqu + '.fits')
-                
-#                 actMaps[s].data += actMaps_i[s].data
-#             if selectSubmaps:
-
-#                 actMaps[s] =  (actMaps[s]).selectSubMap(mapx0,mapx1,mapy0,mapy1)
-
-#             if not justUseIWeights:
-#                 if not (p['isEnki'] or p['isEnkiArr'][pi]):
-#                     weightmaps[s]  = liteMap.liteMapFromFits(
-#                         dir+mapName+ str(s) +weightEndName+'_weights_'+ iqusForInputWeights[i] + '.fits')
-#                     if selectSubmaps:
-
-#                         weightmaps[s] = weightmaps[s].selectSubMap(mapx0,mapx1,mapy0,mapy1)
-
-#                 else:
-#                     raise ValueError('non-I weights not coded up for Enki')
-#             else:
-#                 print 'Using I weights for all'
-#                 if p['isEnkiArr'][pi]:
-#                     weightmaps[s] = loadSigurdWeightMapInFlipper(dir+mapName + str(s) +  weightEndNameList[pi] + '.fits', 0)
-
-#                 else:
-#                     # if p['isEnki'] or p['isEnkiArr'][pi]:
-#                     #     weightName = dir + mapName + str(s) + p['weightEndNameList'][pi] + '.fits'
-#                     # else:
-#                         # weightName = dir+mapName+ str(s) +weightEndName+'_weights_'+i qusForInputWeights[0] + '.fits'
-#                         # weightName = dir+mapName+ str(s) +weightEndName+''+ iqusForInputWeights[0] + '.fits'
-#                         #hack dec 2017
-#                     weightName = dir+mapName+ str(s) +weightEndName+ '.fits'       
-
-#                     weightmaps[s]  = liteMap.liteMapFromFits(weightName)
-#                     if selectSubmaps:
-
-#                         weightmaps[s] = weightmaps[s].selectSubMap(mapx0,mapx1,mapy0,mapy1)
-                    
-#             # if s == 3 and p['doJan2016Split3Tweak'] and patch in ['7ar1' , '7ar2' ]:
-#             #     weightmaps[s] = liteMap.liteMapFromFits(dir+mapNamePol+'3'+weightEndNamePol+'_nobad_weights_I.fits')
-
-#             # print 'doing tweak'
-
-#             # if (not justUseIWeights) or (justUseIWeights and i == 0):
-
-
-
-#             if p['flipQSign'] and iqu == 'Q':
-#                 actMaps[s].data *= -1.
-
-#         if False:
-#             actMapCoadd, weightMapTotal = coaddMapsWithWeights( actMaps, weightmaps)
-
-
-#         # if makeSplits:
-#         #     for zeroOne in [0, 1]:
-#         #         splitsToWrite[zeroOne], splitsToWriteWeights[zeroOne] = coaddMapsWithWeights(actMaps[2 * zeroOne : 2 * zeroOne + 2 ],
-#         #                                                       weightmaps[2 * zeroOne : 2 * zeroOne + 2])
-
-#         #         splitsToWrite[zeroOne].writeFits(
-#         #             dataMapDir+'dataCoadd_' + tqu + '_'+patch+'_split%i.fits' % (zeroOne + 1) ,
-#         #             overWrite=True)
-
-#         #         splitsToWriteWeights[zeroOne].writeFits(
-#         #             dataMapDir+'weightMap_' + tqu + '_'+patch+'_split%i.fits' % (zeroOne + 1) ,
-#         #             overWrite=True)
-
-#         # actMapCoadd.writeFits(dataMapDir + 'dataCoadd_' + tqu + '_'+patch+'.fits',overWrite=True)
-
-#         # weightMapTotal.data[ weightMapTotal.data < numpy.max(weightMapTotal.data)/20.] = 0.
-#         # weightMapTotal.writeFits(dataMapDir + 'weightMap_' +  tqu + '_' + patch + '.fits',\
-#         #                              overWrite = True)
-
-#         # if i == 0:
-#         #     ell = numpy.arange(20000.)
-
-#         #     #then create a taper window for the power spectrum estimation stuff below.
-#         #     weightMapTotalTemperature = weightMapTotal.copy()
-#         #     weightMapTotalTemperature = weightMapTotalTemperature.filterFromList([ell,numpy.exp(-(ell/1200.)**2./2.)])
-#         #     taper = liteMapPol.initializeCosineWindow(weightMapTotalTemperature,p['taperWidth'],0)
-#         #     weightMapTotalTemperature.data *= taper.data
-#         #     weightMapTotalTemperature.writeFits(dataMapDir+'mask_'+patch+'.fits',overWrite=True)
-#         #     sqrtWeightMapTotal = weightMapTotalTemperature.copy()
-#         #     sqrtWeightMapTotal.data = numpy.nan_to_num(numpy.sqrt(sqrtWeightMapTotal.data))
-            
-
-#         # if makeSplits:
-#         #     noiseMap = splitsToWrite[0].copy()
-#         #     noiseMap.data -= splitsToWrite[1].data
-#         #     noiseMap.data /= 2.
-#         #     noiseMap.writeFits(dataMapDir + 'noiseMap_' + tqu + '_'+patch+'.fits',overWrite=True)
-
-#         if True:
-
-#             if p['useCrossLinkMaps']:
-#                 #the old way of doing this
-#                 if False:
-#                     possibleCrossLinkFilenames = fnmatch.filter(os.listdir(p['crossLinkRoot']),\
-#                                                                 patch + '*fits')
-
-
-#                     if len(possibleCrossLinkFilenames) != 1:
-#                         raise ValueError('more or less than 1 possible filename match for crosslink')
-
-#                     powerWindow = liteMap.liteMapFromFits(p['crossLinkRoot'] + possibleCrossLinkFilenames[0])
-#                     if selectSubmaps:
-
-#                         powerWindow =  powerWindow.selectSubMap(mapx0,mapx1,mapy0,mapy1)
-                
-#                 if True:
-                    
-#                     crossLinkMap = p['crossLinkDict'][patch]
-#                     if crossLinkMap != None:  #None is the case where they are not made yet
-#                         powerWindow = liteMap.liteMapFromFits(p['crossLinkDict'][patch])
-#                         if selectSubmaps:
-#                             powerWindow =  powerWindow.selectSubMap(mapx0,mapx1,mapy0,mapy1)
-                        
-
-#                     else:
-#                         powerWindow = actMaps[s].copy()
-#                         powerWindow.data[:] = 1.
-
-#                 # powerWindow.writeFits(dataMapDir + 'crosslinkMap_T_' + patch+'.fits',\
-#                 #                       overWrite=True)
-                
-
-#             else:
-#                 powerWindow = None
-
-
-
-#             # mapsForSimgen = statsTools.onedl(nSplits[pi])
-#             # for s in range(nSplits[pi]):
-#             #     mapsForSimgen[s] = actMaps[s].copy()
-#             #     mapsForSimgen[s].data *= sqrtWeightMapTotal.data
-
-#             doFlipperCrosses = False
-#             if doFlipperCrosses:
-#                 meanAutoPowers = meanAutoSpec(mapsForSimgen, \
-#                                               window = powerWindow)
-#                 meanCrossPowers = meanCrossSpec(mapsForSimgen, \
-#                                                 window = powerWindow)
-
-#                 meanAutoPowers.powerMap -= meanCrossPowers.powerMap
-#                 w2 = 0.25#1.#/numpy.mean(wCAlt.data**2.)
-#                 meanAutoPowers.powerMap *= w2
-
-#                 if not np.all(meanAutoPowers.powerMap > 0):
-#                     raise ValueError('power spectrum is negative somewhere')
-
-#                 print 'writing to ' , dataMapDir+'noisePower' + iqu + 'Alt_'+patch+'.pkl'
-#                 pickle.dump(meanAutoPowers, open(dataMapDir+'noisePower' + iqu + 'Alt_'+patch+'.pkl','w'))
-#                 print 'done'
-
-
-#             # meanAutoPowers = meanAutoSpec(mapsForSimgen, \
-#             #                               window = powerWindow, doEnlibWay = True)
-
-
-#             # if estimateCrossesBetweenPatches:
-#             #     meanAutoPowersExtended[
-#             #     ][] = actMaps[s].copy()
-
-
-
-
-
-
-
-#             mapsForPowerEst = statsTools.onedl(nSplits[pi])
-#             for s in range(nSplits[pi]):
-#                 mapsForPowerEst[s] = actMaps[s].copy()
-#                 mapsForPowerEst[s].data *= weightMapTotalTemperature.data
-
-#             meanAutoPowers = meanAutoSpec(mapsForSimgen)
-#             meanCrossPowers = meanCrossSpec(mapsForSimgen)
-
-#             meanAutoPowers.powerMap -= meanCrossPowers.powerMap
-
-#             w2 = 0.25 / numpy.mean(weightMapTotalTemperature.data**2.)
-#             meanAutoPowers.powerMap *= w2
-
-#             print 'writing to ', dataMapDir+'dataNoise_' + patch + '_' + iqu + '.pkl'
-#             pickle.dump(meanAutoPowers, open(dataMapDir+'dataNoise_' + patch + '_' + iqu + '.pkl','w'))
-#             print 'done'
-
-
-
-
-
-
-
-#         ##garbage code left here for posterity
-#                 #         if p['doSmoothingOfSimPower']:
-#                 # print 'smoothing power with width of ', p['smoothingWidthInPixels'], 'pixels'
-#                 # meanAutoPowers.powerMap = scipy.ndimage.filters.gaussian_filter(meanAutoPowers.powerMap, \
-#                 #                                                                 p['smoothingWidthInPixels'])
-
-
-
-
-#USED TO SAVE EACH MAP SEPARATELY
-
-
-                # (meanAutoPowers_enlib - meanCrossPowers_enlib).write(dataMapDir + "noisePower" + iqu + '_' + iquPrime + 'Alt_'\
-                #                                                      +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
-                # (meanAutoPowers_enlib).write(dataMapDir + "splitAutoPower" + iqu + '_' + iquPrime + 'Alt_'\
-                #                                                      +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
-                # (meanCrossPowers_enlib).write(dataMapDir + "splitCrossPower" + iqu + '_' + iquPrime + 'Alt_'\
-                #                                                      +psa + '_' + freq + '__' + psaPrime + '_' + freqPrime + '_fromenlib.fits')
-
-
-
-
-                # THIS IS FOR SIMONE MAPS... USED FOR THE S14 PAPER
-
-                #                     # elif p['isPlanckArr'][pi]:
-
-                #     #     mapNameFull = dirList[pi] + mapNameList[pi].format(freq) + str(s) +  endNameList[pi] + '.fits'
-                #     #     actMaps[s]  = enmap.read_map(mapNameFull,
-                #     #                                       sel = np.s_[IQUs.index(iqu), :, :])
-                #     #     # if p['useWeightMap']:
-                #     #     weightNameFull = dirList[pi] + mapNameList[pi].format(freq) + str(s) +  weightEndNameList[pi] + '.fits'
-                #     #     weightMapsForSimgen[s] = enmap.read_map(weightNameFull, sel = np.s_[0, 0, :, :])
-                #     #     # else:
-                #     #     #     noiseNameFull =  dirList[pi] + mapNameList[pi].format(freq) + str(s) +  noiseEndNameList[pi] + '.fits'
-                #     #     #     weightMapsForSimgen[s] = 1./enmap.read_map(noiseNameFull)**2
-
-
-                #     #     #FLATTEN
-                #     #     mapsForSimgen[s] = actMaps[s] * np.sqrt(weightMapsForSimgen[s])
-
-                #     #     ###################################
-
-                #     #     mapNameFullPrime = dirList[piPrime] + mapNameList[piPrime].format(freqPrime) + str(s) +  endNameList[piPrime] + '.fits'
-                #     #     mapsForSimgenPrime[s] = enmap.read_map(mapNameFullPrime,
-                #     #                                       sel = np.s_[IQUs.index(iquPrime), :, :])
-                #     #     # if p['useWeightMap']:
-
-                #     #     #note hits maps don't seem to exist for sigurd's maps, so do weight maps no matter what.
-                #     #     weightNameFullPrime = dirList[piPrime] + mapNameList[piPrime].format(freqPrime) + str(s)   \
-                #     #                               + weightEndNameList[piPrime] + '.fits'
-
-                #     #     weightMapForSimgenPrime = enmap.read_map(weightNameFullPrime, sel = np.s_[0, 0, :, :])
-
-                #     #     # else:
-                #     #     #     noiseNameFullPrime =  dirList[piPrime] + mapNameList[piPrime].format(freqPrime) + str(s) \
-                #     #     #                           + noiseEndNameList[piPrime] + '.fits'
-                #     #     #     weightMapsForSimgenPrime[s] = 1./enmap.read_map(noiseNameFullPrime)**2
-
-                #     #     #FLATTEN
-                #     #     mapsForSimgen[s] *= np.sqrt(weightMapForSimgenPrime)
-
-
-                #     else:
-                #         #ONLY DO THIS FOR SIMONE's MAPS - NO LEADING ZEROS
-                #         freqFile = 'f90' if freq == 'f090' else freq
-                #         freqFilePrime = 'f90' if freqPrime == 'f090' else freqPrime
-
-
-                #         mapNameFull = dirList[pi] + mapNameList[pi].format(freqFile) + str(s) + endNameList[pi] + '_' + iqu + '.fits'
-                #         actMaps[s] = enmap.read_map(mapNameFull)
-
-                #         if p['useWeightMap']:
-                #             weightNameFull = dirList[pi] + mapNameList[pi].format(freqFile) + str(s) +  weightEndNameList[pi] + '.fits'
-                #             weightMapsForSimgen[s] = enmap.read_map(weightNameFull)
-                #         else:
-                #             noiseNameFull = dirList[pi] + mapNameList[pi].format(freqFile) + str(s) +  noiseEndNameList[pi] + '.fits'
-                #             weightMapsForSimgen[s] = 1./enmap.read_map(noiseNameFull)**2
-
-                #         #FLATTEN
-                #         mapsForSimgen[s] = actMaps[s] * np.sqrt(weightMapsForSimgen[s])
-
-                #         mapNameFullPrime = dirList[piPrime] + mapNameList[piPrime].format(freqFilePrime) + str(s) \
-                #                            + endNameList[piPrime] + '_' + iquPrime + '.fits'
-
-                #         mapsForSimgenPrime[s] = enmap.read_map(mapNameFullPrime)
-                #         if not justUseIWeights:
-                #             raise ValueError('we need to use I weights for now')
-
-                #         if p['useWeightMap']:
-                #             weightNameFullPrime = dirList[piPrime] + mapNameList[piPrime].format(freqFilePrime) + str(s) \
-                #                                   +  weightEndNameList[piPrime] + '.fits'
-
-                #             weightMapPrime = enmap.read_map(weightNameFullPrime)
-                #         else:
-                #             noiseNameFullPrime = dirList[piPrime] + mapNameList[piPrime].format(freqFilePrime) + str(s) \
-                #                                  +  noiseEndNameList[piPrime] + '.fits'
-                #             weightMapPrime = 1./enmap.read_map(noiseNameFullPrime)**2
-                #         mapsForSimgenPrime[s] *= np.sqrt(weightMapPrime)

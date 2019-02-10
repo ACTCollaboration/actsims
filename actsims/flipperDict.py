@@ -46,10 +46,10 @@ class flipperDict( dict ):
             line = s[0]
             s = line.split('\\')
             if len(s) > 1:
-                old = string.join([old, s[0]])
+                old = str.join('',[old, s[0]])
                 continue
             else:
-                line = string.join([old, s[0]])
+                line = str.join('',[old, s[0]])
                 old = ''
             for i in range(len(line)):
                 if line[i]!=' ':
