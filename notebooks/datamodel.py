@@ -13,6 +13,7 @@ class DataModel(object):
         self.array = array
         self.season = season
         self.freqs = {'pa1':['f150'],'pa2':['f150'],'pa3':['f090','f150']}[array]
+        self.nfreqs = len(self.freqs)
         
     def get_inv_var(self):
         orets = []
@@ -50,5 +51,7 @@ class bin2D(object):
 def binned_power(pmap,modlmap,bin_edges):
     s = bin2D(modlmap,bin_edges)
     return s.bin(pmap)
+
+
 
 
