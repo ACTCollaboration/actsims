@@ -22,6 +22,8 @@ class DataModel(object):
             for k in range(4):
                 pref = '_'.join([self.season,self.region,self.array,freq])
                 rets.append( enmap.read_map("%s%s_nohwp_night_3pass_4way_set%d_ivar.fits" % (map_root,pref,k))[None] )
+                # DEBUGGING rets.append( enmap.read_map("%s%s_nohwp_night_3pass_4way_set0_ivar.fits" % (map_root,pref))[None]*0+1. )
+
             orets.append(np.stack(rets))
         return enmap.enmap(np.stack(orets),self.wcs)
     
