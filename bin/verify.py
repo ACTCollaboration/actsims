@@ -2,7 +2,7 @@ from __future__ import print_function
 from pixell import enmap,enplot
 import numpy as np
 import os,sys
-import datamodel, powtools
+from actsims import datamodel, powtools
 from enlib import bench
 from orphics import io
 import matplotlib.pyplot as plt

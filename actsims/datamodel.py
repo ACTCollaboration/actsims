@@ -1,11 +1,19 @@
 import numpy as np
 import os,sys
 from pixell import enmap,enplot
-import powtools
+from orphics import io
+from actsims import powtools
 from enlib import bench
+import warnings
 
-map_root = "/home/msyriac/data/act/maps/mr3/"
-mask_root = "/home/msyriac/data/act/maps/steve/"
+# Get the path config for this system
+try: paths = io.config_from_yaml("inputParams/paths.yml")
+except:
+    paths = io.config_from_yaml("inputParams/paths_example.yml")
+    warnings.warn("No input/paths.yml found. Using version controlled input/paths_example.yml. Please copy and edit your local version.")
+
+map_root = paths['map_root']
+mask_root = paths['mask_root'] 
 
 plot = lambda imap,dg=8 : enplot.show(enplot.plot(enmap.downgrade(imap,dg),grid=False))
 
