@@ -1,7 +1,10 @@
+import matplotlib
+matplotlib.use('Agg')
 import numpy as np
 from pixell import enmap,enplot
+from actsims.utils import plot
+from orphics import io
 
-plot = lambda imap,dg=8 : enplot.show(enplot.plot(enmap.downgrade(imap,dg),grid=False))
 
 class bin2D(object):
     def __init__(self, modrmap, bin_edges):
@@ -9,7 +12,6 @@ class bin2D(object):
         self.digitized = np.digitize(np.ndarray.flatten(modrmap), bin_edges,right=True)
         self.bin_edges = bin_edges
     def bin(self,data2d,weights=None):
-        
         if weights is None:
             res = np.bincount(self.digitized,(data2d).reshape(-1))[1:-1]/np.bincount(self.digitized)[1:-1]
         else:
@@ -136,7 +138,7 @@ class Power(object):
             return (autos-crosses)/nsplits
 
 
-    def get_n2d(self,ffts,wmaps,show=True,coadd_estimator=False):
+    def get_n2d(self,ffts,wmaps,plot_fname=None,coadd_estimator=False):
         shape,wcs = ffts.shape[-2:],ffts.wcs
         modlmap = enmap.modlmap(shape,wcs)
         Ny,Nx = shape[-2:]
@@ -168,7 +170,10 @@ class Power(object):
                 n2d[i,j] = self.noise_power(isplits,iwts,jsplits,jwts,
                                             coadd_estimator=coadd_estimator,pfunc=self.naive_power)
                 if i!=j: n2d[j,i] = n2d[i,j]
-                if show: plot(enmap.enmap(np.arcsinh(np.fft.fftshift(n2d[i,j])),wcs))
+                if plot_fname is not None: plot("%s_%d_%s_%d_%s" \
+                                                % (plot_fname,ifreq,pols[ipol],
+                                                   jfreq,pols[jpol]),
+                                                enmap.enmap(np.arcsinh(np.fft.fftshift(n2d[i,j])),wcs))
         return n2d
 
             
@@ -182,7 +187,7 @@ def get_coadd(imaps,wts,axis):
 
 def smooth_ps(ps,dfact=(16,16),radial_fit_lmin=300,
               radial_fit_lmax=8000,radial_fit_wnoise_annulus=500,
-              radial_fit_annulus=20,radial_pairs=[],show=False):
+              radial_fit_annulus=20,radial_pairs=[],plot_fname=None):
     from tilec import covtools
     ncomps = ps.shape[0]
     assert ncomps==ps.shape[1]
@@ -199,8 +204,11 @@ def smooth_ps(ps,dfact=(16,16),radial_fit_lmin=300,
                                             wnoise_annulus=radial_fit_wnoise_annulus,
                                             bin_annulus=radial_fit_annulus,radial_fit=do_radial)
         sps[i,i] = dnoise.copy()
-        if show: plot(enmap.enmap(np.arcsinh(np.fft.fftshift(ps[i,i])),wcs))
-        if show: plot(enmap.enmap(np.arcsinh(np.fft.fftshift(sps[i,i])),wcs))
+        if plot_fname is not None: plot("%s_unsmoothed_%d_%d" \
+                                        % (plot_fname,i,i),
+                                        enmap.enmap(np.arcsinh(np.fft.fftshift(ps[i,i])),wcs))
+        if plot_fname is not None: plot("%s_smoothed_%d_%d" \
+                                        % (plot_fname,i,i),enmap.enmap(np.arcsinh(np.fft.fftshift(sps[i,i])),wcs))
             
         
     # Do offdiagonals
@@ -224,8 +232,12 @@ def smooth_ps(ps,dfact=(16,16),radial_fit_lmin=300,
             
             sps[i,j] = dnoise.copy()
             if i!=j: sps[j,i] = dnoise.copy()
-            if show: plot(enmap.enmap(np.arcsinh(np.fft.fftshift(ps[i,j])),wcs))
-            if show: plot(enmap.enmap(np.arcsinh(np.fft.fftshift(sps[i,j])),wcs))
+            if plot_fname is not None: plot("%s_unsmoothed_%d_%d" \
+                                            % (plot_fname,i,j),
+                                            enmap.enmap(np.arcsinh(np.fft.fftshift(ps[i,j])),wcs))
+            if plot_fname is not None: plot("%s_smoothed_%d_%d" \
+                                            % (plot_fname,i,j),
+                                            enmap.enmap(np.arcsinh(np.fft.fftshift(sps[i,j])),wcs))
             
     sps[...,modlmap<2] = 0.
             
@@ -249,7 +261,7 @@ def get_p1ds(p2d,modlmap,bin_edges):
     return cents,p1ds
 
 
-def compare_ps(cents,p1ds1,p1ds2):
+def compare_ps(cents,p1ds1,p1ds2,plot_fname=None):
     import matplotlib.pyplot as plt
     k = 0
     for i in range(p1ds1.shape[0]):
@@ -265,8 +277,12 @@ def compare_ps(cents,p1ds1,p1ds2):
     plt.ylabel("$D_{\\ell}$")
     plt.xscale('linear')
     plt.yscale('log')
-    plt.show()
-
+    if plot_fname is None:
+        plt.show() 
+    else:
+        plt.savefig(plot_fname+"_power.png")
+        print(io.bcolors.OKGREEN+"Saved plot to", plot_fname+"_power.png"+io.bcolors.ENDC)
+    plt.clf()
     k = 0
     for i in range(p1ds1.shape[0]):
         for j in range(p1ds1.shape[0]):
@@ -284,4 +300,8 @@ def compare_ps(cents,p1ds1,p1ds2):
     plt.ylabel("$R$")
     plt.xscale('linear')
     plt.yscale('linear')
-    plt.show()                                    
+    if plot_fname is None:
+        plt.show() 
+    else:
+        plt.savefig(plot_fname+"_ratio.png")
+        print(io.bcolors.OKGREEN+"Saved plot to", plot_fname+"_ratio.png"+io.bcolors.ENDC)

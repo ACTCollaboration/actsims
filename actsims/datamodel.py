@@ -2,7 +2,7 @@ import numpy as np
 import os,sys
 from pixell import enmap,enplot
 from orphics import io
-from actsims import powtools
+from actsims import powtools,utils
 from enlib import bench
 import warnings
 
@@ -14,8 +14,8 @@ except:
 
 map_root = paths['map_root']
 mask_root = paths['mask_root'] 
+pout = paths['plots'] 
 
-plot = lambda imap,dg=8 : enplot.show(enplot.plot(enmap.downgrade(imap,dg),grid=False))
 
 class DataModel(object):
     def __init__(self,season,array,patch):
@@ -53,7 +53,7 @@ class DataModel(object):
         return enmap.enmap(np.stack(orets),self.wcs)
 
 
-    def get_n2d_data(self,splits,coadd_estimator=False,flattened=False,show=False):
+    def get_n2d_data(self,splits,coadd_estimator=False,flattened=False,plot_fname=None):
         ivars = self.get_inv_var()
         if coadd_estimator:
             coadd,_ = powtools.get_coadd(splits,ivars,axis=1)
@@ -69,7 +69,7 @@ class DataModel(object):
             ffts = enmap.fft(data*self.mask_a*ivars,normalize="phys")
             wmaps = ivars * self.mask_a
             del ivars, data, splits
-        return self.power.get_n2d(ffts,wmaps,show=show,coadd_estimator=coadd_estimator)
+        return self.power.get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname)
 
 
     def generate_noise_sim(self,icovsqrt,binary_percentile=10.,seed=None):

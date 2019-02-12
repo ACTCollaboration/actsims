@@ -2,10 +2,11 @@ from __future__ import print_function
 from pixell import enmap,enplot
 import numpy as np
 import os,sys
-from actsims import datamodel, powtools
+from actsims import datamodel, powtools,utils
 from enlib import bench
 from orphics import io
 import matplotlib.pyplot as plt
+from tilec import covtools
 
 import argparse
 # Parse command line
@@ -26,12 +27,13 @@ seed = 100
 bin_edges = np.arange(30,8000,40)
 
 dm = datamodel.DataModel(args.season,args.array,args.patch)
+pout = "%s%s_%s_%s" % (datamodel.pout ,args.season,args.array,args.patch)
 modlmap = dm.modlmap
-n2d_data = dm.get_n2d_data(dm.get_map(),coadd_estimator=args.coadd)
+n2d_data = dm.get_n2d_data(dm.get_map(),coadd_estimator=args.coadd,plot_fname=pout+"_n2d_data")
 cents,p1ds_data = powtools.get_p1ds(n2d_data,modlmap,bin_edges)
 del n2d_data
-n2d_flat = dm.get_n2d_data(dm.get_map(),coadd_estimator=args.coadd,flattened=True)
-n2d_flat_smoothed = powtools.smooth_ps(n2d_flat.copy(),dfact=dfact,radial_pairs=[(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3)])
+n2d_flat = dm.get_n2d_data(dm.get_map(),coadd_estimator=args.coadd,flattened=True,plot_fname=pout+"_n2d_data_flat")
+n2d_flat_smoothed = powtools.smooth_ps(n2d_flat.copy(),dfact=dfact,radial_pairs=[(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3)],plot_fname=pout+"_n2d_data_flat_smoothed")
 
 for corrfunc,corrlabel in zip([lambda x: x,powtools.null_off_diagonals],['allcorrs','no-off']):
     for method in ['arrayops']:
@@ -39,6 +41,6 @@ for corrfunc,corrlabel in zip([lambda x: x,powtools.null_off_diagonals],['allcor
             print(smlabel," ",method," ",corrlabel)
             covsqrt = powtools.get_covsqrt(corrfunc(n2d),method)
             sims = dm.generate_noise_sim(covsqrt,seed=seed)
-            n2d_sim = dm.get_n2d_data(sims,coadd_estimator=args.coadd,flattened=False)
+            n2d_sim = dm.get_n2d_data(sims,coadd_estimator=args.coadd,flattened=False,plot_fname=pout+"_n2d_sims")
             cents,p1ds_sim = powtools.get_p1ds(n2d_sim,modlmap,bin_edges)
-            powtools.compare_ps(cents,p1ds_sim,p1ds_data)
+            powtools.compare_ps(cents,p1ds_sim,p1ds_data,plot_fname="%s%s_%s_%s_compare" % (pout,corrlabel,method,smlabel))
