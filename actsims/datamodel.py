@@ -1,10 +1,11 @@
 import numpy as np
 import os,sys
-from pixell import enmap,enplot
+from pixell import enmap,enplot,fft as pfft
 from orphics import io
 from actsims import powtools,utils
 from enlib import bench
 import warnings
+if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
 
 # Get the path config for this system
 try: paths = io.config_from_yaml("inputParams/paths.yml")
@@ -27,6 +28,7 @@ class DataModel(object):
         self.season = season
         self.freqs = {'pa1':['f150'],'pa2':['f150'],'pa3':['f090','f150']}[array]
         self.nfreqs = len(self.freqs)
+        self.wmaps = self.get_inv_var()
         self.power = powtools.Power(self.shape,self.wcs,mc=False)
         
         
@@ -54,7 +56,7 @@ class DataModel(object):
 
 
     def get_n2d_data(self,splits,coadd_estimator=False,flattened=False,plot_fname=None):
-        ivars = self.get_inv_var()
+        ivars = self.wmaps
         if coadd_estimator:
             coadd,_ = powtools.get_coadd(splits,ivars,axis=1)
             data  = splits - coadd[:,None,...]
@@ -75,11 +77,11 @@ class DataModel(object):
     def generate_noise_sim(self,icovsqrt,binary_percentile=10.,seed=None):
         if isinstance(seed,int): seed = [seed]
 
-        modlmap = enmap.modlmap(self.shape,self.wcs)
+        modlmap = self.modlmap
         Ny,Nx = self.shape[-2:]
         nfreqs = self.nfreqs
         ncomps = nfreqs * 3
-        wmaps = self.get_inv_var()
+        wmaps = self.wmaps
         wcs = wmaps.wcs
 
         nsplits = wmaps.shape[1]
@@ -96,30 +98,26 @@ class DataModel(object):
             kmap.append( enmap.map_mul(covsqrt, rmap) )
         kmap = enmap.enmap(np.stack(kmap),self.wcs)
         outmaps = enmap.ifft(kmap, normalize="phys").real
+        del kmap,rmap
 
-        # Need to test this more
+        # Need to test this more ; it's only marginally faster and has different seed behaviour
         # covsqrt = icovsqrt 
-        # kmap = []
         # np.random.seed(seed)
         # rmap = enmap.rand_gauss_harm((nsplits,ncomps,Ny, Nx),covsqrt.wcs)
         # kmap = enmap.samewcs(np.einsum("abyx,cbyx->cayx", covsqrt, rmap),rmap)
         # outmaps = enmap.ifft(kmap, normalize="phys").real
 
-        
-        fmaps = []
+        # Divide by hits
         for ifreq in range(nfreqs):
-            omaps = outmaps[:,ifreq*3:(ifreq+1)*3,...].copy() / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
-            fmaps.append(omaps.copy())
-        fmaps = enmap.enmap(np.stack(fmaps),self.wcs)
-        del omaps,outmaps
-
-        # Sanitize
+            outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
+        
+        # Sanitize by thresholding and binary masking
         for ifreq in range(nfreqs):
             for isplit in range(nsplits):
                 win = wmaps[ifreq,isplit,0,...]
                 bmask = powtools.binary_mask(win,threshold = np.percentile(win,binary_percentile))
-                fmaps[...,bmask==0] = 0
+                outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
 
-        return fmaps
+        return outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
 
     
