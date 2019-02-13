@@ -13,29 +13,26 @@ cmbDir = '../cmb_sim_data/'
 coordsEpsilonArcminCMBSim = [[0, 0], [0, 0]]
 
 
+beamBase = '../beams/181220/'
 
 
-beamBase = '/global/cscratch1/sd/engelen/Beams/171206/beam_tform_171206_'
-
-
-
-beamNames = {'deep1_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_map.txt', \
-             'deep5_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_map.txt', \
-             'deep6_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_map.txt', \
-             'deep56_s14_pa1_f150': beamBase +'pa1_150GHz_4_410_s14_map.txt', \
-             'deep56_s14_pa2_f150': beamBase +'pa2_150GHz_6_410_s14_map.txt',\
-             'deep56_s15_pa1_f150': beamBase + 'pa1_150GHz_3_310_s15_map.txt',\
-             'deep56_s15_pa2_f150': beamBase + 'pa2_150GHz_4_410_s15_map.txt',\
-             'deep56_s15_pa3_f090': beamBase +'pa3_90GHz_5_420_s15_map.txt',\
-             'deep56_s15_pa3_f150': beamBase +'pa3_90GHz_5_420_s15_map.txt',\
-             'deep8_s15_pa1_f150': beamBase + 'pa1_150GHz_3_310_s15_map.txt',\
-             'deep8_s15_pa2_f150': beamBase + 'pa2_150GHz_4_410_s15_map.txt',\
-             'deep8_s15_pa3_f090': beamBase + 'pa3_90GHz_5_420_s15_map.txt', \
-             'deep8_s15_pa3_f150': beamBase + 'pa3_150GHz_6_410_s15_map.txt',\
-             'boss_s15_pa1_f150': beamBase + 'pa1_150GHz_3_310_s15_map.txt',\
-             'boss_s15_pa2_f150': beamBase + 'pa2_150GHz_4_410_s15_map.txt',\
-             'boss_s15_pa3_f090': beamBase + 'pa3_90GHz_5_420_s15_map.txt', \
-             'boss_s15_pa3_f150': beamBase + 'pa3_150GHz_6_410_s15_map.txt'}
+beamNames = {'deep1_s13_pa1_f150': beamBase + 'mr3c_s13_pa1_f150_nohwp_night_beam_tform_jitter_deep1_181220.txt', \
+             'deep5_s13_pa1_f150': beamBase + 'mr3c_s13_pa1_f150_nohwp_night_beam_tform_jitter_deep5_181220.txt', \
+             'deep6_s13_pa1_f150': beamBase + 'mr3c_s13_pa1_f150_nohwp_night_beam_tform_jitter_deep6_181220.txt', \
+             'deep56_s14_pa1_f150': beamBase +'mr3c_s14_pa1_f150_nohwp_night_beam_tform_jitter_deep56_181220.txt', \
+             'deep56_s14_pa2_f150': beamBase +'mr3c_s14_pa2_f150_nohwp_night_beam_tform_jitter_deep56_181220.txt',\
+             'deep56_s15_pa1_f150': beamBase + 'mr3c_s15_pa1_f150_nohwp_night_beam_tform_jitter_deep56_181220.txt',\
+             'deep56_s15_pa2_f150': beamBase + 'mr3c_s15_pa2_f150_nohwp_night_beam_tform_jitter_deep56_181220.txt',\
+             'deep56_s15_pa3_f090': beamBase +'mr3c_s15_pa3_f090_nohwp_night_beam_tform_jitter_deep56_181220.txt',\
+             'deep56_s15_pa3_f150': beamBase +'mr3c_s15_pa3_f150_nohwp_night_beam_tform_jitter_deep56_181220.txt',\
+             'deep8_s15_pa1_f150': beamBase + 'mr3c_s15_pa1_f150_nohwp_night_beam_tform_jitter_deep8_181220.txt',\
+             'deep8_s15_pa2_f150': beamBase + 'mr3c_s15_pa2_f150_nohwp_night_beam_tform_jitter_deep8_181220.txt',\
+             'deep8_s15_pa3_f090': beamBase + 'mr3c_s15_pa3_f090_nohwp_night_beam_tform_jitter_deep8_181220.txt', \
+             'deep8_s15_pa3_f150': beamBase + 'mr3c_s15_pa3_f150_nohwp_night_beam_tform_jitter_deep8_181220.txt',\
+             'boss_s15_pa1_f150': beamBase + 'mr3c_s15_pa1_f150_nohwp_night_beam_tform_jitter_boss_181220.txt',\
+             'boss_s15_pa2_f150': beamBase + 'mr3c_s15_pa2_f150_nohwp_night_beam_tform_jitter_boss_181220.txt',\
+             'boss_s15_pa3_f090': beamBase + 'mr3c_s15_pa3_f090_nohwp_night_beam_tform_jitter_boss_181220.txt', \
+             'boss_s15_pa3_f150': beamBase + 'mr3c_s15_pa3_f150_nohwp_night_beam_tform_jitter_boss_181220.txt'}
 
 
 foregroundPowerFile = 'fg.dat'
