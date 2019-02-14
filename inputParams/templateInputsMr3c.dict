@@ -1,14 +1,12 @@
 
-# syncRoot = '/project/projectdirs/act/data/synced_maps/mr2_20170608_20170816/'
-# syncRoot = '/project/projectdirs/act/data/synced_maps/mr3/'
-
-# syncRoot = '/project/projectdirs/act/data/synced_maps/mr3_20180914/'
-
-syncRoot = '/project/projectdirs/act/data/synced_maps/mr3c_20181012/'
+syncRoot = '/home/msyriac/data/act/maps/mr3/'
 dataMapDir = '../templateDataMr3c/'
 
 useCrossLinkMaps = True
 
+crossLinkRoot = '/home/msyriac/data/act/maps/steve/'
+crossLinkEnd = '_mask_run_180323_master_apo_w0.fits'
+#crossLinkEnd = '_forecast_180223_master_apo_w0.fits'
 
 
 
@@ -17,39 +15,39 @@ freqsInArrays =  {'pa1': ['f150'], \
                 'pa2':  ['f150'], \
                 'pa3': ['f090', 'f150']}
 
-# spaList = [['s14_deep56_pa1']]
+spaList = [['s15_deep56_pa3']]
 
-spaList = [['s13_deep1_pa1'],\
-           ['s13_deep5_pa1'],\
-           ['s13_deep6_pa1'],\
-           ['s14_deep56_pa1'],\
-           ['s14_deep56_pa2'],\
-           ['s15_deep56_pa1'],\
-           ['s15_deep56_pa2'],\
-           ['s15_deep56_pa3'],\
-           ['s15_deep8_pa1'],\
-           ['s15_deep8_pa2'],\
-           ['s15_deep8_pa3'],\
-           ['s15_boss_pa1'],\
-           ['s15_boss_pa2'],\
-           ['s15_boss_pa3']]
+# spaList = [['s13_deep1_pa1'],\
+#            ['s13_deep5_pa1'],\
+#            ['s13_deep6_pa1'],\
+#            ['s14_deep56_pa1'],\
+#            ['s14_deep56_pa2'],\
+#            ['s15_deep56_pa1'],\
+#            ['s15_deep56_pa2'],\
+#            ['s15_deep56_pa3'],\
+#            ['s15_deep8_pa1'],\
+#            ['s15_deep8_pa2'],\
+#            ['s15_deep8_pa3'],\
+#            ['s15_boss_pa1'],\
+#            ['s15_boss_pa2'],\
+#            ['s15_boss_pa3']]
 
-# psaList = [['deep56_s14_pa1']]
+psaList = [['deep56_s15_pa3']]
 # very ugly hacking here..
-psaList = [['deep1_s13_pa1'],\
-           ['deep5_s13_pa1'],\
-           ['deep6_s13_pa1'],\
-           ['deep56_s14_pa1'],\
-           ['deep56_s14_pa2'],\
-           ['deep56_s15_pa1'],\
-           ['deep56_s15_pa2'],\
-           ['deep56_s15_pa3'],\
-           ['deep8_s15_pa1'],\
-           ['deep8_s15_pa2'],\
-           ['deep8_s15_pa3'],\
-           ['boss_s15_pa1'],\
-           ['boss_s15_pa2'],\
-           ['boss_s15_pa3']]
+# psaList = [['deep1_s13_pa1'],\
+#            ['deep5_s13_pa1'],\
+#            ['deep6_s13_pa1'],\
+#            ['deep56_s14_pa1'],\
+#            ['deep56_s14_pa2'],\
+#            ['deep56_s15_pa1'],\
+#            ['deep56_s15_pa2'],\
+#            ['deep56_s15_pa3'],\
+#            ['deep8_s15_pa1'],\
+#            ['deep8_s15_pa2'],\
+#            ['deep8_s15_pa3'],\
+#            ['boss_s15_pa1'],\
+#            ['boss_s15_pa2'],\
+#            ['boss_s15_pa3']]
 
 
 
@@ -138,9 +136,7 @@ beamList = {'deep1_s13_pa1_f150': beamBase + 'pa1_150GHz_3_310_s13_instant.txt',
              'boss_s15_pa3_f150': beamBase + 'pa3_150GHz_6_410_s15_instant.txt'}
 
 
-crossLinkRoot = '/global/cscratch1/sd/engelen/crosslink_maps/mask_run_180323/'
 
-crossLinkEnd = '_mask_run_180323_master_apo_w0.fits'
 
 crossLinkDict = {'deep1_s13_pa1': crossLinkRoot + 'deep1' + crossLinkEnd, \
                  'deep5_s13_pa1': crossLinkRoot + 'deep5' + crossLinkEnd, \
