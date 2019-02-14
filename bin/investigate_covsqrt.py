@@ -1,3 +1,7 @@
+"""
+This script was used to discover the usefulness of the difference estimator and of the noise PS smoothing.
+"""
+
 from __future__ import print_function
 from pixell import enmap,enplot
 import numpy as np

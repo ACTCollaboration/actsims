@@ -64,11 +64,20 @@ class DataModel(object):
         else:
             data = splits
         if flattened:
+
+            utils.plot("/scratch/r/rbond/msyriac/plots/deep8_split0.png", (data*self.mask_a*np.sqrt(ivars))[0,0,0,...])
+            utils.plot("/scratch/r/rbond/msyriac/plots/deep8_split1.png", (data*self.mask_a*np.sqrt(ivars))[0,1,0,...])
+            utils.plot("/scratch/r/rbond/msyriac/plots/deep8_split2.png", (data*self.mask_a*np.sqrt(ivars))[0,2,0,...])
+            utils.plot("/scratch/r/rbond/msyriac/plots/deep8_split3.png", (data*self.mask_a*np.sqrt(ivars))[0,3,0,...])
+            # sys.exit()
+
             ffts = enmap.fft(data*self.mask_a*np.sqrt(ivars),normalize="phys")
+            if plot_fname is not None: utils.plot(plot_fname+"_fft_maps",data*self.mask_a*ivars)
             wmaps = self.mask_a + enmap.zeros(ffts.shape)
             del ivars, data, splits
         else:
             ffts = enmap.fft(data*self.mask_a*ivars,normalize="phys")
+            if plot_fname is not None: utils.plot(plot_fname+"_fft_maps",data*self.mask_a*ivars)
             wmaps = ivars * self.mask_a
             del ivars, data, splits
         return self.power.get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname)

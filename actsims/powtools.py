@@ -264,95 +264,84 @@ def get_p1ds(p2d,modlmap,bin_edges):
 
 def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
 
+    dpi = 300
+    ncomps = p1ds1.shape[0]
+    if ncomps==3:
+        pols = ['150-I','150-Q','150-U']
+    elif ncomps==6:
+        pols = ['90-I','90-Q','90-U','150-I','150-Q','150-U']
 
     # auto-corrs and cross-freq-II
     k = 0
+    pl = io.Plotter(xlabel = "$\\ell$", ylabel = "$D_{\\ell} (\\mu K^2)$",xyscale='linlog',scalefn=lambda x: x**2./2./np.pi)
     for i in range(p1ds1.shape[0]):
         for j in range(p1ds1.shape[0]):
             if not(i==j or (i==0 and j==3)): continue
-            alpha = 1 if i==j else 0.5
+            polstring = "%s x %s" % (pols[i],pols[j])
             if err is not None:
-                   plt.errorbar(cents,p1ds1[i,j]*cents**2./2./np.pi,
-                                yerr=err[i,j]*cents**2./2./np.pi,
-                                label="%d-%d" % (i,j),color="C%d" % (k%10),ls="--",alpha=alpha)
+                   pl.add_err(cents,p1ds1[i,j],
+                                yerr=err[i,j],
+                                label=polstring,color="C%d" % (k%10),ls="--",alpha=0.5,markersize=2)
             else:
-                   plt.plot(cents,p1ds1[i,j]*cents**2./2./np.pi,
-                            label="%d-%d" % (i,j),color="C%d" % (k%10),ls="--",alpha=alpha)
-            plt.plot(cents,p1ds2[i,j]*cents**2./2./np.pi,color="C%d" % (k%10))
+                   pl.add(cents,p1ds1[i,j],
+                            label=polstring,color="C%d" % (k%10),ls="--",alpha=0.5,markersize=2)
+            pl.add(cents,p1ds2[i,j],color="C%d" % (k%10))
+            
+
             k = k+1
-    plt.legend()
-    plt.xlim(30,8000)
-    plt.axvline(x=500,ls="--",color='k',alpha=0.5)
-    plt.xlabel("$\\ell$")
-    plt.ylabel("$D_{\\ell}$")
-    plt.xscale('linear')
-    plt.yscale('log')
-    if plot_fname is None:
-        plt.show() 
-    else:
-        plt.savefig(plot_fname+"_power.png")
-        print(io.bcolors.OKGREEN+"Saved plot to", plot_fname+"_power.png"+io.bcolors.ENDC)
-    plt.clf()
+    pl._ax.set_xlim(30,10000)
+    pl.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    #pl._ax.set_ylim(5e-6,3e0)
+    pl._ax.set_ylim(1e-1,1e5)
+    pl.vline(x=500)
+    pl.done(plot_fname+"_power.png", dpi=dpi)
 
 
 
 
     # ratios wrt data of auto-corrs and cross-freq-II
     k = 0
+    pl = io.Plotter(xlabel = "$\\ell$", ylabel = "$N_{\\mathrm{sim}} / N_{\\mathrm{data}}$",xyscale='linlin')
     for i in range(p1ds1.shape[0]):
         for j in range(p1ds1.shape[0]):
             if not(i==j or (i==0 and j==3)): continue
+            polstring = "%s x %s" % (pols[i],pols[j])
             if err is not None:
-                   plt.errorbar(cents,p1ds1[i,j]/p1ds2[i,j],yerr=err[i,j]/p1ds2[i,j],label="%d-%d" % (i,j),color="C%d" % (k%10))
+                   pl.add_err(cents,p1ds1[i,j]/p1ds2[i,j],yerr=err[i,j]/p1ds2[i,j],label=polstring,color="C%d" % (k%10),alpha=0.7,markersize=3)
             else:
-                   plt.plot(cents,p1ds1[i,j]/p1ds2[i,j],label="%d-%d" % (i,j),color="C%d" % (k%10))
+                   pl.add(cents,p1ds1[i,j]/p1ds2[i,j],label=polstring,color="C%d" % (k%10),alpha=0.7,markersize=3)
             k = k+1
-    plt.legend()
-    plt.xlim(30,8000)
-    plt.ylim(0.5,1.5)
-    plt.axvline(x=500,ls="--",color='k',alpha=0.5)
-    plt.axhline(y=1,ls="--",color='k',alpha=0.5)
-    plt.axhline(y=1.05,ls="-.",color='k',alpha=0.5)
-    plt.axhline(y=0.95,ls="-.",color='k',alpha=0.5)
-    plt.xlabel("$\\ell$")
-    plt.ylabel("$N_{\\mathrm{sim}} / N_{\\mathrm{data}}$")
-    plt.xscale('linear')
-    plt.yscale('linear')
-    if plot_fname is None:
-        plt.show() 
-    else:
-        plt.savefig(plot_fname+"_ratio.png")
-        print(io.bcolors.OKGREEN+"Saved plot to", plot_fname+"_ratio.png"+io.bcolors.ENDC)
-    plt.clf()
+    pl._ax.set_xlim(30,10000)
+    pl._ax.set_ylim(0.8,1.2)
+    pl.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    pl.vline(x=500)
+    pl.hline(y=1)
+    pl.hline(y=1.05)
+    pl.hline(y=0.95)
+    pl.done(plot_fname+"_ratio.png", dpi=dpi)
 
 
 
-    # auto-corrs and cross-freq-II
+    # cross-pol
     k = 0
+    pl = io.Plotter(xlabel = "$\\ell$", ylabel = "$D_{\\ell}  (\\mu K^2)$",xyscale='linlin',scalefn=lambda x: x**2./2./np.pi)
     for i in range(p1ds1.shape[0]):
         for j in range(i+1,p1ds1.shape[0]):
             if ((i==0 and j==3) or (i==3 and j==0)): continue
+            polstring = "%s x %s" % (pols[i],pols[j])
             if err is not None:
-                   plt.errorbar(cents,p1ds1[i,j]*cents**2./2./np.pi,
-                                yerr=err[i,j]*cents**2./2./np.pi,
-                                label="%d-%d" % (i,j),color="C%d" % (k%10),ls="--",alpha=alpha)
+                   pl.add_err(cents[::2],p1ds1[i,j][::2],
+                                yerr=err[i,j][::2],
+                                label=polstring,color="C%d" % (k%10),alpha=1,markersize=2)
             else:
-                   plt.plot(cents,p1ds1[i,j]*cents**2./2./np.pi,
-                            label="%d-%d" % (i,j),color="C%d" % k,ls="--",alpha=alpha)
-            plt.plot(cents,p1ds2[i,j]*cents**2./2./np.pi,color="C%d" % (k%10))
+                   pl.add(cents[::2],p1ds1[i,j][::2],
+                            label=polstring,color="C%d" % (k%10),alpha=1,markersize=2)
+            pl.add(cents,p1ds2[i,j],color="C%d" % (k%10),lw=1,alpha=0.5)
             k = k+1
-    plt.legend()
-    plt.xlim(30,8000)
-    plt.axhline(y=0,ls="--",color='k',alpha=0.5)
-    plt.axvline(x=500,ls="--",color='k',alpha=0.5)
-    plt.xlabel("$\\ell$")
-    plt.ylabel("$D_{\\ell}$")
-    plt.xscale('linear')
-    plt.yscale('linear')
-    if plot_fname is None:
-        plt.show() 
-    else:
-        plt.savefig(plot_fname+"_cross_power.png")
-        print(io.bcolors.OKGREEN+"Saved plot to", plot_fname+"_cross_power.png"+io.bcolors.ENDC)
-    plt.clf()
+    pl._ax.set_xlim(30,10000)
+    pl._ax.set_ylim(-40,40)
+    pl.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    pl.hline(y=0)
+    pl.vline(x=500)
+    pl.done(plot_fname+"_cross_power.png", dpi=dpi)
 

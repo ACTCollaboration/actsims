@@ -1,3 +1,6 @@
+"""
+This script can be used to make a covsqrt and a few trial sims.
+"""
 from __future__ import print_function
 from pixell import enmap,enplot
 import numpy as np
@@ -18,6 +21,7 @@ parser.add_argument("-n", "--nsims",     type=int,  default=10,help="Number of s
 parser.add_argument("-d", "--dfact",     type=int,  default=8,help="Downsample factor.")
 parser.add_argument("-a", "--aminusc", action='store_true',help='Whether to use the auto minus cross estimator.')
 parser.add_argument("--no-write", action='store_true',help='Do not write any FITS to disk.')
+parser.add_argument("--debug", action='store_true',help='Debug plots.')
 args = parser.parse_args()
 coadd = not(args.aminusc)
 dfact = (args.dfact,args.dfact)
@@ -31,8 +35,10 @@ sout = "%s%s_%s_%s_coadd_est_%s" % (datamodel.paths['save'] ,args.season,args.ar
 
 modlmap = dm.modlmap
 
-n2d_flat = dm.get_n2d_data(dm.get_map(),coadd_estimator=coadd,flattened=True)
-n2d_flat_smoothed = powtools.smooth_ps(n2d_flat.copy(),dfact=dfact,radial_pairs=[(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)])
+maps = dm.get_map()
+n2d_flat = dm.get_n2d_data(maps,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
+del maps
+n2d_flat_smoothed = powtools.smooth_ps(n2d_flat.copy(),dfact=dfact,radial_pairs=[(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)],plot_fname=pout+"_n2d_flat_smoothed" if args.debug else None)
 del n2d_flat
 
 covsqrt = powtools.get_covsqrt(n2d_flat_smoothed,"arrayops")
@@ -42,9 +48,9 @@ p1ds = []
 for i in range(nsims):
     print("Sim %d of %d ..." % (i+1,nsims))
     with bench.show("simgen"):
-        sims = dm.generate_noise_sim(covsqrt,seed=i)
+        sims = dm.generate_noise_sim(covsqrt,seed=i)#,binary_percentile=50. if (args.array=='pa1' and args.patch=='deep8') else 10.)
     enmap.write_map("%s_trial_sim_seed_%d.fits" % (sout,i) ,sims)
-    n2d_sim = dm.get_n2d_data(sims,coadd_estimator=coadd,flattened=False)
+    n2d_sim = dm.get_n2d_data(sims,coadd_estimator=coadd,flattened=False,plot_fname=pout+"_n2d_sim" if args.debug else None)
     del sims
     cents,op1ds_sim = powtools.get_p1ds(n2d_sim,modlmap,bin_edges)
     p1ds.append(op1ds_sim.copy().reshape(-1))
