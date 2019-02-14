@@ -6,10 +6,11 @@ from enlib import bench
 import warnings
 if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
 
-# Get the path config for this system
-try: paths = io.config_from_yaml("inputParams/paths.yml")
+actsim_root = os.path.dirname(os.path.realpath(__file__))
+
+try: paths = io.config_from_yaml(os.path.join(actsim_root, "../inputParams/paths.yml"))
 except:
-    paths = io.config_from_yaml("inputParams/paths_example.yml")
+    paths = io.config_from_yaml(os.path.join(actsim_root, "../inputParams/paths_example.yml"))
     warnings.warn("No input/paths.yml found. Using version controlled input/paths_example.yml. Please copy and edit your local version.")
 
 map_root = paths['map_root']
