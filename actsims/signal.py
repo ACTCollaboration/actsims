@@ -16,6 +16,7 @@ except:
 alm_root  = paths['alm_root']
 map_root  = paths['map_root']
 pout      = paths['plots'] 
+mask_root = paths['mask_root']
 
 class DataModelMock(noise.DataModel):
     # will swap with the final version of data model 
@@ -106,7 +107,7 @@ class SignalModel(DataModelMock):
         curvedsky.alm2map(alm_patch, signal, spin = [0,2], verbose=True)
         
         if self.apply_window:
-            print 'apply window'
+            print('apply window')
             axes = [-2, -1]
             for idx in range(signal.shape[0]):
                 kmap   = pfft.fft(signal[idx], axes=axes)
@@ -126,7 +127,7 @@ class SignalModel(DataModelMock):
     def get_template(self, patch):
         if not self.templates.has_key(patch):
             self.manage_cache(self.templates, self.max_cached-1) 
-            template_file = os.path.join(map_root, '{}_nohwp_night_1pass_2way_coadd_ivar'.format(self.signal_idxs[0]))
+            template_file = os.path.join(mask_root, '{}_mr3c_20181012_190203_master_apo_w0.fits'.format(patch))
             template      = enmap.read_map(template_file)
             self.templates[patch] = enmap.empty((3,) + template.shape, template.wcs)
         else: pass
