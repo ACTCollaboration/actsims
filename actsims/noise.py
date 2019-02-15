@@ -431,3 +431,11 @@ def plot(fname,imap,dg=8):
     else: 
         enplot.write(fname,img)
         print(io.bcolors.OKGREEN+"Saved high-res plot to", fname+io.bcolors.ENDC)
+
+def corrcoef(n2d):
+    o2d = n2d.copy()*0. + 1.
+    for i in range(n2d.shape[0]):
+        for j in range(i+1,n2d.shape[0]):
+            o2d[i,j] = n2d[i,j] / np.sqrt(n2d[i,i]*n2d[j,j])
+            o2d[j,i] = o2d[i,j].copy()
+    return o2d
