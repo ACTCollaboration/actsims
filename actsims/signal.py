@@ -95,7 +95,7 @@ class SignalModel(DataModelMock):
             alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                _, beam_data = act_data_model.load_normalized_beam(season, array, freq, patch)
+                _, beam_data = act_data_model.load_normalized_beam(season, array, patch, freq)
                 for idx in range(alm_patch.shape[0]):
                     alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
             else: pass

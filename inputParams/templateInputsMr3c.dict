@@ -32,22 +32,22 @@ spaList = [['s15_deep56_pa3']]
 #            ['s15_boss_pa2'],\
 #            ['s15_boss_pa3']]
 
-psaList = [['deep56_s15_pa3']]
+#psaList = [['deep56_s15_pa3']]
 # very ugly hacking here..
-# psaList = [['deep1_s13_pa1'],\
-#            ['deep5_s13_pa1'],\
-#            ['deep6_s13_pa1'],\
-#            ['deep56_s14_pa1'],\
-#            ['deep56_s14_pa2'],\
-#            ['deep56_s15_pa1'],\
-#            ['deep56_s15_pa2'],\
-#            ['deep56_s15_pa3'],\
-#            ['deep8_s15_pa1'],\
-#            ['deep8_s15_pa2'],\
-#            ['deep8_s15_pa3'],\
-#            ['boss_s15_pa1'],\
-#            ['boss_s15_pa2'],\
-#            ['boss_s15_pa3']]
+psaList = [['deep1_s13_pa1'],\
+           ['deep5_s13_pa1'],\
+           ['deep6_s13_pa1'],\
+           ['deep56_s14_pa1'],\
+           ['deep56_s14_pa2'],\
+           ['deep56_s15_pa1'],\
+           ['deep56_s15_pa2'],\
+           ['deep56_s15_pa3'],\
+           ['deep8_s15_pa1'],\
+           ['deep8_s15_pa2'],\
+           ['deep8_s15_pa3'],\
+           ['boss_s15_pa1'],\
+           ['boss_s15_pa2'],\
+           ['boss_s15_pa3']]
 
 
 

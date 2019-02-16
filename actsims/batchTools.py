@@ -1,6 +1,6 @@
 import numpy as np, os
 from pixell import enmap, fft, powspec, curvedsky
-from . import flipperDict, simTools
+from . import flipperDict, simTools, act_data_model
 import healpy as hp
 
 
@@ -54,7 +54,7 @@ class MR3PATCH_HELPER(object):
 
     def get_signal_sim(self, psaf, save_alm=False, save_map=False):
         assert(psaf in self.psafs)
-        freq = psaf.split('_')[-1]
+        patch, season, array, freq = psaf.split('_')
         print "loading sims for {}".format(psaf)
         if self.signals.has_key(psaf): 
             print "loading precomputed sim {}".format(psaf)
@@ -70,8 +70,7 @@ class MR3PATCH_HELPER(object):
             alm_patch = self.alms_base[freq].copy()
             if self.dobeam:
                 print "apply beam for alm {}".format(psaf)
-                beam_file = os.path.join(os.path.dirname(os.path.abspath(__file__)),signal_dict['beamNames'][psaf])
-                beam_data = (np.loadtxt(beam_file))[:,1]
+                _, beam_data = act_data_model.load_normalized_beam(season, array, patch, freq)
                 for idx in range(alm_patch.shape[0]):
                     alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
             else: pass

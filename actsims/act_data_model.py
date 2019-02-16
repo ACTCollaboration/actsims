@@ -16,8 +16,8 @@ def __interpolate_beam__(l,f,l_interp):
     f_interp = interp1d(l, f, bounds_error=False, fill_value=(0,0))(l_interp)
     return (l_interp, f_interp)
     
-def load_unnormalized_beam(season, array, freq, patch, l_interp=None):
-    sapf = '{}_{}_{}_{}'.format(season, array, patch, freq)
+def load_unnormalized_beam(season, array, patch, freq, l_interp=None):
+    sapf = '{}_{}_{}_{}'.format(season, array, freq, patch)
     beam_file_temp = os.path.join(beam_root, 'mr3c_{}_{}_{}_nohwp_night_beam_tform_jitter_{}_181220.txt')
     beam_file      = beam_file_temp.format(season, array, freq, patch) 
     print("loading %s" %beam_file)
