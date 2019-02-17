@@ -5,7 +5,8 @@ from __future__ import print_function
 from pixell import enmap,enplot
 import numpy as np
 import os,sys
-from actsims import datamodel, powtools,utils
+from actsims import noise
+from soapack import covsqrt
 from enlib import bench
 from orphics import io,stats
 import matplotlib.pyplot as plt
