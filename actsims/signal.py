@@ -1,7 +1,8 @@
 import numpy as np, os
 from pixell import enmap, powspec, curvedsky, fft as pfft
 from orphics import io
-from . import simTools, util, noise, act_data_model
+from . import simTools, util, act_data_model
+from soapack.interfaces import ACTmr3 
 import healpy as hp
 import warnings
 from collections import OrderedDict as ODict
@@ -18,7 +19,7 @@ map_root  = paths['map_root']
 pout      = paths['plots'] 
 mask_root = paths['mask_root']
 
-class DataModelMock(noise.DataModel):
+class DataModelMock(ACTmr3):
     # will swap with the final version of data model 
     def __init__(self):
         self.supported_sims = ['s13_pa1_deep1_f150', 's13_pa1_deep5_f150', 's13_pa1_deep6_f150', 's14_pa1_deep56_f150', 's14_pa2_deep56_f150', \
