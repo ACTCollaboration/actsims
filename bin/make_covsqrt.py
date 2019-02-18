@@ -5,8 +5,8 @@ from __future__ import print_function
 from pixell import enmap,enplot
 import numpy as np
 import os,sys
-from actsims import noise
-from soapack import covsqrt
+from actsims import noise,utils
+from soapack import interfaces as sints
 from enlib import bench
 from orphics import io,stats
 import matplotlib.pyplot as plt
@@ -15,53 +15,80 @@ import argparse
 
 # Parse command line
 parser = argparse.ArgumentParser(description='Make covsqrt, generate some test sims, make verification plots.')
-parser.add_argument("season", type=str,help='Season')
-parser.add_argument("array", type=str,help='Array')
-parser.add_argument("patch", type=str,help='Patch')
+parser.add_argument("version", type=str,help='A unique version name')
+parser.add_argument("model", type=str,help='Name of a datamodel specified in soapack.interfaces.')
+parser.add_argument("--mask-version", type=str,  default="180323",help='Mask version')
+parser.add_argument("--mask-patch", type=str,  default=None,help='Mask patch')
+parser.add_argument("--binary-percentile", type=float,  default=10.,help='Binary percentile for sim masking.')
+parser.add_argument("--season", type=str,help='Season')
+parser.add_argument("--array", type=str,help='Array')
+parser.add_argument("--patch", type=str,help='Patch')
 parser.add_argument("-n", "--nsims",     type=int,  default=10,help="Number of sims.")
 parser.add_argument("-d", "--dfact",     type=int,  default=8,help="Downsample factor.")
 parser.add_argument("-a", "--aminusc", action='store_true',help='Whether to use the auto minus cross estimator.')
 parser.add_argument("--no-write", action='store_true',help='Do not write any FITS to disk.')
+parser.add_argument("--no-prewhiten", action='store_true',help='Do not prewhiten spectra before smoothing.')
+parser.add_argument("--overwrite", action='store_true',help='Overwrite an existing version.')
 parser.add_argument("--debug", action='store_true',help='Debug plots.')
 args = parser.parse_args()
 coadd = not(args.aminusc)
 dfact = (args.dfact,args.dfact)
 nsims = args.nsims
+version = args.version
+if args.mask_patch is None: mask_patch = patch
+else: mask_patch = args.mask_patch
+if args.binary_percentile < 1e-3: bp = None
+else: bp = args.binary_percentile
 
-bin_edges = np.arange(30,8000,40)
+# Get file name convention
+pout,cout,sout = noise.get_save_paths(args.model,args.version,coadd,
+                                      season=args.season,patch=args.patch,array=args.array,
+                                      mkdir=True,overwrite=args.overwrite,other_keys={'mask_version':args.mask_version,'mask_patch':mask_patch})
+# Get data model
+mask = sints.get_act_mr3_crosslinked_mask(mask_patch,version=args.mask_version)
+dm = sints.models[args.model](region=mask)
 
-dm = datamodel.DataModel(args.season,args.array,args.patch)
-pout = "%s%s_%s_%s_coadd_est_%s" % (datamodel.pout ,args.season,args.array,args.patch,coadd)
-sout = "%s%s_%s_%s_coadd_est_%s" % (datamodel.paths['save'] ,args.season,args.array,args.patch,coadd)
+# Get arrays from array
 
-modlmap = dm.modlmap
-
-maps = dm.get_map()
-n2d_flat = dm.get_n2d_data(maps,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
-del maps
-n2d_flat_smoothed = powtools.smooth_ps(n2d_flat.copy(),dfact=dfact,radial_pairs=[(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)],plot_fname=pout+"_n2d_flat_smoothed" if args.debug else None)
+splits = dm.get_splits(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array],srcfree=True)
+ivars = dm.get_splits_ivar(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array])
+modlmap = splits.modlmap()
+n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
+del splits
+radial_pairs = [(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)] if not(args.no_prewhiten) else []
+n2d_flat_smoothed = noise.smooth_ps(n2d_flat.copy(),dfact=dfact,
+                                       radial_pairs=radial_pairs,
+                                       plot_fname=pout+"_n2d_flat_smoothed" if args.debug else None)
 del n2d_flat
 
-covsqrt = powtools.get_covsqrt(n2d_flat_smoothed,"arrayops")
-enmap.write_map("%s_covsqrt.fits" % (sout) ,covsqrt)
+covsqrt = noise.get_covsqrt(n2d_flat_smoothed,"arrayops")
+enmap.write_map("%s_covsqrt.fits" % (cout) ,covsqrt)
+bin_edges = np.arange(30,8000,40)
 
 p1ds = []
 for i in range(nsims):
     print("Sim %d of %d ..." % (i+1,nsims))
     with bench.show("simgen"):
-        sims = dm.generate_noise_sim(covsqrt,seed=i)#,binary_percentile=50. if (args.array=='pa1' and args.patch=='deep8') else 10.)
+        sims = noise.generate_noise_sim(covsqrt,ivars,seed=i,binary_percentile=bp)
+    if args.debug and i==0: noise.plot(pout+"_sims",sims)
     enmap.write_map("%s_trial_sim_seed_%d.fits" % (sout,i) ,sims)
-    n2d_sim = dm.get_n2d_data(sims,coadd_estimator=coadd,flattened=False,plot_fname=pout+"_n2d_sim" if args.debug else None)
+    n2d_sim = noise.get_n2d_data(sims,ivars,mask,coadd_estimator=coadd,flattened=False,plot_fname=pout+"_n2d_sim" if args.debug else None)
     del sims
-    cents,op1ds_sim = powtools.get_p1ds(n2d_sim,modlmap,bin_edges)
+    cents,op1ds_sim = noise.get_p1ds(n2d_sim,modlmap,bin_edges)
     p1ds.append(op1ds_sim.copy().reshape(-1))
 p1dstats = stats.get_stats(np.array(p1ds))
 
 del covsqrt
 
 # For verification
-n2d_data = dm.get_n2d_data(dm.get_map(),coadd_estimator=coadd)
-cents,p1ds_data = powtools.get_p1ds(n2d_data,modlmap,bin_edges)
+splits = dm.get_splits(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array],srcfree=True)
+n2d_data = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd)
+cents,p1ds_data = noise.get_p1ds(n2d_data,modlmap,bin_edges)
+corr = noise.corrcoef(n2d_data)
 del n2d_data
+bin_edges = np.arange(30,10000,100)
+cents2,c1ds_data = noise.get_p1ds(corr,modlmap,bin_edges)
+noise.plot_corrcoeff(cents2,c1ds_data,plot_fname=pout)
 
-powtools.compare_ps(cents,p1dstats['mean'].reshape((dm.nfreqs*3,dm.nfreqs*3,cents.size)),p1ds_data,plot_fname="%s_compare" % (pout),err=p1dstats['errmean'].reshape((dm.nfreqs*3,dm.nfreqs*3,cents.size)))
+nfreqs = len(dm.array_freqs[args.array])
+noise.compare_ps(cents,p1dstats['mean'].reshape((nfreqs*3,nfreqs*3,cents.size)),p1ds_data,plot_fname="%s_compare" % (pout),err=p1dstats['errmean'].reshape((nfreqs*3,nfreqs*3,cents.size)))

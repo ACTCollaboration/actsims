@@ -1,10 +1,49 @@
 import numpy as np
 import os,sys
 from pixell import enmap,enplot,fft as pfft
+from soapack import interfaces as sints
+from actsims import utils
 from orphics import io
 from enlib import bench
 import warnings
 if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
+
+def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,other_keys=None):
+    if other_keys is None: other_keys = {}
+    paths = sints.dconfig['actsims']
+
+    assert paths['plot_path'] is not None
+    assert paths['covsqrt_path'] is not None
+    assert paths['trial_sim_path'] is not None
+
+    # Prepare output dirs
+    pdir = "%s/%s/" % (paths['plot_path'] ,version) 
+    cdir = "%s/%s/" % (paths['covsqrt_path'] ,version)
+    sdir = "%s/%s/" % (paths['trial_sim_path'] ,version)
+    
+    if mkdir:
+        exists1 = utils.mkdir(pdir)
+        exists2 = utils.mkdir(cdir)
+        exists3 = utils.mkdir(sdir)
+        if any([exists1,exists2,exists3]): 
+            if not(overwrite): raise IOError
+            warnings.warn("Version directory already exists. Overwriting.")
+
+    if model=='planck_hybrid': 
+        assert season is None
+        suff = '_'.join([model,patch,array,"coadd_est_"+str(coadd)])
+    else:
+        suff = '_'.join([model,season,patch,array,"coadd_est_"+str(coadd)])
+
+    for key in other_keys.keys():
+        suff += ("_"+key+"_"+str(other_keys[key]))
+
+    pout = pdir + suff
+    cout = cdir + suff
+    sout = sdir + suff
+
+    return pout,cout,sout
+
 
 def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_fname=None):
     if coadd_estimator:
@@ -28,6 +67,7 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
 
 def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
     if isinstance(seed,int): seed = [seed]
+    assert not(np.any(np.isnan(icovsqrt)))
 
     shape,wcs = ivars.shape,ivars.wcs
     modlmap = enmap.modlmap(shape,wcs)
@@ -65,12 +105,13 @@ def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
     for ifreq in range(nfreqs):
         outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
 
-    # Sanitize by thresholding and binary masking
-    for ifreq in range(nfreqs):
-        for isplit in range(nsplits):
-            win = wmaps[ifreq,isplit,0,...]
-            bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
-            outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
+    if binary_percentile is not None:
+        # Sanitize by thresholding and binary masking
+        for ifreq in range(nfreqs):
+            for isplit in range(nsplits):
+                win = wmaps[ifreq,isplit,0,...]
+                bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
+                outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
 
     return outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
 
@@ -116,10 +157,14 @@ def null_pol_off_diagonals(cov):
     
 def get_covsqrt(ps,method="arrayops"):
     if method=="multipow":
-        return enmap.multi_pow(ps.copy(),0.5)
+        covsq = enmap.multi_pow(ps.copy(),0.5)
     elif method=="arrayops":
         from enlib import array_ops
-        return array_ops.eigpow(ps.copy(),0.5,axes=[0,1])
+        covsq = array_ops.eigpow(ps.copy(),0.5,axes=[0,1])
+    covsq[:,:,ps.modlmap()<2] = 0
+    assert not(np.any(np.isnan(covsq)))
+    return covsq
+    
 
 def naive_power(f1,w1,f2=None,w2=None):
     if f2 is None:
@@ -392,6 +437,30 @@ def corrcoef(n2d):
     return o2d
 
 
+
+def plot_corrcoeff(cents,c1ds_data,plot_fname):
+    dpi = 300
+    ncomps = c1ds_data.shape[0]
+    if ncomps==3:
+        pols = ['150-I','150-Q','150-U']
+    elif ncomps==6:
+        pols = ['90-I','90-Q','90-U','150-I','150-Q','150-U']
+
+    pl = io.Plotter(xlabel = "$\\ell$", ylabel = "$N_{XY}/\\sqrt{N_{XX}N_{YY}}$",xyscale='linlin')
+    for i in range(c1ds_data.shape[0]):
+        for j in range(i+1,c1ds_data.shape[0]):
+            polstring = "%s x %s" % (pols[i],pols[j])
+            pl.add(cents,c1ds_data[i,j],label=polstring)
+    pl._ax.set_xlim(30,10000)
+    pl._ax.set_ylim(-0.3,0.3)
+    pl.hline(y=0.05)
+    pl.hline(y=-0.05)
+    pl.hline(y=0.01,ls='-.')
+    pl.hline(y=-0.01,ls='-.')
+    pl.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    pl.hline(y=0,ls='-')
+    pl.vline(x=500)
+    pl.done("%s_compare_corrcoeff.png" % (plot_fname), dpi=dpi)
 
 
 """
