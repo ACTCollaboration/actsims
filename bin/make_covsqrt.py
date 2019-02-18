@@ -32,13 +32,17 @@ parser.add_argument("--overwrite", action='store_true',help='Overwrite an existi
 parser.add_argument("--debug", action='store_true',help='Debug plots.')
 args = parser.parse_args()
 coadd = not(args.aminusc)
-dfact = (args.dfact,args.dfact)
 nsims = args.nsims
 version = args.version
-if args.mask_patch is None: mask_patch = patch
+if args.mask_patch is None: mask_patch = args.patch
 else: mask_patch = args.mask_patch
 if args.binary_percentile < 1e-3: bp = None
 else: bp = args.binary_percentile
+if args.dfact == 0: 
+    smooth = False
+else: 
+    smooth = True
+    dfact = (args.dfact,args.dfact)
 
 # Get file name convention
 pout,cout,sout = noise.get_save_paths(args.model,args.version,coadd,
@@ -51,14 +55,19 @@ dm = sints.models[args.model](region=mask)
 # Get arrays from array
 
 splits = dm.get_splits(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array],srcfree=True)
+if args.debug: noise.plot(pout+"_splits",splits)
 ivars = dm.get_splits_ivar(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array])
 modlmap = splits.modlmap()
 n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
+
 del splits
 radial_pairs = [(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)] if not(args.no_prewhiten) else []
-n2d_flat_smoothed = noise.smooth_ps(n2d_flat.copy(),dfact=dfact,
-                                       radial_pairs=radial_pairs,
-                                       plot_fname=pout+"_n2d_flat_smoothed" if args.debug else None)
+if smooth:
+    n2d_flat_smoothed = noise.smooth_ps(n2d_flat.copy(),dfact=dfact,
+                                        radial_pairs=radial_pairs,
+                                        plot_fname=pout+"_n2d_flat_smoothed" if args.debug else None)
+else:
+    n2d_flat_smoothed = n2d_flat.copy()
 del n2d_flat
 
 covsqrt = noise.get_covsqrt(n2d_flat_smoothed,"arrayops")

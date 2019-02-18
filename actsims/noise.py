@@ -46,28 +46,36 @@ def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=F
 
 
 def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_fname=None):
+    assert np.all(np.isfinite(splits))
+    #assert not(np.any(np.isinf(splits)))
+    assert np.all(np.isfinite(ivars))
+    assert np.all(np.isfinite(mask_a))
     if coadd_estimator:
         coadd,_ = get_coadd(splits,ivars,axis=1)
         data  = splits - coadd[:,None,...]
         del coadd
     else:
         data = splits
+    assert np.all(np.isfinite(data))
     if flattened:
         ffts = enmap.fft(data*mask_a*np.sqrt(ivars),normalize="phys")
         if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars)
         wmaps = mask_a + enmap.zeros(ffts.shape)
         del ivars, data, splits
     else:
+        assert np.all(np.isfinite(data*mask_a*ivars))
         ffts = enmap.fft(data*mask_a*ivars,normalize="phys")
         if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars)
         wmaps = ivars * mask_a
         del ivars, data, splits
-    return get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname)
+    n2d = get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname)
+    assert np.all(np.isfinite(n2d))
+    return n2d
 
 
 def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
     if isinstance(seed,int): seed = [seed]
-    assert not(np.any(np.isnan(icovsqrt)))
+    assert np.all(np.isfinite(icovsqrt))
 
     shape,wcs = ivars.shape,ivars.wcs
     modlmap = enmap.modlmap(shape,wcs)
@@ -101,6 +109,7 @@ def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
     # kmap = enmap.samewcs(np.einsum("abyx,cbyx->cayx", covsqrt, rmap),rmap)
     # outmaps = enmap.ifft(kmap, normalize="phys").real
 
+    assert np.all(np.isfinite(outmaps))
     # Divide by hits
     for ifreq in range(nfreqs):
         outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
@@ -113,13 +122,17 @@ def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
                 bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
                 outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
 
-    return outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
+    retmaps = outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
+    assert np.all(np.isfinite(retmaps))
+    return retmaps
 
     
 def get_coadd(imaps,wts,axis):
     # sum(w*m)/sum(w)
     twt = np.sum(wts,axis=axis)
-    return np.nan_to_num(np.sum(wts*imaps,axis=axis)/twt),twt
+    retmap = np.nan_to_num(np.sum(wts*imaps,axis=axis)/twt)
+    #retmap[np.isinf(np.abs(retmap))] = 0
+    return retmap,twt
 
 
 
@@ -162,7 +175,7 @@ def get_covsqrt(ps,method="arrayops"):
         from enlib import array_ops
         covsq = array_ops.eigpow(ps.copy(),0.5,axes=[0,1])
     covsq[:,:,ps.modlmap()<2] = 0
-    assert not(np.any(np.isnan(covsq)))
+    assert np.all(np.isfinite(covsq))
     return covsq
     
 
@@ -186,18 +199,18 @@ def noise_power(kmaps1,weights1,kmaps2=None,weights2=None,
 
     # select the PS function
     if pfunc is None: pfunc = naive_power
-    if np.any(np.isnan(kmaps1)): raise ValueError
-    if np.any(np.isnan(weights1)): raise ValueError
+    if not(np.all(np.isfinite(kmaps1))): raise ValueError
+    if not(np.all(np.isfinite(weights1))): raise ValueError
     if kmaps2 is not None:
-        if np.any(np.isnan(kmaps2)): raise ValueError
-        if np.any(np.isnan(weights1)): raise ValueError
+        if not(np.all(np.isfinite(kmaps2))): raise ValueError
+        if not(np.all(np.isfinite(weights1))): raise ValueError
 
     if coadd_estimator:
         # N^{GO} estimator
         assert kmaps1.ndim==3
         nsplits = kmaps1.shape[0]
         noise = np.sum(pfunc(kmaps1,weights1,kmaps2,weights2),axis=0)
-        if np.any(np.isnan(noise)): raise ValueError
+        if not(np.all(np.isfinite(noise))): raise ValueError
         return noise / nsplits / (nsplits-1.)
     else:
         # Cross and auto power
@@ -227,6 +240,8 @@ def noise_power(kmaps1,weights1,kmaps2=None,weights2=None,
 
 
 def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
+    assert np.all(np.isfinite(ffts))
+    assert np.all(np.isfinite(wmaps))
     shape,wcs = ffts.shape[-2:],ffts.wcs
     modlmap = enmap.modlmap(shape,wcs)
     Ny,Nx = shape[-2:]
@@ -254,13 +269,16 @@ def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
                 jwts = wmaps[jfreq,:,0]
             else:
                 jsplits = None ; jwts = None
+
             n2d[i,j] = noise_power(isplits,iwts,jsplits,jwts,
                                         coadd_estimator=coadd_estimator,pfunc=naive_power)
             if i!=j: n2d[j,i] = n2d[i,j]
-            if plot_fname is not None: plot("%s_%d_%s_%d_%s" \
-                                            % (plot_fname,ifreq,pols[ipol],
-                                               jfreq,pols[jpol]),
-                                            enmap.enmap(np.arcsinh(np.fft.fftshift(n2d[i,j])),wcs))
+            if plot_fname is not None: 
+                plot("%s_%d_%s_%d_%s" \
+                     % (plot_fname,ifreq,pols[ipol],
+                        jfreq,pols[jpol]),
+                     enmap.enmap(np.arcsinh(np.fft.fftshift(n2d[i,j])),wcs))
+
     return n2d
 
     
