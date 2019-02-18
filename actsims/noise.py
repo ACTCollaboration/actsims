@@ -1,118 +1,120 @@
 import numpy as np
 import os,sys
 from pixell import enmap,enplot,fft as pfft
+from soapack import interfaces as sints
+from actsims import utils
 from orphics import io
 from enlib import bench
 import warnings
 if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
 
-actsim_root = os.path.dirname(os.path.realpath(__file__))
+def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,other_keys=None):
+    if other_keys is None: other_keys = {}
+    paths = sints.dconfig['actsims']
 
-try: paths = io.config_from_yaml(os.path.join(actsim_root, "../inputParams/paths.yml"))
-except:
-    paths = io.config_from_yaml(os.path.join(actsim_root, "../inputParams/paths_example.yml"))
-    warnings.warn("No input/paths.yml found. Using version controlled input/paths_example.yml. Please copy and edit your local version.")
+    assert paths['plot_path'] is not None
+    assert paths['covsqrt_path'] is not None
+    assert paths['trial_sim_path'] is not None
 
-map_root = paths['map_root']
-mask_root = paths['mask_root'] 
-pout = paths['plots'] 
-
-class DataModel(object):
-    def __init__(self,season,array,patch):
-        self.mask_a = enmap.read_map("%s%s_mask_run_180323_master_apo_w0.fits" % (mask_root,patch))
-        self.shape,self.wcs = self.mask_a.shape,self.mask_a.wcs
-        self.modlmap = enmap.modlmap(self.shape,self.wcs)
-        self.region = patch
-        self.array = array
-        self.season = season
-        self.freqs = {'pa1':['f150'],'pa2':['f150'],'pa3':['f090','f150']}[array]
-        self.nfreqs = len(self.freqs)
-        self.wmaps = self.get_inv_var()
-        
-    def get_inv_var(self):
-        orets = []
-        for freq in self.freqs:
-            rets = []
-            for k in range(4):
-                pref = '_'.join([self.season,self.region,self.array,freq])
-                rets.append( enmap.read_map("%s%s_nohwp_night_3pass_4way_set%d_ivar.fits" % (map_root,pref,k))[None] )
-
-            orets.append(np.stack(rets))
-        return enmap.enmap(np.stack(orets),self.wcs)
+    # Prepare output dirs
+    pdir = "%s/%s/" % (paths['plot_path'] ,version) 
+    cdir = "%s/%s/" % (paths['covsqrt_path'] ,version)
+    sdir = "%s/%s/" % (paths['trial_sim_path'] ,version)
     
-    def get_map(self):
-        orets = []
-        for freq in self.freqs:
-            rets = []
-            for k in range(4):
-                pref = '_'.join([self.season,self.region,self.array,freq])
-                rets.append( enmap.read_map("%s%s_nohwp_night_3pass_4way_set%d_map_srcfree.fits" % (map_root,pref,k)) )
-            orets.append(np.stack(rets))
-        return enmap.enmap(np.stack(orets),self.wcs)
+    if mkdir:
+        exists1 = utils.mkdir(pdir)
+        exists2 = utils.mkdir(cdir)
+        exists3 = utils.mkdir(sdir)
+        if any([exists1,exists2,exists3]): 
+            if not(overwrite): raise IOError
+            warnings.warn("Version directory already exists. Overwriting.")
+
+    if model=='planck_hybrid': 
+        assert season is None
+        suff = '_'.join([model,patch,array,"coadd_est_"+str(coadd)])
+    else:
+        suff = '_'.join([model,season,patch,array,"coadd_est_"+str(coadd)])
+
+    for key in other_keys.keys():
+        suff += ("_"+key+"_"+str(other_keys[key]))
+
+    pout = pdir + suff
+    cout = cdir + suff
+    sout = sdir + suff
+
+    return pout,cout,sout
 
 
-class NoiseModel(DataModel):
-    def __init__(self,season,array,patch):
-        DataModel.__init__(self,season,array,patch)
+def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_fname=None):
+    assert np.all(np.isfinite(splits))
+    #assert not(np.any(np.isinf(splits)))
+    assert np.all(np.isfinite(ivars))
+    assert np.all(np.isfinite(mask_a))
+    if coadd_estimator:
+        coadd,_ = get_coadd(splits,ivars,axis=1)
+        data  = splits - coadd[:,None,...]
+        del coadd
+    else:
+        data = splits
+    assert np.all(np.isfinite(data))
+    if flattened:
+        ffts = enmap.fft(data*mask_a*np.sqrt(ivars),normalize="phys")
+        if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars)
+        wmaps = mask_a + enmap.zeros(ffts.shape)
+        del ivars, data, splits
+    else:
+        assert np.all(np.isfinite(data*mask_a*ivars))
+        ffts = enmap.fft(data*mask_a*ivars,normalize="phys")
+        if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars)
+        wmaps = ivars * mask_a
+        del ivars, data, splits
+    n2d = get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname)
+    assert np.all(np.isfinite(n2d))
+    return n2d
 
-    def get_n2d_data(self,splits,coadd_estimator=False,flattened=False,plot_fname=None):
-        ivars = self.wmaps
-        if coadd_estimator:
-            coadd,_ = get_coadd(splits,ivars,axis=1)
-            data  = splits - coadd[:,None,...]
-            del coadd
+
+def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
+    if isinstance(seed,int): seed = [seed]
+    assert np.all(np.isfinite(icovsqrt))
+
+    shape,wcs = ivars.shape,ivars.wcs
+    modlmap = enmap.modlmap(shape,wcs)
+    Ny,Nx = shape[-2:]
+    ncomps = icovsqrt.shape[0]
+    assert ncomps==icovsqrt.shape[1]
+    assert ncomps % 3 == 0
+    nfreqs = ncomps // 3
+    wmaps = ivars
+
+    nsplits = wmaps.shape[1]
+
+    # Old way with loop
+    covsqrt = icovsqrt 
+    kmap = []
+    for i in range(nsplits):
+        if seed is None:
+            np.random.seed(None)
         else:
-            data = splits
-        if flattened:
-            ffts = enmap.fft(data*self.mask_a*np.sqrt(ivars),normalize="phys")
-            if plot_fname is not None: plot(plot_fname+"_fft_maps",data*self.mask_a*ivars)
-            wmaps = self.mask_a + enmap.zeros(ffts.shape)
-            del ivars, data, splits
-        else:
-            ffts = enmap.fft(data*self.mask_a*ivars,normalize="phys")
-            if plot_fname is not None: plot(plot_fname+"_fft_maps",data*self.mask_a*ivars)
-            wmaps = ivars * self.mask_a
-            del ivars, data, splits
-        return get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname)
+            np.random.seed(seed+[i])
+        rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs) 
+        kmap.append( enmap.map_mul(covsqrt, rmap) )
+    kmap = enmap.enmap(np.stack(kmap),wcs)
+    outmaps = enmap.ifft(kmap, normalize="phys").real
+    del kmap,rmap
 
+    # Need to test this more ; it's only marginally faster and has different seed behaviour
+    # covsqrt = icovsqrt 
+    # np.random.seed(seed)
+    # rmap = enmap.rand_gauss_harm((nsplits,ncomps,Ny, Nx),covsqrt.wcs)
+    # kmap = enmap.samewcs(np.einsum("abyx,cbyx->cayx", covsqrt, rmap),rmap)
+    # outmaps = enmap.ifft(kmap, normalize="phys").real
 
-    def generate_noise_sim(self,icovsqrt,binary_percentile=10.,seed=None):
-        if isinstance(seed,int): seed = [seed]
+    assert np.all(np.isfinite(outmaps))
+    # Divide by hits
+    for ifreq in range(nfreqs):
+        outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
 
-        modlmap = self.modlmap
-        Ny,Nx = self.shape[-2:]
-        nfreqs = self.nfreqs
-        ncomps = nfreqs * 3
-        wmaps = self.wmaps
-        wcs = wmaps.wcs
-
-        nsplits = wmaps.shape[1]
-
-        # Old way with loop
-        covsqrt = icovsqrt 
-        kmap = []
-        for i in range(nsplits):
-            if seed is None:
-                np.random.seed(None)
-            else:
-                np.random.seed(seed+[i])
-            rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs) 
-            kmap.append( enmap.map_mul(covsqrt, rmap) )
-        kmap = enmap.enmap(np.stack(kmap),self.wcs)
-        outmaps = enmap.ifft(kmap, normalize="phys").real
-        del kmap,rmap
-
-        # Need to test this more ; it's only marginally faster and has different seed behaviour
-        # covsqrt = icovsqrt 
-        # np.random.seed(seed)
-        # rmap = enmap.rand_gauss_harm((nsplits,ncomps,Ny, Nx),covsqrt.wcs)
-        # kmap = enmap.samewcs(np.einsum("abyx,cbyx->cayx", covsqrt, rmap),rmap)
-        # outmaps = enmap.ifft(kmap, normalize="phys").real
-
-        # Divide by hits
-        for ifreq in range(nfreqs):
-            outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
-        
+    if binary_percentile is not None:
         # Sanitize by thresholding and binary masking
         for ifreq in range(nfreqs):
             for isplit in range(nsplits):
@@ -120,13 +122,17 @@ class NoiseModel(DataModel):
                 bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
                 outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
 
-        return outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
+    retmaps = outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
+    assert np.all(np.isfinite(retmaps))
+    return retmaps
 
     
 def get_coadd(imaps,wts,axis):
     # sum(w*m)/sum(w)
     twt = np.sum(wts,axis=axis)
-    return np.nan_to_num(np.sum(wts*imaps,axis=axis)/twt),twt
+    retmap = np.nan_to_num(np.sum(wts*imaps,axis=axis)/twt)
+    #retmap[np.isinf(np.abs(retmap))] = 0
+    return retmap,twt
 
 
 
@@ -164,10 +170,14 @@ def null_pol_off_diagonals(cov):
     
 def get_covsqrt(ps,method="arrayops"):
     if method=="multipow":
-        return enmap.multi_pow(ps.copy(),0.5)
+        covsq = enmap.multi_pow(ps.copy(),0.5)
     elif method=="arrayops":
         from enlib import array_ops
-        return array_ops.eigpow(ps.copy(),0.5,axes=[0,1])
+        covsq = array_ops.eigpow(ps.copy(),0.5,axes=[0,1])
+    covsq[:,:,ps.modlmap()<2] = 0
+    assert np.all(np.isfinite(covsq))
+    return covsq
+    
 
 def naive_power(f1,w1,f2=None,w2=None):
     if f2 is None:
@@ -180,8 +190,6 @@ def naive_power(f1,w1,f2=None,w2=None):
     
 def noise_power(kmaps1,weights1,kmaps2=None,weights2=None,
                 coadd_estimator=False,pfunc=None):
-    # Implements the generalized optimal estimator N^GO_alpha_beta
-    # and the sub-optimal noise estimator N^S_alpha_beta
     # All weights must include the apodized mask
     # No weights must be applied before hand
     # coadds1 = (Ny,Nx) -- the coadd map
@@ -191,18 +199,18 @@ def noise_power(kmaps1,weights1,kmaps2=None,weights2=None,
 
     # select the PS function
     if pfunc is None: pfunc = naive_power
-    if np.any(np.isnan(kmaps1)): raise ValueError
-    if np.any(np.isnan(weights1)): raise ValueError
+    if not(np.all(np.isfinite(kmaps1))): raise ValueError
+    if not(np.all(np.isfinite(weights1))): raise ValueError
     if kmaps2 is not None:
-        if np.any(np.isnan(kmaps2)): raise ValueError
-        if np.any(np.isnan(weights1)): raise ValueError
+        if not(np.all(np.isfinite(kmaps2))): raise ValueError
+        if not(np.all(np.isfinite(weights1))): raise ValueError
 
     if coadd_estimator:
         # N^{GO} estimator
         assert kmaps1.ndim==3
         nsplits = kmaps1.shape[0]
         noise = np.sum(pfunc(kmaps1,weights1,kmaps2,weights2),axis=0)
-        if np.any(np.isnan(noise)): raise ValueError
+        if not(np.all(np.isfinite(noise))): raise ValueError
         return noise / nsplits / (nsplits-1.)
     else:
         # Cross and auto power
@@ -232,6 +240,8 @@ def noise_power(kmaps1,weights1,kmaps2=None,weights2=None,
 
 
 def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
+    assert np.all(np.isfinite(ffts))
+    assert np.all(np.isfinite(wmaps))
     shape,wcs = ffts.shape[-2:],ffts.wcs
     modlmap = enmap.modlmap(shape,wcs)
     Ny,Nx = shape[-2:]
@@ -259,13 +269,16 @@ def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
                 jwts = wmaps[jfreq,:,0]
             else:
                 jsplits = None ; jwts = None
+
             n2d[i,j] = noise_power(isplits,iwts,jsplits,jwts,
                                         coadd_estimator=coadd_estimator,pfunc=naive_power)
             if i!=j: n2d[j,i] = n2d[i,j]
-            if plot_fname is not None: plot("%s_%d_%s_%d_%s" \
-                                            % (plot_fname,ifreq,pols[ipol],
-                                               jfreq,pols[jpol]),
-                                            enmap.enmap(np.arcsinh(np.fft.fftshift(n2d[i,j])),wcs))
+            if plot_fname is not None: 
+                plot("%s_%d_%s_%d_%s" \
+                     % (plot_fname,ifreq,pols[ipol],
+                        jfreq,pols[jpol]),
+                     enmap.enmap(np.arcsinh(np.fft.fftshift(n2d[i,j])),wcs))
+
     return n2d
 
     
@@ -432,3 +445,67 @@ def plot(fname,imap,dg=8):
     else: 
         enplot.write(fname,img)
         print(io.bcolors.OKGREEN+"Saved high-res plot to", fname+io.bcolors.ENDC)
+
+def corrcoef(n2d):
+    o2d = n2d.copy()*0. + 1.
+    for i in range(n2d.shape[0]):
+        for j in range(i+1,n2d.shape[0]):
+            o2d[i,j] = n2d[i,j] / np.sqrt(n2d[i,i]*n2d[j,j])
+            o2d[j,i] = o2d[i,j].copy()
+    return o2d
+
+
+
+def plot_corrcoeff(cents,c1ds_data,plot_fname):
+    dpi = 300
+    ncomps = c1ds_data.shape[0]
+    if ncomps==3:
+        pols = ['150-I','150-Q','150-U']
+    elif ncomps==6:
+        pols = ['90-I','90-Q','90-U','150-I','150-Q','150-U']
+
+    pl = io.Plotter(xlabel = "$\\ell$", ylabel = "$N_{XY}/\\sqrt{N_{XX}N_{YY}}$",xyscale='linlin')
+    for i in range(c1ds_data.shape[0]):
+        for j in range(i+1,c1ds_data.shape[0]):
+            polstring = "%s x %s" % (pols[i],pols[j])
+            pl.add(cents,c1ds_data[i,j],label=polstring)
+    pl._ax.set_xlim(30,10000)
+    pl._ax.set_ylim(-0.3,0.3)
+    pl.hline(y=0.05)
+    pl.hline(y=-0.05)
+    pl.hline(y=0.01,ls='-.')
+    pl.hline(y=-0.01,ls='-.')
+    pl.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    pl.hline(y=0,ls='-')
+    pl.vline(x=500)
+    pl.done("%s_compare_corrcoeff.png" % (plot_fname), dpi=dpi)
+
+
+"""
+API
+
+sgen = SimGen()
+sgen.get_cmb(season,array,patch)
+sgen.get_noise(season,array,patch)
+sgen.get_fg(season,array,patch)
+sgen.get_sim(season,array,patch)
+
+
+I set paths:
+act_mr3_maps
+planck_hybrid_maps
+louis_maps
+
+I enforce a base data model spec
+dm = DataModel(paths)
+dm.get_split()
+dm.get_ivar()
+dm.get_beam()
+
+# e.g. Planck hybrid
+dm.get_split(None,"143","deep56")
+
+
+"""
+
+
