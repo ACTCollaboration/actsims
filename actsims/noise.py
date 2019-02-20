@@ -119,8 +119,9 @@ def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
         for ifreq in range(nfreqs):
             for isplit in range(nsplits):
                 win = wmaps[ifreq,isplit,0,...]
-                bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
-                outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
+                #bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
+                #outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
+                outmaps[isplit,ifreq*3:(ifreq+1)*3,win==0.] = 0 # FIXME: make 0 comparison robust
 
     retmaps = outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
     assert np.all(np.isfinite(retmaps))
@@ -438,7 +439,7 @@ def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
     pl.vline(x=500)
     pl.done(plot_fname+"_cross_power.png", dpi=dpi)
 
-def plot(fname,imap,dg=8):
+def plot(fname,imap,dg=4):
     img = enplot.plot(enmap.downgrade(imap,dg),grid=False)
     if fname is None: 
         enplot.show(img)
