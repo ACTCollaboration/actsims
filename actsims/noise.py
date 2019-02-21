@@ -8,6 +8,17 @@ from enlib import bench
 import warnings
 if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
 
+class NoiseGen(object):
+    def __init__(self,config):
+        self.config = config
+
+    def save_covsqrt(self,covsqrt,version,season=None,patch=None,array=None):
+        pass
+
+    def generate_sim(self,):
+        pass
+
+
 def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,other_keys=None):
     if other_keys is None: other_keys = {}
     paths = sints.dconfig['actsims']
@@ -47,7 +58,6 @@ def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=F
 
 def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_fname=None):
     assert np.all(np.isfinite(splits))
-    #assert not(np.any(np.isinf(splits)))
     assert np.all(np.isfinite(ivars))
     assert np.all(np.isfinite(mask_a))
     if coadd_estimator:
