@@ -119,7 +119,7 @@ def getActpolCmbFgSim(beamfileDict,
                                              aberration.dir_equ,
                                              aberration.beta,
                                              return_modulation = True,
-                                             do_aberration = False,
+                                             aberrate = False,
                                              freq = freqStrToValGhz[freq] * 1e9)
 
     if applyWindow:
