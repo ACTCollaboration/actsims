@@ -9,18 +9,52 @@ import warnings
 if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
 
 class NoiseGen(object):
-    def __init__(self,config):
-        self.config = config
+    def __init__(self,version,model="act_mr3",extract_region=None,extract_region_shape=None,extract_region_wcs=None,ncache=1,verbose=False):
+        """
+        version: The version identifier for the filename of covsqrts on disk
+        model: The name of an implemented soapack datamodel
+        extract_region: An optional map whose footprint on to which the sims are made
+        extract_region_shape: Instead of passing a map for extract_region, one can pass its shape and wcs
+        extract_region_wcs: Instead of passing a map for extract_region, one can pass its shape and wcs
+        ncache: The number of 
 
-    def save_covsqrt(self,covsqrt,version,season=None,patch=None,array=None):
-        pass
+        """
+        self._version = version
+        self._model = model
+        self.ncache = ncache
+        self._ccache = {}
+        self._icache = {}
+        self._dm = sints.models[model](region=extract_region)
+        self.verbose = verbose
 
-    def generate_sim(self,):
-        pass
+    def save_covsqrt(self,covsqrt,season=None,patch=None,array=None,coadd=True):
+        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,season=season,patch=patch,array=array,overwrite=False)
+        enmap.write_map("%s_covsqrt.fits" % (cout) ,covsqrt)
+
+    def load_covsqrt(self,season=None,patch=None,array=None,coadd=True):
+        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,season=season,patch=patch,array=array,overwrite=False)
+        fpath = "%s_covsqrt.fits" % (cout)
+        ikey = '_'.join([str(x) for x in [season,patch,self._dm.array_freqs[array]]])
+        try:
+            covsqrt = self._ccache[fpath]
+            ivars = self._icache[ikey]
+            if self.verbose: print("Loaded cached covsqrt and ivars.")
+        except:
+            if self.verbose: print("Couldn't find covsqrt and ivars in cache. Reading from disk...")
+            ivars = self._dm.get_splits_ivar(season=season,patch=patch,arrays=self._dm.array_freqs[array])
+            covsqrt = enmap.read_map(fpath)
+            if len(self._ccache.keys())<self.ncache: 
+                self._ccache[fpath] = covsqrt
+                self._icache[ikey] = ivars
+        return covsqrt,ivars
+        
+    def generate_sim(self,season=None,patch=None,array=None,seed=None,binary_percentile=10.):
+        covsqrt,ivars = self.load_covsqrt(season=season,patch=patch,array=array)
+        sims = generate_noise_sim(covsqrt,ivars,seed=seed,binary_percentile=binary_percentile)
+        return sims
 
 
-def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,other_keys=None):
-    if other_keys is None: other_keys = {}
+def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False):
     paths = sints.dconfig['actsims']
 
     assert paths['plot_path'] is not None
@@ -46,8 +80,6 @@ def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=F
     else:
         suff = '_'.join([model,season,patch,array,"coadd_est_"+str(coadd)])
 
-    for key in other_keys.keys():
-        suff += ("_"+key+"_"+str(other_keys[key]))
 
     pout = pdir + suff
     cout = cdir + suff
@@ -87,7 +119,8 @@ def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
     if isinstance(seed,int): seed = [seed]
     assert np.all(np.isfinite(icovsqrt))
 
-    shape,wcs = ivars.shape,ivars.wcs
+    eshape,ewcs = ivars.shape,ivars.wcs
+    shape,wcs = icovsqrt.shape,icovsqrt.wcs
     modlmap = enmap.modlmap(shape,wcs)
     Ny,Nx = shape[-2:]
     ncomps = icovsqrt.shape[0]
@@ -111,6 +144,8 @@ def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
     kmap = enmap.enmap(np.stack(kmap),wcs)
     outmaps = enmap.ifft(kmap, normalize="phys").real
     del kmap,rmap
+    print(ivars.wcs,ewcs,outmaps.wcs)
+    outmaps = enmap.extract(outmaps,eshape,ewcs)
 
     # Need to test this more ; it's only marginally faster and has different seed behaviour
     # covsqrt = icovsqrt 
@@ -187,7 +222,7 @@ def get_covsqrt(ps,method="arrayops"):
         covsq = array_ops.eigpow(ps.copy(),0.5,axes=[0,1])
     covsq[:,:,ps.modlmap()<2] = 0
     assert np.all(np.isfinite(covsq))
-    return covsq
+    return enmap.enmap(covsq,ps.wcs)
     
 
 def naive_power(f1,w1,f2=None,w2=None):
