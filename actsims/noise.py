@@ -92,17 +92,19 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
     assert np.all(np.isfinite(splits))
     assert np.all(np.isfinite(ivars))
     assert np.all(np.isfinite(mask_a))
+
     if coadd_estimator:
         coadd,_ = get_coadd(splits,ivars,axis=1)
         data  = splits - coadd[:,None,...]
         del coadd
     else:
         data = splits
+
     assert np.all(np.isfinite(data))
     if flattened:
         ffts = enmap.fft(data*mask_a*np.sqrt(ivars),normalize="phys")
         if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars)
-        wmaps = mask_a + enmap.zeros(ffts.shape)
+        wmaps = mask_a + enmap.zeros(ffts.shape,mask_a.wcs,dtype=sints.dtype) # WARNING: type
         del ivars, data, splits
     else:
         assert np.all(np.isfinite(data*mask_a*ivars))
@@ -139,13 +141,15 @@ def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
             np.random.seed(None)
         else:
             np.random.seed(seed+[i])
-        rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs) 
-        kmap.append( enmap.map_mul(covsqrt, rmap) )
+        with bench.show("randnum"):
+            rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs) 
+        with bench.show("covsqrt"):
+            kmap.append( enmap.map_mul(covsqrt, rmap) )
+    del covsqrt, rmap
     kmap = enmap.enmap(np.stack(kmap),wcs)
-    outmaps = enmap.ifft(kmap, normalize="phys").real
-    del kmap,rmap
-    print(ivars.wcs,ewcs,outmaps.wcs)
-    outmaps = enmap.extract(outmaps,eshape,ewcs)
+    with bench.show("ifft"):
+        outmaps = enmap.extract(enmap.ifft(kmap, normalize="phys").real,eshape,wcs)
+    del kmap
 
     # Need to test this more ; it's only marginally faster and has different seed behaviour
     # covsqrt = icovsqrt 
@@ -154,21 +158,24 @@ def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
     # kmap = enmap.samewcs(np.einsum("abyx,cbyx->cayx", covsqrt, rmap),rmap)
     # outmaps = enmap.ifft(kmap, normalize="phys").real
 
-    assert np.all(np.isfinite(outmaps))
-    # Divide by hits
-    for ifreq in range(nfreqs):
-        outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
-
-    if binary_percentile is not None:
-        # Sanitize by thresholding and binary masking
+    with bench.show("div"):
+        assert np.all(np.isfinite(outmaps))
+        # Divide by hits
         for ifreq in range(nfreqs):
-            for isplit in range(nsplits):
-                win = wmaps[ifreq,isplit,0,...]
-                #bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
-                #outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
-                outmaps[isplit,ifreq*3:(ifreq+1)*3,win==0.] = 0 # FIXME: make 0 comparison robust
+            outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
 
-    retmaps = outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
+    with bench.show("sanitize"):
+        if binary_percentile is not None:
+            # Sanitize by thresholding and binary masking
+            for ifreq in range(nfreqs):
+                for isplit in range(nsplits):
+                    win = wmaps[ifreq,isplit,0,...]
+                    #bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
+                    #outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
+                    outmaps[isplit,ifreq*3:(ifreq+1)*3,win==0.] = 0 # FIXME: make 0 comparison robust
+
+    with bench.show("reshape"):
+        retmaps = outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
     assert np.all(np.isfinite(retmaps))
     return retmaps
 
@@ -301,7 +308,7 @@ def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
         ipol = index % 3
         return ifreq, ipol
 
-    n2d = enmap.zeros((ncomps,ncomps,Ny,Nx),wcs)
+    n2d = enmap.zeros((ncomps,ncomps,Ny,Nx),wcs,dtype=sints.dtype) # WARNING: type)
     pols = ['I','Q','U']
     for i in range(ncomps):
         for j in range(i,ncomps):
@@ -398,7 +405,7 @@ def binary_mask(mask,threshold=0.5):
 
 
 def get_p1ds(p2d,modlmap,bin_edges):
-    p1ds = np.zeros((p2d.shape[0],p2d.shape[0],bin_edges.size-1))
+    p1ds = np.zeros((p2d.shape[0],p2d.shape[0],bin_edges.size-1),dtype=sints.dtype) # WARNING: type)
     for i in range(p2d.shape[0]):
         for j in range(p2d.shape[0]):
             p1ds[i,j] = binned_power(p2d[i,j],modlmap,bin_edges)[1]

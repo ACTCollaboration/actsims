@@ -92,7 +92,6 @@ with bench.show("load data"):
 modlmap = splits.modlmap()
 with bench.show("n2d"):
     n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
-
 del splits
 radial_pairs = [(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)] if not(args.no_prewhiten) else []
 if smooth:
