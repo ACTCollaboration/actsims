@@ -117,24 +117,23 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
     return n2d
 
 
-def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
+def generate_noise_sim(covsqrt,ivars,binary_percentile=10.,seed=None):
     if isinstance(seed,int): seed = [seed]
-    assert np.all(np.isfinite(icovsqrt))
-
+    assert np.all(np.isfinite(covsqrt))
     eshape,ewcs = ivars.shape,ivars.wcs
-    shape,wcs = icovsqrt.shape,icovsqrt.wcs
-    modlmap = enmap.modlmap(shape,wcs)
+    shape,wcs = covsqrt.shape,covsqrt.wcs
     Ny,Nx = shape[-2:]
-    ncomps = icovsqrt.shape[0]
-    assert ncomps==icovsqrt.shape[1]
+    ncomps = covsqrt.shape[0]
+    assert ncomps==covsqrt.shape[1]
     assert ncomps % 3 == 0
     nfreqs = ncomps // 3
     wmaps = ivars
-
     nsplits = wmaps.shape[1]
 
+    if sints.dtype is np.float32: ctype = np.complex64 
+    elif sints.dtype is np.float64: ctype = np.complex128 
+
     # Old way with loop
-    covsqrt = icovsqrt 
     kmap = []
     for i in range(nsplits):
         if seed is None:
@@ -142,7 +141,7 @@ def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
         else:
             np.random.seed(seed+[i])
         with bench.show("randnum"):
-            rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs) 
+            rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs).astype(ctype)
         with bench.show("covsqrt"):
             kmap.append( enmap.map_mul(covsqrt, rmap) )
     del covsqrt, rmap
