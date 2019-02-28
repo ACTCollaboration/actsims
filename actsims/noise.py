@@ -27,9 +27,13 @@ class NoiseGen(object):
         self._dm = sints.models[model](region=extract_region)
         self.verbose = verbose
 
-    def save_covsqrt(self,covsqrt,season=None,patch=None,array=None,coadd=True):
-        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,season=season,patch=patch,array=array,overwrite=False)
-        enmap.write_map("%s_covsqrt.fits" % (cout) ,covsqrt)
+    def save_covsqrt(self,covsqrt,season=None,patch=None,array=None,coadd=True,mask_patch=None):
+        pout,cout,sout = get_save_paths(self._model,self._version,
+                                        coadd=coadd,season=season,patch=patch,array=array,
+                                        overwrite=False,mask_patch=mask_patch)
+        fpath = "%s_covsqrt.fits" % (cout)
+        enmap.write_map(fpath ,covsqrt)
+        print(fpath,covsqrt.shape)
 
     def load_covsqrt(self,season=None,patch=None,array=None,coadd=True,mask_patch=None):
         pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
@@ -45,6 +49,7 @@ class NoiseGen(object):
             if self.verbose: print("Couldn't find covsqrt and ivars in cache. Reading from disk...")
             ivars = self._dm.get_splits_ivar(season=season,patch=patch,arrays=self._dm.array_freqs[array])
             covsqrt = enmap.read_map(fpath)
+            print(fpath,covsqrt.shape)
             if len(self._ccache.keys())<self.ncache: 
                 self._ccache[fpath] = covsqrt
                 self._icache[ikey] = ivars
@@ -106,8 +111,8 @@ def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=F
 
     if mask_patch is not None:
         if mask_patch != patch:
-            pout = pout+mask_patch+"_"
-            cout = cout+mask_patch+"_"
+            pout = pout+"_"+mask_patch
+            cout = cout+"_"+mask_patch
             sout = sout+mask_patch+"_"
 
     return pout,cout,sout
@@ -165,14 +170,11 @@ def generate_noise_sim(covsqrt,ivars,binary_percentile=10.,seed=None):
             np.random.seed(None)
         else:
             np.random.seed(seed+[i])
-        with bench.show("randnum"):
-            rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs).astype(ctype)
-        with bench.show("covsqrt"):
-            kmap.append( enmap.map_mul(covsqrt, rmap) )
+        rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs).astype(ctype)
+        kmap.append( enmap.map_mul(covsqrt, rmap) )
     del covsqrt, rmap
     kmap = enmap.enmap(np.stack(kmap),wcs)
-    with bench.show("ifft"):
-        outmaps = enmap.extract(enmap.ifft(kmap, normalize="phys").real,eshape,wcs)
+    outmaps = enmap.extract(enmap.ifft(kmap, normalize="phys").real,eshape,wcs)
     del kmap
 
     # Need to test this more ; it's only marginally faster and has different seed behaviour
@@ -182,24 +184,21 @@ def generate_noise_sim(covsqrt,ivars,binary_percentile=10.,seed=None):
     # kmap = enmap.samewcs(np.einsum("abyx,cbyx->cayx", covsqrt, rmap),rmap)
     # outmaps = enmap.ifft(kmap, normalize="phys").real
 
-    with bench.show("div"):
-        assert np.all(np.isfinite(outmaps))
-        # Divide by hits
+    assert np.all(np.isfinite(outmaps))
+    # Divide by hits
+    for ifreq in range(nfreqs):
+        outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
+
+    if binary_percentile is not None:
+        # Sanitize by thresholding and binary masking
         for ifreq in range(nfreqs):
-            outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
+            for isplit in range(nsplits):
+                win = wmaps[ifreq,isplit,0,...]
+                #bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
+                #outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
+                outmaps[isplit,ifreq*3:(ifreq+1)*3,win==0.] = 0 # FIXME: make 0 comparison robust
 
-    with bench.show("sanitize"):
-        if binary_percentile is not None:
-            # Sanitize by thresholding and binary masking
-            for ifreq in range(nfreqs):
-                for isplit in range(nsplits):
-                    win = wmaps[ifreq,isplit,0,...]
-                    #bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
-                    #outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
-                    outmaps[isplit,ifreq*3:(ifreq+1)*3,win==0.] = 0 # FIXME: make 0 comparison robust
-
-    with bench.show("reshape"):
-        retmaps = outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
+    retmaps = outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
     assert np.all(np.isfinite(retmaps))
     return retmaps
 

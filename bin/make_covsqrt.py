@@ -12,8 +12,7 @@ from soapack import interfaces as sints
 from enlib import bench
 from orphics import io,stats
 import matplotlib.pyplot as plt
-with bench.show("imports"):
-    from tilec import covtools
+from tilec import covtools
 import argparse
 
 # Parse command line
@@ -71,9 +70,10 @@ mask = sints.get_act_mr3_crosslinked_mask(mask_patch,
                                           version=args.mask_version,
                                           kind=args.mask_kind,
                                           season=args.season,array=args.array+"_f150",
+
                                           pad=args.mask_pad)
-with bench.show("data model"):
-    dm = sints.models[args.model](region=mask)
+if args.debug: noise.plot(pout+"_mask",mask)
+dm = sints.models[args.model](region=mask)
 
 # Get a NoiseGen model
 if args.extract_mask is not None:
@@ -81,18 +81,17 @@ if args.extract_mask is not None:
     eshape,ewcs = emask.shape,emask.wcs
 else:
     emask = mask
-ngen = noise.NoiseGen(version=version,model=args.model,extract_region=emask,ncache=0)
+ngen = noise.NoiseGen(version=version,model=args.model,extract_region=emask,ncache=1,verbose=True)
 
 # Get arrays from array
 
-with bench.show("load data"):
-    splits = dm.get_splits(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array],srcfree=True)
-    if args.debug: noise.plot(pout+"_splits",splits)
-    ivars = dm.get_splits_ivar(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array])
+splits = dm.get_splits(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array],srcfree=True)
+if args.debug: noise.plot(pout+"_splits",splits)
+ivars = dm.get_splits_ivar(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array])
 modlmap = splits.modlmap()
-with bench.show("n2d"):
-    n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
+n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
 del splits
+
 radial_pairs = [(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)] if not(args.no_prewhiten) else []
 if smooth:
     n2d_flat_smoothed = noise.smooth_ps(n2d_flat.copy(),dfact=dfact,
@@ -104,19 +103,17 @@ else:
 del n2d_flat
 if args.no_off: n2d_flat_smoothed = noise.null_off_diagonals(n2d_flat_smoothed)
 
-with bench.show("covsqrt"):
-    covsqrt = noise.get_covsqrt(n2d_flat_smoothed,args.covsqrt_kind)
+covsqrt = noise.get_covsqrt(n2d_flat_smoothed,args.covsqrt_kind)
 del n2d_flat_smoothed
-ngen.save_covsqrt(covsqrt,season=args.season,patch=args.patch,array=args.array,coadd=coadd)
+ngen.save_covsqrt(covsqrt,season=args.season,patch=args.patch,array=args.array,coadd=coadd,mask_patch=mask_patch)
 
 if nsims>0:
     bin_edges = np.arange(40,8000,40)
     p1ds = []
     for i in range(nsims):
-        with bench.show("print"):
-            print("Sim %d of %d ..." % (i+1,nsims))
+        print("Sim %d of %d ..." % (i+1,nsims))
         with bench.show("simgen"):
-            sims = ngen.generate_sim(season=args.season,patch=args.patch,array=args.array,seed=i,binary_percentile=bp)
+            sims = ngen.generate_sim(season=args.season,patch=args.patch,array=args.array,seed=i,binary_percentile=bp,mask_patch=mask_patch)
             print(sims.nbytes/1024./1024./1024., " GB", sims.shape, sims.dtype)
         if args.extract_mask is not None: 
             ivars2 = enmap.extract(ivars,eshape,ewcs)
@@ -127,7 +124,7 @@ if nsims>0:
         if args.debug and i==0: noise.plot(pout+"_sims",sims)
         if not(args.no_write):
             ngen.save_sims(sims,args.season,args.patch,args.array,coadd=coadd,mask_patch=mask_patch)
-        n2d_sim = noise.get_n2d_data(sims,ivars2,emask,coadd_estimator=coadd,flattened=False,plot_fname=pout+"_n2d_sim" if args.debug else None)
+        n2d_sim = noise.get_n2d_data(sims,ivars2,emask,coadd_estimator=coadd,flattened=False,plot_fname=pout+"_n2d_sim" if (args.debug and i==0) else None)
         del sims
         cents,op1ds_sim = noise.get_p1ds(n2d_sim,modlmap,bin_edges)
         p1ds.append(op1ds_sim.copy().reshape(-1))
