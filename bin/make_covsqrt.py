@@ -65,7 +65,7 @@ for key in other_keys.keys():
 # Get file name convention
 pout,cout,sout = noise.get_save_paths(args.model,version,coadd,
                                       season=args.season,patch=args.patch,array=args.array,
-                                      mkdir=True,overwrite=args.overwrite)
+                                      mkdir=True,overwrite=args.overwrite,mask_patch=mask_patch)
 # Get data model
 mask = sints.get_act_mr3_crosslinked_mask(mask_patch,
                                           version=args.mask_version,
@@ -125,7 +125,8 @@ if nsims>0:
             ivars2 = ivars
 
         if args.debug and i==0: noise.plot(pout+"_sims",sims)
-        enmap.write_map("%s_trial_sim_seed_%d.fits" % (sout,i) ,sims)
+        if not(args.no_write):
+            ngen.save_sims(sims,args.season,args.patch,args.array,coadd=coadd,mask_patch=mask_patch)
         n2d_sim = noise.get_n2d_data(sims,ivars2,emask,coadd_estimator=coadd,flattened=False,plot_fname=pout+"_n2d_sim" if args.debug else None)
         del sims
         cents,op1ds_sim = noise.get_p1ds(n2d_sim,modlmap,bin_edges)

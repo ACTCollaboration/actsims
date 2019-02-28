@@ -31,8 +31,10 @@ class NoiseGen(object):
         pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,season=season,patch=patch,array=array,overwrite=False)
         enmap.write_map("%s_covsqrt.fits" % (cout) ,covsqrt)
 
-    def load_covsqrt(self,season=None,patch=None,array=None,coadd=True):
-        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,season=season,patch=patch,array=array,overwrite=False)
+    def load_covsqrt(self,season=None,patch=None,array=None,coadd=True,mask_patch=None):
+        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
+                                        season=season,patch=patch,array=array,
+                                        overwrite=False,mask_patch=mask_patch)
         fpath = "%s_covsqrt.fits" % (cout)
         ikey = '_'.join([str(x) for x in [season,patch,self._dm.array_freqs[array]]])
         try:
@@ -48,13 +50,30 @@ class NoiseGen(object):
                 self._icache[ikey] = ivars
         return covsqrt,ivars
         
-    def generate_sim(self,season=None,patch=None,array=None,seed=None,binary_percentile=10.):
-        covsqrt,ivars = self.load_covsqrt(season=season,patch=patch,array=array)
+    def generate_sim(self,season=None,patch=None,array=None,seed=None,mask_patch=None,binary_percentile=10.):
+        covsqrt,ivars = self.load_covsqrt(season=season,patch=patch,array=array,mask_patch=mask_patch)
         sims = generate_noise_sim(covsqrt,ivars,seed=seed,binary_percentile=binary_percentile)
         return sims
 
 
-def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False):
+    def save_sims(self,sims,season,patch,array,mask_patch,coadd=True):
+        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
+                                        season=season,patch=patch,array=array,
+                                        overwrite=False,mask_patch=mask_patch)
+        insplits = self._dm.get_nsplits(season,patch,array)
+        freqs = self._dm.array_freqs[array]
+        nfreqs,nsplits,npol,Ny,Nx = sims.shape
+        assert nsplits == insplits
+        assert len(freqs) == nfreqs
+        for i in range(nfreqs):
+            iarray = freqs[i]
+            for j in range(nsplits):
+                fname = sout+os.path.basename(self._dm.get_split_fname(season,patch,iarray,j,srcfree=True))
+                enmap.write_map(fname,sims[i,j,:,:,:])
+        
+
+
+def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,mask_patch=None):
     paths = sints.dconfig['actsims']
 
     assert paths['plot_path'] is not None
@@ -83,7 +102,13 @@ def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=F
 
     pout = pdir + suff
     cout = cdir + suff
-    sout = sdir + suff
+    sout = sdir
+
+    if mask_patch is not None:
+        if mask_patch != patch:
+            pout = pout+mask_patch+"_"
+            cout = cout+mask_patch+"_"
+            sout = sout+mask_patch+"_"
 
     return pout,cout,sout
 
