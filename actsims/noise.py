@@ -514,8 +514,8 @@ def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
     pl.vline(x=500)
     pl.done(plot_fname+"_cross_power.png", dpi=dpi)
 
-def plot(fname,imap,dg=4):
-    img = enplot.plot(enmap.downgrade(imap,dg),grid=False)
+def plot(fname,imap,dg=4,grid=False,**kwargs):
+    img = enplot.plot(enmap.downgrade(imap,dg),grid=grid,**kwargs)
     if fname is None: 
         enplot.show(img)
     else: 

@@ -72,7 +72,7 @@ mask = sints.get_act_mr3_crosslinked_mask(mask_patch,
                                           season=args.season,array=args.array+"_f150",
 
                                           pad=args.mask_pad)
-if args.debug: noise.plot(pout+"_mask",mask)
+if args.debug: noise.plot(pout+"_mask",mask,grid=True)
 dm = sints.models[args.model](region=mask)
 
 # Get a NoiseGen model
@@ -86,8 +86,11 @@ ngen = noise.NoiseGen(version=version,model=args.model,extract_region=emask,ncac
 # Get arrays from array
 
 splits = dm.get_splits(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array],srcfree=True)
-if args.debug: noise.plot(pout+"_splits",splits)
 ivars = dm.get_splits_ivar(season=args.season,patch=args.patch,arrays=dm.array_freqs[args.array])
+if args.debug: 
+    noise.plot(pout+"_splits",splits)
+    noise.plot(pout+"_ivars",ivars)
+
 modlmap = splits.modlmap()
 n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
 del splits
