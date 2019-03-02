@@ -8,8 +8,77 @@ from enlib import bench
 import warnings
 if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
 
-def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,other_keys=None):
-    if other_keys is None: other_keys = {}
+class NoiseGen(object):
+    def __init__(self,version,model="act_mr3",extract_region=None,extract_region_shape=None,extract_region_wcs=None,ncache=1,verbose=False):
+        """
+        version: The version identifier for the filename of covsqrts on disk
+        model: The name of an implemented soapack datamodel
+        extract_region: An optional map whose footprint on to which the sims are made
+        extract_region_shape: Instead of passing a map for extract_region, one can pass its shape and wcs
+        extract_region_wcs: Instead of passing a map for extract_region, one can pass its shape and wcs
+        ncache: The number of 
+
+        """
+        self._version = version
+        self._model = model
+        self.ncache = ncache
+        self._ccache = {}
+        self._icache = {}
+        self._dm = sints.models[model](region=extract_region)
+        self.verbose = verbose
+
+    def save_covsqrt(self,covsqrt,season=None,patch=None,array=None,coadd=True,mask_patch=None):
+        pout,cout,sout = get_save_paths(self._model,self._version,
+                                        coadd=coadd,season=season,patch=patch,array=array,
+                                        overwrite=False,mask_patch=mask_patch)
+        fpath = "%s_covsqrt.fits" % (cout)
+        enmap.write_map(fpath ,covsqrt)
+        print(fpath,covsqrt.shape)
+
+    def load_covsqrt(self,season=None,patch=None,array=None,coadd=True,mask_patch=None):
+        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
+                                        season=season,patch=patch,array=array,
+                                        overwrite=False,mask_patch=mask_patch)
+        fpath = "%s_covsqrt.fits" % (cout)
+        ikey = '_'.join([str(x) for x in [season,patch,self._dm.array_freqs[array]]])
+        try:
+            covsqrt = self._ccache[fpath]
+            ivars = self._icache[ikey]
+            if self.verbose: print("Loaded cached covsqrt and ivars.")
+        except:
+            if self.verbose: print("Couldn't find covsqrt and ivars in cache. Reading from disk...")
+            ivars = self._dm.get_splits_ivar(season=season,patch=patch,arrays=self._dm.array_freqs[array])
+            covsqrt = enmap.read_map(fpath)
+            print(fpath,covsqrt.shape)
+            if len(self._ccache.keys())<self.ncache: 
+                self._ccache[fpath] = covsqrt
+                self._icache[ikey] = ivars
+        return covsqrt,ivars
+        
+    def generate_sim(self,season=None,patch=None,array=None,seed=None,mask_patch=None,binary_percentile=10.):
+        covsqrt,ivars = self.load_covsqrt(season=season,patch=patch,array=array,mask_patch=mask_patch)
+        sims = generate_noise_sim(covsqrt,ivars,seed=seed,binary_percentile=binary_percentile)
+        return sims
+
+
+    def save_sims(self,sims,season,patch,array,mask_patch,coadd=True):
+        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
+                                        season=season,patch=patch,array=array,
+                                        overwrite=False,mask_patch=mask_patch)
+        insplits = self._dm.get_nsplits(season,patch,array)
+        freqs = self._dm.array_freqs[array]
+        nfreqs,nsplits,npol,Ny,Nx = sims.shape
+        assert nsplits == insplits
+        assert len(freqs) == nfreqs
+        for i in range(nfreqs):
+            iarray = freqs[i]
+            for j in range(nsplits):
+                fname = sout+os.path.basename(self._dm.get_split_fname(season,patch,iarray,j,srcfree=True))
+                enmap.write_map(fname,sims[i,j,:,:,:])
+        
+
+
+def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,mask_patch=None):
     paths = sints.dconfig['actsims']
 
     assert paths['plot_path'] is not None
@@ -35,32 +104,37 @@ def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=F
     else:
         suff = '_'.join([model,season,patch,array,"coadd_est_"+str(coadd)])
 
-    for key in other_keys.keys():
-        suff += ("_"+key+"_"+str(other_keys[key]))
 
     pout = pdir + suff
     cout = cdir + suff
-    sout = sdir + suff
+    sout = sdir
+
+    if mask_patch is not None:
+        if mask_patch != patch:
+            pout = pout+"_"+mask_patch
+            cout = cout+"_"+mask_patch
+            sout = sout+mask_patch+"_"
 
     return pout,cout,sout
 
 
 def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_fname=None):
     assert np.all(np.isfinite(splits))
-    #assert not(np.any(np.isinf(splits)))
     assert np.all(np.isfinite(ivars))
     assert np.all(np.isfinite(mask_a))
+
     if coadd_estimator:
         coadd,_ = get_coadd(splits,ivars,axis=1)
         data  = splits - coadd[:,None,...]
         del coadd
     else:
         data = splits
+
     assert np.all(np.isfinite(data))
     if flattened:
         ffts = enmap.fft(data*mask_a*np.sqrt(ivars),normalize="phys")
         if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars)
-        wmaps = mask_a + enmap.zeros(ffts.shape)
+        wmaps = mask_a + enmap.zeros(ffts.shape,mask_a.wcs,dtype=sints.dtype) # WARNING: type
         del ivars, data, splits
     else:
         assert np.all(np.isfinite(data*mask_a*ivars))
@@ -73,34 +147,35 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
     return n2d
 
 
-def generate_noise_sim(icovsqrt,ivars,binary_percentile=10.,seed=None):
+def generate_noise_sim(covsqrt,ivars,binary_percentile=10.,seed=None):
     if isinstance(seed,int): seed = [seed]
-    assert np.all(np.isfinite(icovsqrt))
-
-    shape,wcs = ivars.shape,ivars.wcs
-    modlmap = enmap.modlmap(shape,wcs)
+    assert np.all(np.isfinite(covsqrt))
+    eshape,ewcs = ivars.shape,ivars.wcs
+    shape,wcs = covsqrt.shape,covsqrt.wcs
     Ny,Nx = shape[-2:]
-    ncomps = icovsqrt.shape[0]
-    assert ncomps==icovsqrt.shape[1]
+    ncomps = covsqrt.shape[0]
+    assert ncomps==covsqrt.shape[1]
     assert ncomps % 3 == 0
     nfreqs = ncomps // 3
     wmaps = ivars
-
     nsplits = wmaps.shape[1]
 
+    if sints.dtype is np.float32: ctype = np.complex64 
+    elif sints.dtype is np.float64: ctype = np.complex128 
+
     # Old way with loop
-    covsqrt = icovsqrt 
     kmap = []
     for i in range(nsplits):
         if seed is None:
             np.random.seed(None)
         else:
             np.random.seed(seed+[i])
-        rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs) 
+        rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs).astype(ctype)
         kmap.append( enmap.map_mul(covsqrt, rmap) )
+    del covsqrt, rmap
     kmap = enmap.enmap(np.stack(kmap),wcs)
-    outmaps = enmap.ifft(kmap, normalize="phys").real
-    del kmap,rmap
+    outmaps = enmap.extract(enmap.ifft(kmap, normalize="phys").real,eshape,wcs)
+    del kmap
 
     # Need to test this more ; it's only marginally faster and has different seed behaviour
     # covsqrt = icovsqrt 
@@ -177,7 +252,7 @@ def get_covsqrt(ps,method="arrayops"):
         covsq = array_ops.eigpow(ps.copy(),0.5,axes=[0,1])
     covsq[:,:,ps.modlmap()<2] = 0
     assert np.all(np.isfinite(covsq))
-    return covsq
+    return enmap.enmap(covsq,ps.wcs)
     
 
 def naive_power(f1,w1,f2=None,w2=None):
@@ -256,7 +331,7 @@ def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
         ipol = index % 3
         return ifreq, ipol
 
-    n2d = enmap.zeros((ncomps,ncomps,Ny,Nx),wcs)
+    n2d = enmap.zeros((ncomps,ncomps,Ny,Nx),wcs,dtype=sints.dtype) # WARNING: type)
     pols = ['I','Q','U']
     for i in range(ncomps):
         for j in range(i,ncomps):
@@ -353,7 +428,7 @@ def binary_mask(mask,threshold=0.5):
 
 
 def get_p1ds(p2d,modlmap,bin_edges):
-    p1ds = np.zeros((p2d.shape[0],p2d.shape[0],bin_edges.size-1))
+    p1ds = np.zeros((p2d.shape[0],p2d.shape[0],bin_edges.size-1),dtype=sints.dtype) # WARNING: type)
     for i in range(p2d.shape[0]):
         for j in range(p2d.shape[0]):
             p1ds[i,j] = binned_power(p2d[i,j],modlmap,bin_edges)[1]
@@ -439,8 +514,8 @@ def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
     pl.vline(x=500)
     pl.done(plot_fname+"_cross_power.png", dpi=dpi)
 
-def plot(fname,imap,dg=4):
-    img = enplot.plot(enmap.downgrade(imap,dg),grid=False)
+def plot(fname,imap,dg=4,grid=False,**kwargs):
+    img = enplot.plot(enmap.downgrade(imap,dg),grid=grid,**kwargs)
     if fname is None: 
         enplot.show(img)
     else: 
