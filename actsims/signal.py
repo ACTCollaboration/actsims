@@ -3,17 +3,24 @@ from pixell import enmap, powspec, curvedsky, fft as pfft
 from orphics import io
 from . import simTools, util
 from soapack import interfaces as sints
-from soapack.interfaces import ACTmr3 
 import healpy as hp
 import warnings
 from collections import OrderedDict as ODict
 
 actsim_root = os.path.dirname(os.path.realpath(__file__))
 
-class SignalModel(object):
+class SignalGen(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, data_model=None):
-        self.data_model = ACTmr3() if data_model is None else data_model
+    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None):
+        """
+        model: The name of an implemented soapack datamodel
+        extract_region: An optional map whose footprint on to which the sims are made
+        extract_region_shape: Instead of passing a map for extract_region, one can pass its shape and wcs
+        extract_region_wcs: Instead of passing a map for extract_region, one can pass its shape and wcs
+        ncache: The number of 
+
+        """ 
+        self.data_model = sints.models[model](region=extract_region, region_shape=extract_region_shape, region_wcs=extract_region_wcs)
         self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
         paths            = sints.dconfig['actsims']
         self.signal_path = paths['signal_path']
@@ -25,19 +32,18 @@ class SignalModel(object):
                 's15_pa1_boss_f150', 's15_pa1_deep56_f150', 's15_pa1_deep8_f150', 's15_pa2_boss_f150', 's15_pa2_deep56_f150', 's15_pa2_deep8_f150',\
                 's15_pa3_boss_f090', 's15_pa3_boss_f150', 's15_pa3_deep56_f090', 's15_pa3_deep56_f150', 's15_pa3_deep8_f090', 's15_pa3_deep8_f150']
         self.supported_sims.sort()
-
-        self.freqs          = ['f090', 'f150']
-        self.cmb_type        = cmb_type
-        self.max_cached      = max_cached
-        self.alms_base       = ODict()
-        self.alms_cmb        = ODict()
-        self.alms_fg         = ODict()
-        self.alms_patch      = ODict()
-        self.signals         = ODict()
-        self.templates       = ODict()
-        self.apply_window    = apply_window
-        self.add_foregrounds = add_foregrounds
-        self.dobeam          = dobeam
+        self.freqs           = ['f090', 'f150']
+        self.cmb_type         = cmb_type
+        self.max_cached       = max_cached
+        self.alms_base        = ODict()
+        self.alms_cmb         = ODict()
+        self.alms_fg          = ODict()
+        self.alms_patch       = ODict()
+        self.signals          = ODict()
+        self.templates        = ODict()
+        self.apply_window     = apply_window
+        self.add_foregrounds  = add_foregrounds
+        self.dobeam           = dobeam
 
     def is_supported(self, sesaon, array, patch, freq):
         signal_idx      = self.__combine_idxes__(sesaon, array, patch, freq)
@@ -56,15 +62,6 @@ class SignalModel(object):
 
     def get_signal_idx(self, season, array, patch, freq, set_idx, sim_num):
         return '_'.join([season, array, patch, freq, 'set0%d'%set_idx, '%05d'%sim_num])
-
-    def manage_cache(self, odict, max_cached=None):
-        if max_cached is None: max_cached = self.max_cached
-        if max_cached < 0: max_cached = 0
-        nelmt = len(odict)
-        for key in odict.keys():
-            if nelmt <= max_cached: continue
-            print("purging {} from the cache".format(key))
-            del odict[key]; nelmt -= 1
 
     def get_signal_sim(self, season, array, patch, freq, set_idx, sim_num, save_alm=False, save_map=False):
         assert(self.is_supported(season, array, patch, freq))
@@ -160,7 +157,7 @@ class SignalModel(object):
     def __signal_postproessing__(self, patch, signal_idx, alm_patch, save_map):
         signal = self.get_template(patch)
         curvedsky.alm2map(alm_patch, signal, spin = [0,2], verbose=True)
-        
+
         if self.apply_window:
             print('apply window')
             axes = [-2, -1]
@@ -173,26 +170,12 @@ class SignalModel(object):
                 signal[idx] = (pfft.ifft(kmap, axes=axes, normalize=True)).real
                 del kmap
 
+
         if save_map: 
             self.manage_cache(self.signals, self.max_cached-1)
             self.signals[signal_idx] = signal.copy()
         return signal
 
-    def get_template(self, patch):
-        if not self.templates.has_key(patch):
-            self.manage_cache(self.templates, self.max_cached-1) 
-            template      = self.data_model.get_mask(patch)
-            self.templates[patch] = enmap.empty((3,) + template.shape, template.wcs)
-        else: pass
-        return self.templates[patch].copy()
-
-    def load_alm_fg(self, set_idx, sim_idx):
-        print("loading fg alm")
-        seed         = (set_idx, 0, 1, sim_idx)# copying the structure from simtools
-        fg_file      = os.path.join(actsim_root, '../data/fg.dat')
-        fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
-        alm_fg90_150 = curvedsky.rand_alm(fg_power, seed = seed)#, lmax=lmax_sg)
-        return alm_fg90_150
 
     def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False):
         # note: beam is set to false
@@ -234,6 +217,31 @@ class SignalModel(object):
         if ret_alm: return alm_signal
         del alm_signal
 
+    def load_alm_fg(self, set_idx, sim_idx):
+        print("loading fg alm")
+        seed         = (set_idx, 0, 1, sim_idx)# copying the structure from simtools
+        fg_file      = os.path.join(actsim_root, '../data/fg.dat')
+        fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
+        alm_fg90_150 = curvedsky.rand_alm(fg_power, seed = seed)#, lmax=lmax_sg)
+        return alm_fg90_150
+    
+    def get_template(self, patch):
+        if not self.templates.has_key(patch):
+            self.manage_cache(self.templates, self.max_cached-1) 
+            template      = self.data_model.get_mask(patch)
+            self.templates[patch] = enmap.empty((3,) + template.shape, template.wcs)
+        else: pass
+        return self.templates[patch].copy()
+
+
+    def manage_cache(self, odict, max_cached=None):
+        if max_cached is None: max_cached = self.max_cached
+        if max_cached < 0: max_cached = 0
+        nelmt = len(odict)
+        for key in odict.keys():
+            if nelmt <= max_cached: continue
+            print("purging {} from the cache".format(key))
+            del odict[key]; nelmt -= 1
 
     def clear(self):
         for key in self.alms_base.keys():
