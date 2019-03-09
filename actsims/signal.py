@@ -233,7 +233,6 @@ class SignalGen(object):
         else: pass
         return self.templates[patch].copy()
 
-
     def manage_cache(self, odict, max_cached=None):
         if max_cached is None: max_cached = self.max_cached
         if max_cached < 0: max_cached = 0
