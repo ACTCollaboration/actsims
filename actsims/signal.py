@@ -20,7 +20,7 @@ class SignalGen(object):
         ncache: The number of 
 
         """ 
-        self.data_model = sints.models[model](region=extract_region, region_shape=extract_region_shape, region_wcs=extract_region_wcs)
+        self.data_model = sints.models[model](region=extract_region, region_shape=extract_region_shape,region_wcs=extract_region_wcs)
         self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
         paths            = sints.dconfig['actsims']
         self.signal_path = paths['signal_path']

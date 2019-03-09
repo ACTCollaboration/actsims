@@ -17,7 +17,9 @@ make_plots('cmb_fg', emaps)
 make_plots('fg', fgmaps)
 make_plots('diff_fg', emaps-cmbmaps)
 
-template   = emaps[0,:100, :100]
+template   = cmbmaps[0]
+template   = enmap.pad(template, 100)
+
 
 shape, wcs = template.shape, template.wcs
 SG      = signal.SignalGen(extract_region_shape=shape, extract_region_wcs=wcs)
