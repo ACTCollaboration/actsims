@@ -129,7 +129,7 @@ if nsims>0:
 
         if args.debug and i==0: noise.plot(pout+"_sims",sims)
         if not(args.no_write):
-            ngen.save_sims(sims,args.season,args.patch,args.array,coadd=coadd,mask_patch=mask_patch)
+            ngen.save_sims(i,sims,args.season,args.patch,args.array,coadd=coadd,mask_patch=mask_patch)
         n2d_sim = noise.get_n2d_data(sims,ivars2,emask,coadd_estimator=coadd,flattened=False,plot_fname=pout+"_n2d_sim" if (args.debug and i==0) else None)
         del sims
         cents,op1ds_sim = noise.get_p1ds(n2d_sim,modlmap,bin_edges)

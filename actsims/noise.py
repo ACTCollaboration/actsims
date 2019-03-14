@@ -3,7 +3,6 @@ import os,sys
 from pixell import enmap,enplot,fft as pfft
 from soapack import interfaces as sints
 from actsims import utils
-from orphics import io
 from enlib import bench
 import warnings
 if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
@@ -66,7 +65,7 @@ class NoiseGen(object):
             return sims,ivars
 
 
-    def save_sims(self,sims,season,patch,array,mask_patch,coadd=True):
+    def save_sims(self,seed,sims,season,patch,array,mask_patch,coadd=True):
         pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
                                         season=season,patch=patch,array=array,
                                         overwrite=False,mask_patch=mask_patch)
@@ -78,7 +77,7 @@ class NoiseGen(object):
         for i in range(nfreqs):
             iarray = freqs[i]
             for j in range(nsplits):
-                fname = sout+os.path.basename(self.dm.get_split_fname(season,patch,iarray,j,srcfree=True))
+                fname = sout+os.path.basename(self.dm.get_split_fname(season,patch,iarray,j,srcfree=True)).replace(".fits","_seed_%d.fits" % seed)
                 enmap.write_map(fname,sims[i,j,:,:,:])
         
 
@@ -450,6 +449,7 @@ def get_p1ds(p2d,modlmap,bin_edges):
 
 
 def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
+    from orphics import io
 
     dpi = 300
     ncomps = p1ds1.shape[0]
@@ -528,6 +528,8 @@ def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
     pl.done(plot_fname+"_cross_power.png", dpi=dpi)
 
 def plot(fname,imap,dg=4,grid=False,**kwargs):
+    from orphics import io
+
     img = enplot.plot(enmap.downgrade(imap,dg),grid=grid,**kwargs)
     if fname is None: 
         enplot.show(img)
@@ -546,6 +548,7 @@ def corrcoef(n2d):
 
 
 def plot_corrcoeff(cents,c1ds_data,plot_fname):
+    from orphics import io
     dpi = 300
     ncomps = c1ds_data.shape[0]
     if ncomps==3:

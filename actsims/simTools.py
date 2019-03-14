@@ -1,4 +1,4 @@
-
+import warnings
 
 
 import numpy as np, pickle
@@ -6,9 +6,6 @@ from . import flipperDict
 from . import act_data_model
 import astropy.wcs
 
-import warnings
-with warnings.catch_warnings():
-    warnings.filterwarnings("ignore",category=DeprecationWarning)
 
 
 from pixell import enmap, fft, powspec, curvedsky# , resample
