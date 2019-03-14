@@ -92,8 +92,6 @@ modlmap = splits.modlmap()
 n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
 mask_ell = args.rlmin - args.radial_fit_annulus
 
-#n2d_flat[:,:,modlmap<mask_ell] = 0
-
 del splits
 
 radial_pairs = [(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)] if not(args.no_prewhiten) else []
