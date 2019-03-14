@@ -1,4 +1,5 @@
 from actsims import simgen
+from enlib import bench
 
 """
 
@@ -18,12 +19,14 @@ version = 'v1.0_mask_version_mr3c_20190215_pickupsub_190301'
 season, array, patch, freq = ('s13', 'pa1', 'deep1', 'f150')
 
 simgen = simgen.SimGen(version=version)
-# simgen.get_signal(season, array, patch, freq, 0, 0)
-# simgen.get_cmb(season, array, patch, freq, 0, 0)
+with bench.show("signal"):
+    simgen.get_signal(season, array, patch, freq, 0, 0)
+#simgen.get_cmb(season, array, patch, freq, 0, 0)
 # simgen.get_fg(season, array, patch, freq, 0, 0)
-# simgen.get_noise(season, patch, array,sim_num=0) #, freq, 0)
-imap = simgen.get_sim(season, patch, array,sim_num=0)
-from orphics import io
-io.hplot(imap,"simtest")
-print(imap.shape)
+with bench.show("noise"):
+    simgen.get_noise(season, patch, array,sim_num=0) #, freq, 0)
+#imap = simgen.get_sim(season, patch, array,sim_num=0)
+# from orphics import io
+# io.hplot(imap,"simtest")
+# print(imap.shape)
 
