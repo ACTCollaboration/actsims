@@ -48,10 +48,10 @@ def has_key(nested_dict, keys):
     if not type(nested_dict) == dict: return False
 
     if(len(keys) > 1):
-        has_it = nested_dict.has_key(keys[0])
+        has_it = keys[0] in nested_dict
         return has_key(nested_dict[keys[0]], keys[1:]) if has_it else False
     else:
-        return nested_dict.has_key(keys[0])
+        return keys[0] in nested_dict
 
 def get_num_leaves(nested_dict):
     ''' search how many elements are in nested dictionary '''

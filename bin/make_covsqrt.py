@@ -27,10 +27,10 @@ parser.add_argument("--mask-pad", type=int,  default=None,
 parser.add_argument("--extract-mask", type=str,  default=None,
                     help='Make sims on the big mask but do all the analysis on an extract of this version.')
 parser.add_argument("--covsqrt-kind", type=str,default="arrayops",help='Method for covsqrt.')
-parser.add_argument("--binary-percentile", type=float,  default=10.,help='Binary percentile for sim masking.')
 parser.add_argument("--season", type=str,help='Season')
 parser.add_argument("--array", type=str,help='Array')
 parser.add_argument("--patch", type=str,help='Patch')
+parser.add_argument("--rlmin",     type=int,  default=300,help="Minimum ell.")
 parser.add_argument("-n", "--nsims",     type=int,  default=10,help="Number of sims.")
 parser.add_argument("-r", "--radial-fit-annulus",     type=int,  default=20,help="Bin width for azimuthal averaging.")
 parser.add_argument("-d", "--dfact",     type=int,  default=8,help="Downsample factor.")
@@ -45,8 +45,6 @@ coadd = not(args.aminusc)
 nsims = args.nsims
 if args.mask_patch is None: mask_patch = args.patch
 else: mask_patch = args.mask_patch
-if args.binary_percentile < 1e-3: bp = None
-else: bp = args.binary_percentile
 if args.dfact == 0: 
     smooth = False
 else: 
@@ -70,7 +68,6 @@ mask = sints.get_act_mr3_crosslinked_mask(mask_patch,
                                           version=args.mask_version,
                                           kind=args.mask_kind,
                                           season=args.season,array=args.array+"_f150",
-
                                           pad=args.mask_pad)
 if args.debug: noise.plot(pout+"_mask",mask,grid=True)
 dm = sints.models[args.model](region=mask)
@@ -93,6 +90,10 @@ if args.debug:
 
 modlmap = splits.modlmap()
 n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
+mask_ell = args.rlmin - args.radial_fit_annulus
+
+#n2d_flat[:,:,modlmap<mask_ell] = 0
+
 del splits
 
 radial_pairs = [(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)] if not(args.no_prewhiten) else []
@@ -100,10 +101,14 @@ if smooth:
     n2d_flat_smoothed = noise.smooth_ps(n2d_flat.copy(),dfact=dfact,
                                         radial_pairs=radial_pairs,
                                         plot_fname=pout+"_n2d_flat_smoothed" if args.debug else None,
-                                        radial_fit_annulus = args.radial_fit_annulus)
+                                        radial_fit_annulus = args.radial_fit_annulus,
+                                        radial_fit_lmin=args.rlmin)
 else:
     n2d_flat_smoothed = n2d_flat.copy()
 del n2d_flat
+
+n2d_flat_smoothed[:,:,modlmap<mask_ell] = 0
+
 if args.no_off: n2d_flat_smoothed = noise.null_off_diagonals(n2d_flat_smoothed)
 
 covsqrt = noise.get_covsqrt(n2d_flat_smoothed,args.covsqrt_kind)
@@ -116,7 +121,7 @@ if nsims>0:
     for i in range(nsims):
         print("Sim %d of %d ..." % (i+1,nsims))
         with bench.show("simgen"):
-            sims = ngen.generate_sim(season=args.season,patch=args.patch,array=args.array,seed=i,binary_percentile=bp,mask_patch=mask_patch)
+            sims = ngen.generate_sim(season=args.season,patch=args.patch,array=args.array,seed=i,mask_patch=mask_patch)
             print(sims.nbytes/1024./1024./1024., " GB", sims.shape, sims.dtype)
         if args.extract_mask is not None: 
             ivars2 = enmap.extract(ivars,eshape,ewcs)

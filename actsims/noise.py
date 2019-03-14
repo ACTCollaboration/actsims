@@ -24,7 +24,7 @@ class NoiseGen(object):
         self.ncache = ncache
         self._ccache = {}
         self._icache = {}
-        self._dm = sints.models[model](region=extract_region)
+        self.dm = sints.models[model](region=extract_region)
         self.verbose = verbose
 
     def save_covsqrt(self,covsqrt,season=None,patch=None,array=None,coadd=True,mask_patch=None):
@@ -35,19 +35,20 @@ class NoiseGen(object):
         enmap.write_map(fpath ,covsqrt)
         print(fpath,covsqrt.shape)
 
-    def load_covsqrt(self,season=None,patch=None,array=None,coadd=True,mask_patch=None):
+    def load_covsqrt(self,season=None,patch=None,array=None,coadd=True,mask_patch=None,get_geometry=False):
         pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
                                         season=season,patch=patch,array=array,
                                         overwrite=False,mask_patch=mask_patch)
         fpath = "%s_covsqrt.fits" % (cout)
-        ikey = '_'.join([str(x) for x in [season,patch,self._dm.array_freqs[array]]])
+        if get_geometry: return enmap.read_map_geometry(fpath)
+        ikey = '_'.join([str(x) for x in [season,patch,self.dm.array_freqs[array]]])
         try:
             covsqrt = self._ccache[fpath]
             ivars = self._icache[ikey]
             if self.verbose: print("Loaded cached covsqrt and ivars.")
         except:
             if self.verbose: print("Couldn't find covsqrt and ivars in cache. Reading from disk...")
-            ivars = self._dm.get_splits_ivar(season=season,patch=patch,arrays=self._dm.array_freqs[array])
+            ivars = self.dm.get_splits_ivar(season=season,patch=patch,arrays=self.dm.array_freqs[array])
             covsqrt = enmap.read_map(fpath)
             print(fpath,covsqrt.shape)
             if len(self._ccache.keys())<self.ncache: 
@@ -55,28 +56,43 @@ class NoiseGen(object):
                 self._icache[ikey] = ivars
         return covsqrt,ivars
         
-    def generate_sim(self,season=None,patch=None,array=None,seed=None,mask_patch=None,binary_percentile=10.):
+    def generate_sim(self,season=None,patch=None,array=None,seed=None,mask_patch=None,apply_ivar=True):
         covsqrt,ivars = self.load_covsqrt(season=season,patch=patch,array=array,mask_patch=mask_patch)
-        sims = generate_noise_sim(covsqrt,ivars,seed=seed,binary_percentile=binary_percentile)
-        return sims
+        sims,ivars = generate_noise_sim(covsqrt,ivars,seed=seed)
+        if apply_ivar: 
+            sims = apply_ivar_window(sims,ivars)
+            return sims
+        else:
+            return sims,ivars
 
 
     def save_sims(self,sims,season,patch,array,mask_patch,coadd=True):
         pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
                                         season=season,patch=patch,array=array,
                                         overwrite=False,mask_patch=mask_patch)
-        insplits = self._dm.get_nsplits(season,patch,array)
-        freqs = self._dm.array_freqs[array]
+        insplits = self.dm.get_nsplits(season,patch,array)
+        freqs = self.dm.array_freqs[array]
         nfreqs,nsplits,npol,Ny,Nx = sims.shape
         assert nsplits == insplits
         assert len(freqs) == nfreqs
         for i in range(nfreqs):
             iarray = freqs[i]
             for j in range(nsplits):
-                fname = sout+os.path.basename(self._dm.get_split_fname(season,patch,iarray,j,srcfree=True))
+                fname = sout+os.path.basename(self.dm.get_split_fname(season,patch,iarray,j,srcfree=True))
                 enmap.write_map(fname,sims[i,j,:,:,:])
         
 
+def apply_ivar_window(imaps,ivars):
+    # input has shape (nfreqs,nsplits,npol,Ny,Nx)
+    # Sanitize by thresholding and binary masking
+    assert imaps.ndim==5
+    nfreqs = imaps.shape[0]
+    nsplits = imaps.shape[1]
+    for ifreq in range(nfreqs):
+        for isplit in range(nsplits):
+            win = ivars[ifreq,isplit,0,...]
+            imaps[ifreq,isplit,:,win==0.] = 0 # FIXME: make 0 comparison robust
+    return imaps
 
 def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,mask_patch=None):
     paths = sints.dconfig['actsims']
@@ -124,7 +140,7 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
     assert np.all(np.isfinite(mask_a))
 
     if coadd_estimator:
-        coadd,_ = get_coadd(splits,ivars,axis=1)
+        coadd,civars = get_coadd(splits,ivars,axis=1)
         data  = splits - coadd[:,None,...]
         del coadd
     else:
@@ -132,14 +148,17 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
 
     assert np.all(np.isfinite(data))
     if flattened:
-        ffts = enmap.fft(data*mask_a*np.sqrt(ivars),normalize="phys")
-        if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars)
+        # sivars = np.sqrt(ivars)
+        sivars   = ((1./ivars) - (1./civars[:,None,...]))**-0.5
+        sivars[~np.isfinite(sivars)] = 0
+        ffts = enmap.fft(data*mask_a*sivars,normalize="phys")
+        if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*sivars,quantile=0)
         wmaps = mask_a + enmap.zeros(ffts.shape,mask_a.wcs,dtype=sints.dtype) # WARNING: type
         del ivars, data, splits
     else:
         assert np.all(np.isfinite(data*mask_a*ivars))
         ffts = enmap.fft(data*mask_a*ivars,normalize="phys")
-        if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars)
+        if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars,quantile=0)
         wmaps = ivars * mask_a
         del ivars, data, splits
     n2d = get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname)
@@ -147,17 +166,16 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
     return n2d
 
 
-def generate_noise_sim(covsqrt,ivars,binary_percentile=10.,seed=None):
-    if isinstance(seed,int): seed = [seed]
+def generate_noise_sim(covsqrt,ivars,seed=None):
+    if isinstance(seed,int): seed = (seed,)
     assert np.all(np.isfinite(covsqrt))
-    eshape,ewcs = ivars.shape,ivars.wcs
     shape,wcs = covsqrt.shape,covsqrt.wcs
     Ny,Nx = shape[-2:]
     ncomps = covsqrt.shape[0]
     assert ncomps==covsqrt.shape[1]
     assert ncomps % 3 == 0
     nfreqs = ncomps // 3
-    wmaps = ivars
+    wmaps = enmap.extract(ivars,shape[-2:],wcs)
     nsplits = wmaps.shape[1]
 
     if sints.dtype is np.float32: ctype = np.complex64 
@@ -169,12 +187,12 @@ def generate_noise_sim(covsqrt,ivars,binary_percentile=10.,seed=None):
         if seed is None:
             np.random.seed(None)
         else:
-            np.random.seed(seed+[i])
+            np.random.seed(seed+(i,))
         rmap = enmap.rand_gauss_harm((ncomps, Ny, Nx),covsqrt.wcs).astype(ctype)
         kmap.append( enmap.map_mul(covsqrt, rmap) )
     del covsqrt, rmap
     kmap = enmap.enmap(np.stack(kmap),wcs)
-    outmaps = enmap.extract(enmap.ifft(kmap, normalize="phys").real,eshape,wcs)
+    outmaps = enmap.ifft(kmap, normalize="phys").real
     del kmap
 
     # Need to test this more ; it's only marginally faster and has different seed behaviour
@@ -184,23 +202,18 @@ def generate_noise_sim(covsqrt,ivars,binary_percentile=10.,seed=None):
     # kmap = enmap.samewcs(np.einsum("abyx,cbyx->cayx", covsqrt, rmap),rmap)
     # outmaps = enmap.ifft(kmap, normalize="phys").real
 
+    # isivars = 1/np.sqrt(wmaps)
+    isivars   = ((1./wmaps) - (1./wmaps.sum(axis=1)[:,None,...]))**0.5
+    isivars[~np.isfinite(isivars)] = 0
+    
     assert np.all(np.isfinite(outmaps))
     # Divide by hits
     for ifreq in range(nfreqs):
-        outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] / np.sqrt(wmaps[ifreq,...]) *np.sqrt(nsplits)
-
-    if binary_percentile is not None:
-        # Sanitize by thresholding and binary masking
-        for ifreq in range(nfreqs):
-            for isplit in range(nsplits):
-                win = wmaps[ifreq,isplit,0,...]
-                #bmask = binary_mask(win,threshold = np.percentile(win,binary_percentile))
-                #outmaps[isplit,ifreq*3:(ifreq+1)*3,bmask==0] = 0
-                outmaps[isplit,ifreq*3:(ifreq+1)*3,win==0.] = 0 # FIXME: make 0 comparison robust
+        outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] * isivars[ifreq,...] *np.sqrt(nsplits)
 
     retmaps = outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
     assert np.all(np.isfinite(retmaps))
-    return retmaps
+    return retmaps,wmaps
 
     
 def get_coadd(imaps,wts,axis):
@@ -353,7 +366,7 @@ def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
                 plot("%s_%d_%s_%d_%s" \
                      % (plot_fname,ifreq,pols[ipol],
                         jfreq,pols[jpol]),
-                     enmap.enmap(np.arcsinh(np.fft.fftshift(n2d[i,j])),wcs))
+                     enmap.enmap(np.arcsinh(np.fft.fftshift(n2d[i,j])),wcs),dg=1,quantile=0)
 
     return n2d
 
@@ -443,7 +456,7 @@ def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
     if ncomps==3:
         pols = ['150-I','150-Q','150-U']
     elif ncomps==6:
-        pols = ['90-I','90-Q','90-U','150-I','150-Q','150-U']
+        pols = ['150-I','150-Q','150-U','90-I','90-Q','90-U']
 
     # auto-corrs and cross-freq-II
     k = 0
@@ -538,7 +551,7 @@ def plot_corrcoeff(cents,c1ds_data,plot_fname):
     if ncomps==3:
         pols = ['150-I','150-Q','150-U']
     elif ncomps==6:
-        pols = ['90-I','90-Q','90-U','150-I','150-Q','150-U']
+        pols = ['150-I','150-Q','150-U','90-I','90-Q','90-U']
 
     pl = io.Plotter(xlabel = "$\\ell$", ylabel = "$N_{XY}/\\sqrt{N_{XX}N_{YY}}$",xyscale='linlin')
     for i in range(c1ds_data.shape[0]):

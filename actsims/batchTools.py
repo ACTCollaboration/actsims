@@ -56,12 +56,12 @@ class MR3PATCH_HELPER(object):
         assert(psaf in self.psafs)
         patch, season, array, freq = psaf.split('_')
         print "loading sims for {}".format(psaf)
-        if self.signals.has_key(psaf): 
+        if psaf in self.signals: 
             print "loading precomputed sim {}".format(psaf)
             return self.signals[psaf].copy()
         
         alm_patch = None
-        if self.alms_patch.has_key(psaf):  
+        if psaf in self.alms_patch:  
             print "loading precomputed alm {}".format(psaf)
             return self.signals[psaf].copy()
             alm_patch = self.alms_patch[psaf].copy()
@@ -102,7 +102,7 @@ class MR3PATCH_HELPER(object):
         patch, season, array, freq = psaf.split('_')
         print "loading noise sims for {} seed {}".format(psaf, seed) 
 
-        if seed is not None and self.noises[psaf].has_key(seed): 
+        if seed is not None and seed in self.noises[psaf]: 
             print "loading precomputed sim for {} seed {}".format(psaf, seed)
             return self.noises[psaf][seed].copy()
         else:

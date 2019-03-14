@@ -1,7 +1,6 @@
 import numpy as np, os
 from pixell import enmap, powspec, curvedsky, fft as pfft
 from orphics import io
-from . import simTools, util
 from soapack import interfaces as sints
 import healpy as hp
 import warnings
@@ -46,7 +45,7 @@ class SignalGen(object):
         self.dobeam           = dobeam
 
     def is_supported(self, sesaon, array, patch, freq):
-        signal_idx      = self.__combine_idxes__(sesaon, array, patch, freq)
+        signal_idx      = self.__combine_idxes__(sesaon, patch, array , freq)
         supported = signal_idx in self.supported_sims
         if not supported:
             print("unknown type of sims: {} ".format(signal_idx))
@@ -54,54 +53,54 @@ class SignalGen(object):
 
         return supported
 
-    def __combine_idxes__(self, season, array, patch, freq):
-        return '_'.join([season, array, patch, freq])
+    def __combine_idxes__(self, season, patch, array, freq):
+        return '_'.join([season, patch, array, freq])
     
     def get_base_alm_idx(self, set_idx, sim_num):
         return '_'.join(['set0%d'%set_idx, '%05d'%sim_num])
 
-    def get_signal_idx(self, season, array, patch, freq, set_idx, sim_num):
-        return '_'.join([season, array, patch, freq, 'set0%d'%set_idx, '%05d'%sim_num])
+    def get_signal_idx(self, season, patch, array, freq, set_idx, sim_num):
+        return '_'.join([season, patch, array, freq, 'set0%d'%set_idx, '%05d'%sim_num])
 
-    def get_signal_sim(self, season, array, patch, freq, set_idx, sim_num, save_alm=False, save_map=False):
-        assert(self.is_supported(season, array, patch, freq))
+    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False, save_map=False,oshape=None,owcs=None):
+        assert(self.is_supported(season, patch, array, freq))
 
         base_alm_idx = self.get_base_alm_idx(set_idx, sim_num) 
-        signal_idx   = self.get_signal_idx(season, array, patch, freq, set_idx, sim_num)
+        signal_idx   = self.get_signal_idx(season, patch, array, freq, set_idx, sim_num)
 
         print( "loading sims for {}".format(signal_idx))
-        if self.signals.has_key(signal_idx): 
+        if signal_idx in self.signals: 
             print ("loading precomputed sim {}".format(signal_idx))
             return self.signals[signal_idx].copy()
         
         alm_patch = None
-        if self.alms_patch.has_key(signal_idx):  
+        if signal_idx in self.alms_patch:  
             print ("loading precomputed alm {}".format(signal_idx))
             alm_patch = self.alms_patch[signal_idx].copy()
         else:
             freq_idx  = 0 if freq == 'f090' else 1
-            if not self.alms_base.has_key(base_alm_idx):
+            if base_alm_idx not in self.alms_base:
                 self.manage_cache(self.alms_base, self.max_cached-1)
                 self.load_alms_base(set_idx, sim_num)
             alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                alm_patch = self.__apply_beam__(alm_patch, season, array, patch, freq)
+                alm_patch = self.__apply_beam__(alm_patch, season, patch, array, freq)
             else: pass
             if save_alm: 
                 self.manage_cache(self.alms_patch, self.max_cached-1) 
                 self.alms_patch[signal_idx] = alm_patch.copy()
         
-        return self.__signal_postproessing__(patch, signal_idx, alm_patch, save_map=save_map)
+        return self.__signal_postprocessing__(patch, signal_idx, alm_patch, save_map=save_map,oshape=oshape,owcs=owcs)
  
-    def get_cmb_sim(self, season, array, patch, freq, set_idx, sim_num, save_alm=False):
-        assert(self.is_supported(season, array, patch, freq))
+    def get_cmb_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False,oshape=None,owcs=None):
+        assert(self.is_supported(season, patch, array, freq))
         print("[WARNING] get_cmb_sim() is implemented for debugging purpose. Use get_signal_sim() for the production run")
 
-        signal_idx   = self.get_signal_idx(season, array, patch, freq, set_idx, sim_num)
+        signal_idx   = self.get_signal_idx(season, patch, array, freq, set_idx, sim_num)
         
         alm_cmb = None
-        if self.alms_cmb.has_key(signal_idx):  
+        if signal_idx in self.alms_cmb:  
             print ("loading precomputed alm cmb {}".format(signal_idx))
             alm_cmb = self.alms_cmb[signal_idx].copy()
         else:
@@ -110,21 +109,21 @@ class SignalGen(object):
             alm_cmb = alm_cmb[freq_idx].copy()
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                alm_cmb = self.__apply_beam__(alm_cmb, season, array, patch, freq)
+                alm_cmb = self.__apply_beam__(alm_cmb, season, patch, array, freq)
             else: pass
             if save_alm: 
                 self.manage_cache(self.alms_cmb, self.max_cached-1) 
                 self.alms_cmb[signal_idx] = alm_cmb.copy()
 
-        return self.__signal_postproessing__(patch, signal_idx, alm_cmb, save_map=False)
+        return self.__signal_postprocessing__(patch, signal_idx, alm_cmb, save_map=False,oshape=oshape,owcs=owcs)
 
-    def get_fg_sim(self, season, array, patch, freq, set_idx, sim_num, save_alm=False):
-        assert(self.is_supported(season, array, patch, freq))
+    def get_fg_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False,oshape=None,owcs=None):
+        assert(self.is_supported(season, patch, array, freq))
         print("[WARNING] get_fg_sim() is implemented for debugging purpose. Use get_signal_sim() for the production run")
 
-        signal_idx   = self.get_signal_idx(season, array, patch, freq, set_idx, sim_num)
+        signal_idx   = self.get_signal_idx(season, patch, array, freq, set_idx, sim_num)
         alm_fg = None
-        if self.alms_fg.has_key(signal_idx):  
+        if signal_idx in self.alms_fg:  
             print ("loading precomputed alm cmb {}".format(signal_idx))
             alm_fg = self.alms_fg[signal_idx].copy()
         else:
@@ -137,15 +136,15 @@ class SignalGen(object):
             alm_fg = alm_out
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                alm_fg = self.__apply_beam__(alm_fg, season, array, patch, freq)
+                alm_fg = self.__apply_beam__(alm_fg, season, patch, array, freq)
             else: pass
             if save_alm: 
                 self.manage_cache(self.alms_fg, self.max_cached-1) 
                 self.alms_fg[signal_idx] = alm_fg.copy()
 
-        return self.__signal_postproessing__(patch, signal_idx, alm_fg, save_map=False)
+        return self.__signal_postprocessing__(patch, signal_idx, alm_fg, save_map=False,oshape=oshape,owcs=owcs)
     
-    def __apply_beam__(self, alm_patch, season, array, patch, freq):
+    def __apply_beam__(self, alm_patch, season, patch, array, freq):
         lmax      = hp.Alm.getlmax(alm_patch.shape[-1])
         l_beam    = np.arange(0, lmax+100, dtype=np.float)
         beam_data = self.data_model.get_beam(l_beam, season, patch, '{}_{}'.format(array, freq)) 
@@ -154,8 +153,8 @@ class SignalGen(object):
             alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
         return alm_patch 
 
-    def __signal_postproessing__(self, patch, signal_idx, alm_patch, save_map):
-        signal = self.get_template(patch)
+    def __signal_postprocessing__(self, patch, signal_idx, alm_patch, save_map,oshape=None,owcs=None):
+        signal = self.get_template(patch,shape=oshape,wcs=owcs)
         curvedsky.alm2map(alm_patch, signal, spin = [0,2], verbose=True)
 
         if self.apply_window:
@@ -222,14 +221,17 @@ class SignalGen(object):
         seed         = (set_idx, 0, 1, sim_idx)# copying the structure from simtools
         fg_file      = os.path.join(actsim_root, '../data/fg.dat')
         fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
-        alm_fg90_150 = curvedsky.rand_alm(fg_power, seed = seed)#, lmax=lmax_sg)
+        print(fg_power.shape,seed)
+        alm_fg90_150 = curvedsky.rand_alm_healpy(fg_power, seed = seed)#, lmax=lmax_sg)
         return alm_fg90_150
     
-    def get_template(self, patch):
-        if not self.templates.has_key(patch):
+    def get_template(self, patch,shape=None,wcs=None):
+        if patch not in self.templates:
             self.manage_cache(self.templates, self.max_cached-1) 
-            template      = self.data_model.get_mask(patch)
-            self.templates[patch] = enmap.empty((3,) + template.shape, template.wcs)
+            if shape is None:
+                template      = self.data_model.get_mask(patch)
+                shape,wcs = template.shape,template.wcs
+            self.templates[patch] = enmap.empty((3,) + shape[-2:], wcs)
         else: pass
         return self.templates[patch].copy()
 
