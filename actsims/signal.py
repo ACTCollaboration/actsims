@@ -1,6 +1,5 @@
 import numpy as np, os
 from pixell import enmap, powspec, curvedsky, fft as pfft
-from orphics import io
 from soapack import interfaces as sints
 import healpy as hp
 import warnings
