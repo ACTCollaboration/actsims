@@ -49,7 +49,9 @@ class SimGen(object):
     def get_noise(self, season=None,patch=None,array=None, sim_num=None,mask_patch=None,set_idx=0,apply_ivar=True):
         # indexing is slighly different for signal and noise sim code ..
         # array = None if (array is not None) and (freq is not None) else '{}_{}'.format(array, freq)   
-        seed = (set_idx, 0, 3, sim_num) + self.noise_gen.dm.get_noise_sim_seed(season,patch,array)
+        patch_id = None
+        if mask_patch is not None: patch_id = int(mask_patch[-3:]) # handle s16 patches
+        seed = (set_idx, 0, 3, sim_num) + self.noise_gen.dm.get_noise_sim_seed(season,patch,array,patch_id)
         print(seed)
         return self.noise_gen.generate_sim(season,patch,array,seed=seed,mask_patch=mask_patch,apply_ivar=apply_ivar)
 

@@ -6,8 +6,8 @@ ACTSims example script
 
 
 # Use this version for s13-s15
-version = 'v4.0_mask_version_mr3c_20190215_pickupsub_190301'
-#version = 'v4.0_mask_version_mr3c_20190215_pickupsub_190303' # for s16
+#version = 'v4.0_mask_version_mr3c_20190215_pickupsub_190301'
+version = 'v4.0_mask_version_mr3c_20190215_pickupsub_190303' # for s16
 
 # our test data set
 season, array, patch, freq = ('s13', 'pa1', 'deep1')
