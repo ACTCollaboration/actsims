@@ -27,8 +27,9 @@ class SignalGen(object):
 
 
         self.supported_sims = ['s13_pa1_deep1_f150', 's13_pa1_deep5_f150', 's13_pa1_deep6_f150', 's14_pa1_deep56_f150', 's14_pa2_deep56_f150', \
-                's15_pa1_boss_f150', 's15_pa1_deep56_f150', 's15_pa1_deep8_f150', 's15_pa2_boss_f150', 's15_pa2_deep56_f150', 's15_pa2_deep8_f150',\
-                's15_pa3_boss_f090', 's15_pa3_boss_f150', 's15_pa3_deep56_f090', 's15_pa3_deep56_f150', 's15_pa3_deep8_f090', 's15_pa3_deep8_f150']
+                               's15_pa1_boss_f150', 's15_pa1_deep56_f150', 's15_pa1_deep8_f150', 's15_pa2_boss_f150', 's15_pa2_deep56_f150', \
+                               's15_pa2_deep8_f150','s15_pa3_boss_f090', 's15_pa3_boss_f150', 's15_pa3_deep56_f090', 's15_pa3_deep56_f150', \
+                               's15_pa3_deep8_f090', 's15_pa3_deep8_f150','s16_pa2_cmb_f150','s16_pa3_cmb_f150','s16_pa3_cmb_f090']
         self.supported_sims.sort()
         self.freqs           = ['f090', 'f150']
         self.cmb_type         = cmb_type
