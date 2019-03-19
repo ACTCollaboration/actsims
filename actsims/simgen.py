@@ -36,15 +36,21 @@ class SimGen(object):
 
     ## Note: It will be probably better to use a decorator to delegate. For now, it does it explicetly
 
-    def get_signal(self, season, patch, array, freq, sim_num, save_alm=True, save_map=False, set_idx=0,oshape=None,owcs=None):
+    def get_signal(self, season, patch, array, freq, sim_num, save_alm=True, save_map=False, set_idx=0,oshape=None,owcs=None,mask_patch=None):
         # return cmb+fg sim
+        if oshape is None:
+            oshape,owcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
         return self.signal_gen.get_signal_sim(season, patch, array, freq, set_idx, sim_num, save_alm, save_map,oshape=oshape,owcs=owcs)
 
-    def get_cmb(self, season, array, patch, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None):
-        return self.signal_gen.get_cmb_sim(season, array, patch, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs)
+    def get_cmb(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None):
+        if oshape is None:
+            oshape,owcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
+        return self.signal_gen.get_cmb_sim(season, patch, array, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs)
 
-    def get_fg(self, season, array, patch, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None):
-        return self.signal_gen.get_fg_sim(season, array, patch, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs)
+    def get_fg(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None):
+        if oshape is None:
+            oshape,owcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
+        return self.signal_gen.get_fg_sim(season, patch, array, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs)
 
     def get_noise(self, season=None,patch=None,array=None, sim_num=None,mask_patch=None,set_idx=0,apply_ivar=True):
         # indexing is slighly different for signal and noise sim code ..
