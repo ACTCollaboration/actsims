@@ -18,12 +18,15 @@ fgseed = (set, 0, 1, i)
 
 
 class SimGen(object):
-    def __init__(self, version, model="act_mr3", cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1):
+    def __init__(self, version, model="act_mr3", cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1,
+                 extract_region = None,
+                 extract_region_shape = None
+                 extract_region_wcs = None):
         
         """
         version: The version identifier for the filename of covsqrts on disk
         model: The name of an implemented soapack datamodel
-        extract_region: An optional map whose footprint on to which the sims are made
+        extract_region: An optional map whose footprint on to which the sims are extracted
         extract_region_shape: Instead of passing a map for extract_region, one can pass its shape and wcs
         extract_region_wcs: Instead of passing a map for extract_region, one can pass its shape and wcs
         max_cached: The maximum number of cached sim/or alms
@@ -32,7 +35,20 @@ class SimGen(object):
         
         self.noise_gen  = noise.NoiseGen(version=version,model=model,ncache=max_cached,verbose=False)
         self.signal_gen = signal.SignalGen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model)
+        if (extract_region is not None) or (extract_region_shape is not None):
+            self._refoot = True
+            if (extract_region is not None):
+                assert extract_region_shape is None
+                assert extract_region_wcs is None
+                extract_region_shape, extract_region_wcs = extract_region.shape, extract_region.wcs
+            assert extract_region_wcs is not None
+            self._eshape, self._ewcs = extract_region_shape, extract_region_wcs
+        else:
+            self._refoot = False
 
+    def _footprint(self,imap):
+        if not(self._refoot): return imap
+        else: return enmap.extract(imap,self._eshape,self._wcs)
 
     ## Note: It will be probably better to use a decorator to delegate. For now, it does it explicetly
 
@@ -40,17 +56,17 @@ class SimGen(object):
         # return cmb+fg sim
         if oshape is None:
             oshape,owcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
-        return self.signal_gen.get_signal_sim(season, patch, array, freq, set_idx, sim_num, save_alm, save_map,oshape=oshape,owcs=owcs)
+        return self._footprint(self.signal_gen.get_signal_sim(season, patch, array, freq, set_idx, sim_num, save_alm, save_map,oshape=oshape,owcs=owcs))
 
     def get_cmb(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None):
         if oshape is None:
             oshape,owcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
-        return self.signal_gen.get_cmb_sim(season, patch, array, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs)
+        return self._footprint(self.signal_gen.get_cmb_sim(season, patch, array, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs))
 
     def get_fg(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None):
         if oshape is None:
             oshape,owcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
-        return self.signal_gen.get_fg_sim(season, patch, array, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs)
+        return self._footprint(self.signal_gen.get_fg_sim(season, patch, array, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs))
 
     def get_noise(self, season=None,patch=None,array=None, sim_num=None,mask_patch=None,set_idx=0,apply_ivar=True):
         # indexing is slighly different for signal and noise sim code ..
@@ -58,8 +74,7 @@ class SimGen(object):
         patch_id = None
         if mask_patch is not None: patch_id = int(mask_patch[-3:]) # handle s16 patches
         seed = (set_idx, 0, 3, sim_num) + self.noise_gen.dm.get_noise_sim_seed(season,patch,array,patch_id)
-        print(seed)
-        return self.noise_gen.generate_sim(season,patch,array,seed=seed,mask_patch=mask_patch,apply_ivar=apply_ivar)
+        return self._footprint(self.noise_gen.generate_sim(season,patch,array,seed=seed,mask_patch=mask_patch,apply_ivar=apply_ivar))
 
     def get_sim(self,season,patch,array,sim_num, save_alm=True, save_map=False, set_idx=0,mask_patch=None):
         shape,wcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
@@ -69,7 +84,6 @@ class SimGen(object):
         signals = []
         for afreq in afreqs:
             imap = self.get_signal(season, patch, array, afreq.split('_')[1], sim_num, save_alm=save_alm, save_map=save_map, set_idx=set_idx,oshape=shape,owcs=wcs)
-            print(afreq,imap.shape,imap.wcs)
             signals.append(imap)
         owcs = imap.wcs
         # (nfreqs,npol,Ny,Nx)
@@ -77,4 +91,4 @@ class SimGen(object):
         del imap
         assert wcsutils.equal(wcs,noises.wcs)
         assert wcsutils.equal(owcs,noises.wcs)
-        return noise.apply_ivar_window(signals + noises,ivars)
+        return self._footprint(noise.apply_ivar_window(signals + noises,ivars))
