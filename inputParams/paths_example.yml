@@ -1,6 +1,0 @@
-
-alm_root  : "/global/cscratch1/sd/dwhan89/temp/simS1516_v0.4/data"
-beam_root : "/global/project/projectdirs/act/data/synced_beams/181220/"
-map_root  : "/global/cscratch1/sd/engelen/templateDataMr3c/"
-mask_root : "/home/msyriac/data/act/maps/steve/"
-plots     : ''
