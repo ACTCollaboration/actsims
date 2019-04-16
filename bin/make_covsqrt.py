@@ -4,7 +4,7 @@ This script can be used to make a covsqrt and a few trial sims.
 from __future__ import print_function
 import matplotlib
 matplotlib.use('Agg')
-from pixell import enmap,enplot
+from pixell import enmap,enplot,fft
 import numpy as np
 import os,sys
 from actsims import noise,utils
@@ -69,6 +69,22 @@ mask = sints.get_act_mr3_crosslinked_mask(mask_patch,
                                           kind=args.mask_kind,
                                           season=args.season,array=args.array+"_f150",
                                           pad=args.mask_pad)
+### Make it FFT friendly
+if args.mask_pad is not None:
+    Ny,Nx = mask.shape[-2:]
+    dNy = fft.fft_len(Ny,"above")
+    dNx = fft.fft_len(Nx,"above")
+    pny = dNy - Ny
+    pnx = dNx - Nx
+    assert pny%2==0
+    assert pnx%2==0
+    pady = pny//2
+    padx = pnx//2
+    print(pady,padx)
+    mask = enmap.pad(mask,(pady,padx))
+
+
+
 if args.debug: noise.plot(pout+"_mask",mask,grid=True)
 dm = sints.models[args.model](region=mask)
 
