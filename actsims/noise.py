@@ -2,7 +2,7 @@ import numpy as np
 import os,sys
 from pixell import enmap,enplot,fft as pfft
 from soapack import interfaces as sints
-from actsims import utils
+from actsims import util
 from enlib import bench
 import warnings
 if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
@@ -106,9 +106,9 @@ def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=F
     sdir = "%s/%s/" % (paths['trial_sim_path'] ,version)
     
     if mkdir:
-        exists1 = utils.mkdir(pdir)
-        exists2 = utils.mkdir(cdir)
-        exists3 = utils.mkdir(sdir)
+        exists1 = util.mkdir(pdir)
+        exists2 = util.mkdir(cdir)
+        exists3 = util.mkdir(sdir)
         if any([exists1,exists2,exists3]): 
             if not(overwrite): raise IOError
             warnings.warn("Version directory already exists. Overwriting.")

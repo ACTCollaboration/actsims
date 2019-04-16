@@ -1,7 +1,7 @@
 #-
 # util.py
 #-
-import os, numpy as np
+import os,sys, numpy as np
 from collections import OrderedDict
 
 def is_empty(s):
@@ -99,3 +99,14 @@ class memorize(object):
             v = self.func(*args)
             self.cache[args] = v
             return v
+
+def mkdir(dirpath,comm=None):
+    if comm is None:
+        from mpi4py import MPI
+        comm = MPI.COMM_WORLD
+    exists = os.path.exists(dirpath)
+    comm.Barrier()
+    if comm.Get_rank()==0: 
+        if not (exists):
+            os.makedirs(dirpath)
+    return exists
