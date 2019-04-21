@@ -36,6 +36,8 @@ class SignalGen(object):
         self.max_cached       = max_cached
         self.alms_base        = ODict()
         self.alms_cmb         = ODict()
+        self.alms_phi         = ODict()
+        self.alms_kappa       = ODict()
         self.alms_fg          = ODict()
         self.alms_patch       = ODict()
         self.signals          = ODict()
@@ -91,7 +93,7 @@ class SignalGen(object):
                 self.manage_cache(self.alms_patch, self.max_cached-1) 
                 self.alms_patch[signal_idx] = alm_patch.copy()
         
-        return self.__signal_postprocessing__(patch, signal_idx, alm_patch, save_map=save_map,oshape=oshape,owcs=owcs)
+        return self.__signal_postprocessing__(patch, signal_idx, alm_patch, save_map=save_map,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
  
     def get_cmb_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False,oshape=None,owcs=None):
         assert(self.is_supported(season, patch, array, freq))
@@ -115,7 +117,8 @@ class SignalGen(object):
                 self.manage_cache(self.alms_cmb, self.max_cached-1) 
                 self.alms_cmb[signal_idx] = alm_cmb.copy()
 
-        return self.__signal_postprocessing__(patch, signal_idx, alm_cmb, save_map=False,oshape=oshape,owcs=owcs)
+        return self.__signal_postprocessing__(patch, signal_idx, alm_cmb, save_map=False,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
+
 
     def get_fg_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False,oshape=None,owcs=None):
         assert(self.is_supported(season, patch, array, freq))
@@ -142,8 +145,32 @@ class SignalGen(object):
                 self.manage_cache(self.alms_fg, self.max_cached-1) 
                 self.alms_fg[signal_idx] = alm_fg.copy()
 
-        return self.__signal_postprocessing__(patch, signal_idx, alm_fg, save_map=False,oshape=oshape,owcs=owcs)
+        return self.__signal_postprocessing__(patch, signal_idx, alm_fg, save_map=False,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
+        
+    def get_phi_sim(self, patch, set_idx, sim_num, save_alm=False, oshape=None, owcs=None):
+        return self.__get_lens_potential_sim__(patch, set_idx, sim_num, mode='phi', save_alm=save_alm, oshape=oshape, owcs=owcs)
+
+    def get_kappa_sim(self, patch, set_idx, sim_num, save_alm=False, oshape=None, owcs=None): 
+        return self.__get_lens_potential_sim__(patch, set_idx, sim_num, mode='kappa', save_alm=save_alm, oshape=oshape, owcs=owcs)
     
+    def __get_lens_potential_sim__(self, patch, set_idx, sim_num, mode='phi', save_alm=False, oshape=None, owcs=None):
+        assert(mode in ['phi', 'kappa'])
+        lenp_idx     = self.get_base_alm_idx(set_idx, sim_num)
+        alms_lenp    = self.alms_phi     if mode == 'phi' else self.alms_kappa       
+        loader_func  = self.load_alm_phi if mode == 'phi' else self.load_alm_kappa 
+
+        alm_lenp = None
+        if lenp_idx in alms_lenp:  
+            print ("loading precomputed alm lenp {}".format(lenp_idx))
+            alm_lenp = alms_lenp[alm_lenp].copy()
+        else:
+            alm_lenp = loader_func(set_idx, sim_num, cache=False, ret_alm=True)
+            if save_alm: 
+                self.manage_cache(alms_lenp, self.max_cached-1) 
+                alms_lenp[lenp_idx] = alm_lenp.copy()
+
+        return self.__signal_postprocessing__(patch, lenp_idx, alm_lenp, save_map=False, oshape=oshape,owcs=owcs, apply_window=False)
+
     def __apply_beam__(self, alm_patch, season, patch, array, freq):
         lmax      = hp.Alm.getlmax(alm_patch.shape[-1])
         l_beam    = np.arange(0, lmax+100, dtype=np.float)
@@ -153,11 +180,12 @@ class SignalGen(object):
             alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
         return alm_patch 
 
-    def __signal_postprocessing__(self, patch, signal_idx, alm_patch, save_map,oshape=None,owcs=None):
+    def __signal_postprocessing__(self, patch, signal_idx, alm_patch, save_map, oshape=None, owcs=None, apply_window=True):
         signal = self.get_template(patch,shape=oshape,wcs=owcs)
+        signal = signal if len(alm_patch.shape) > 1 else signal[0,...]
         curvedsky.alm2map(alm_patch, signal, spin = [0,2], verbose=True)
 
-        if self.apply_window:
+        if apply_window:
             print('apply window')
             axes = [-2, -1]
             for idx in range(signal.shape[0]):
@@ -168,7 +196,6 @@ class SignalGen(object):
 
                 signal[idx] = (pfft.ifft(kmap, axes=axes, normalize=True)).real
                 del kmap
-
 
         if save_map: 
             self.manage_cache(self.signals, self.max_cached-1)
@@ -216,6 +243,31 @@ class SignalGen(object):
         if ret_alm: return alm_signal
         del alm_signal
 
+    def load_alm_phi(self, set_idx, sim_idx, cache=True, ret_alm=False):
+        # note: beam is set to false
+        print("loading alm phi")
+        phi_file = os.path.join(self.signal_path, 'fullskyPhi_alm_set%02d_%05d.fits' %(set_idx, sim_idx))
+        print("loading %s" %phi_file)
+        alm_phi  = np.complex128(hp.fitsfunc.read_alm(phi_file, hdu = (1))) 
+
+        if cache: self.alms_phi[self.get_base_alm_idx(set_idx, sim_idx)] = alm_phi.copy()
+        
+        if ret_alm: return alm_phi
+        del alm_phi
+    
+    def load_alm_kappa(self, set_idx, sim_idx, cache=True, ret_alm=False):
+        # note: beam is set to false
+        alm_phi  = self.load_alm_phi(set_idx, sim_idx, False, True)
+        print("alm_phi to alm_kappa")
+        lmax = hp.Alm.getlmax(alm_phi.shape[-1])
+        l    = np.arange(0, lmax+1, dtype=np.float)
+
+        alm_kappa = hp.sphtfunc.almxfl(alm_phi, l*(l+1.)/2.)
+        if cache: self.alms_kappa[self.get_base_alm_idx(set_idx, sim_idx)] = alm_kappa.copy()
+        
+        if ret_alm: return alm_kappa
+        del alm_kappa
+    
     def load_alm_fg(self, set_idx, sim_idx):
         print("loading fg alm")
         seed         = (set_idx, 0, 1, sim_idx)# copying the structure from simtools

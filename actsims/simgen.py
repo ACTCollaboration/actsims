@@ -68,10 +68,18 @@ class SimGen(object):
         if oshape is None: oshape, owcs = self.get_default_geometries(season, patch, array, freq, mask_patch) 
         return self._footprint(self.signal_gen.get_cmb_sim(season, patch, array, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs))
 
+    def get_phi(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None): 
+        if oshape is None: oshape, owcs = self.get_default_geometries(season, patch, array, freq, mask_patch)
+        return self._footprint(self.signal_gen.get_phi_sim(patch, set_idx, sim_num, save_alm, oshape=oshape,owcs=owcs))
+
+    def get_kappa(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None): 
+        if oshape is None: oshape, owcs = self.get_default_geometries(season, patch, array, freq, mask_patch)
+        return self._footprint(self.signal_gen.get_kappa_sim(patch, set_idx, sim_num, save_alm, oshape=oshape,owcs=owcs))
+    
     def get_fg(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None): 
         if oshape is None: oshape, owcs = self.get_default_geometries(season, patch, array, freq, mask_patch)
         return self._footprint(self.signal_gen.get_fg_sim(season, patch, array, freq, set_idx, sim_num, save_alm,oshape=oshape,owcs=owcs))
-
+    
     def get_noise(self, season=None,patch=None,array=None, sim_num=None,mask_patch=None,set_idx=0,apply_ivar=True):
         # indexing is slighly different for signal and noise sim code ..
         # array = None if (array is not None) and (freq is not None) else '{}_{}'.format(array, freq)   
