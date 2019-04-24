@@ -19,6 +19,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Make covsqrt, generate some test sims, make verification plots.')
 parser.add_argument("version", type=str,help='A prefix for a unique version name')
 parser.add_argument("model", type=str,help='Name of a datamodel specified in soapack.interfaces.')
+parser.add_argument("--do-only-filter-noise", action='store_true',help='Do not do noise sim templates. Instead just do unflattened filter noise.')
 parser.add_argument("--mask-version", type=str,  default="padded_v1",help='Mask version')
 parser.add_argument("--mask-kind", type=str,  default="binary_apod",help='Mask kind')
 parser.add_argument("--mask-patch", type=str,  default=None,help='Mask patch')
@@ -91,8 +92,9 @@ if args.debug:
     noise.plot(pout+"_ivars",ivars)
 
 modlmap = splits.modlmap()
-n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
-ncomps = n2d_flat.shape[0]
+flatstring = "un" if args.do_only_filter_noise else ""
+n2d_xflat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=not(args.do_only_filter_noise),plot_fname=pout+"_n2d_%sflat" % flatstring if args.debug else None)
+ncomps = n2d_xflat.shape[0]
 if ncomps==1: npol = 1
 else: npol = 3
 mask_ell = args.rlmin - args.radial_fit_annulus
@@ -100,22 +102,26 @@ del splits
 
 radial_pairs = [(0,0),(1,1),(2,2),(3,3),(4,4),(5,5),(0,3),(3,0)] if not(args.no_prewhiten) else []
 if smooth:
-    n2d_flat_smoothed = noise.smooth_ps(n2d_flat.copy(),dfact=dfact,
+    n2d_xflat_smoothed = noise.smooth_ps(n2d_xflat.copy(),dfact=dfact,
                                         radial_pairs=radial_pairs,
-                                        plot_fname=pout+"_n2d_flat_smoothed" if args.debug else None,
+                                        plot_fname=pout+"_n2d_%sflat_smoothed" % flatstring if args.debug else None,
                                         radial_fit_annulus = args.radial_fit_annulus,
                                         radial_fit_lmin=args.rlmin,fill_lmax=args.lmax)
 else:
-    n2d_flat_smoothed = n2d_flat.copy()
-del n2d_flat
+    n2d_xflat_smoothed = n2d_xflat.copy()
+del n2d_xflat
 
-n2d_flat_smoothed[:,:,modlmap<mask_ell] = 0
-if args.lmax is not None: n2d_flat_smoothed[:,:,modlmap>args.lmax] = 0
+n2d_xflat_smoothed[:,:,modlmap<mask_ell] = 0
+if args.lmax is not None: n2d_xflat_smoothed[:,:,modlmap>args.lmax] = 0
 
-if args.no_off: n2d_flat_smoothed = noise.null_off_diagonals(n2d_flat_smoothed)
+if args.no_off: n2d_xflat_smoothed = noise.null_off_diagonals(n2d_xflat_smoothed)
 
-covsqrt = noise.get_covsqrt(n2d_flat_smoothed,args.covsqrt_kind)
-del n2d_flat_smoothed
+if args.do_only_filter_noise:
+    ngen.save_filter_noise(n2d_xflat_smoothed,season=args.season,patch=args.patch,array=args.array,coadd=coadd,mask_patch=mask_patch)    
+    sys.exit()
+
+covsqrt = noise.get_covsqrt(n2d_xflat_smoothed,args.covsqrt_kind)
+del n2d_xflat_smoothed
 ngen.save_covsqrt(covsqrt,season=args.season,patch=args.patch,array=args.array,coadd=coadd,mask_patch=mask_patch)
 
 if nsims>0:

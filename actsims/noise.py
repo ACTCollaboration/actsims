@@ -34,6 +34,14 @@ class NoiseGen(object):
         enmap.write_map(fpath ,covsqrt)
         print(fpath,covsqrt.shape)
 
+    def save_filter_noise(self,n2d,season=None,patch=None,array=None,coadd=True,mask_patch=None):
+        pout,cout,sout = get_save_paths(self._model,self._version,
+                                        coadd=coadd,season=season,patch=patch,array=array,
+                                        overwrite=False,mask_patch=mask_patch)
+        fpath = "%s_filter_noise.fits" % (cout)
+        enmap.write_map(fpath ,n2d)
+        print(fpath,n2d.shape,n2d.wcs)
+
     def load_covsqrt(self,season=None,patch=None,array=None,coadd=True,mask_patch=None,get_geometry=False):
         pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
                                         season=season,patch=patch,array=array,
