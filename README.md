@@ -38,7 +38,6 @@ If you are not on Nersc, first sync this directory onto your machine then follow
 * Signal sims have the modulation & aberration applied, and can be labelled separately for CMB and phi maps 
 
 ## Current issues / to-do:
-* Diagonlize the big covariance matrix -- the shape is (6, 6, Ny, Nx) for pa3, (3, 3, Ny, Nx) for pa1 and pa2 --  and then test the sims coming out of this pipeline for that template.
 * Add a test routine to check whether the code returns the same realization (across platfroms and python module versions).
 * CMB sims are awaiting a new run, to fix an issue with the aberration effect and with the random seeds.
 * Need to do lensing nulls for these.

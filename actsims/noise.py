@@ -96,7 +96,8 @@ def apply_ivar_window(imaps,ivars):
 def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,mask_patch=None):
     paths = sints.dconfig['actsims']
 
-    assert paths['plot_path'] is not None
+    try: assert paths['plot_path'] is not None
+    except: paths['plot_path'] = "./"
     assert paths['covsqrt_path'] is not None
     assert paths['trial_sim_path'] is not None
 
@@ -166,14 +167,21 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
 
 
 def generate_noise_sim(covsqrt,ivars,seed=None):
+    """
+    Supports only two cases
+    1) nfreqs>=1,npol=3
+    2) nfreqs=1,npol=1
+    """
     if isinstance(seed,int): seed = (seed,)
     assert np.all(np.isfinite(covsqrt))
     shape,wcs = covsqrt.shape,covsqrt.wcs
     Ny,Nx = shape[-2:]
     ncomps = covsqrt.shape[0]
     assert ncomps==covsqrt.shape[1]
-    assert ncomps % 3 == 0
-    nfreqs = ncomps // 3
+    assert ((ncomps % 3) == 0) or (ncomps==1)
+    nfreqs = 1 if ncomps==1 else ncomps // 3
+    if ncomps==1: npol = 1
+    else: npol = 3
     wmaps = enmap.extract(ivars,shape[-2:],wcs)
     nsplits = wmaps.shape[1]
 
@@ -208,9 +216,9 @@ def generate_noise_sim(covsqrt,ivars,seed=None):
     assert np.all(np.isfinite(outmaps))
     # Divide by hits
     for ifreq in range(nfreqs):
-        outmaps[:,ifreq*3:(ifreq+1)*3,...] = outmaps[:,ifreq*3:(ifreq+1)*3,...] * isivars[ifreq,...] *np.sqrt(nsplits)
+        outmaps[:,ifreq*npol:(ifreq+1)*npol,...] = outmaps[:,ifreq*npol:(ifreq+1)*npol,...] * isivars[ifreq,...] *np.sqrt(nsplits)
 
-    retmaps = outmaps.reshape((nsplits,nfreqs,3,Ny,Nx)).swapaxes(0,1)
+    retmaps = outmaps.reshape((nsplits,nfreqs,npol,Ny,Nx)).swapaxes(0,1)
     assert np.all(np.isfinite(retmaps))
     return retmaps,wmaps
 
@@ -297,6 +305,7 @@ def noise_power(kmaps1,weights1,kmaps2=None,weights2=None,
         # N^{GO} estimator
         assert kmaps1.ndim==3
         nsplits = kmaps1.shape[0]
+        if kmaps2 is not None: assert nsplits==kmaps2.shape[0]
         noise = np.sum(pfunc(kmaps1,weights1,kmaps2,weights2),axis=0)
         if not(np.all(np.isfinite(noise))): raise ValueError
         return noise / nsplits / (nsplits-1.)
@@ -374,7 +383,7 @@ def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
 
 def smooth_ps(ps,dfact=(16,16),radial_fit_lmin=300,
               radial_fit_lmax=8000,radial_fit_wnoise_annulus=500,
-              radial_fit_annulus=20,radial_pairs=[],plot_fname=None):
+              radial_fit_annulus=20,radial_pairs=[],plot_fname=None,fill_lmax=None):
     from tilec import covtools
     ncomps = ps.shape[0]
     assert ncomps==ps.shape[1]
@@ -389,7 +398,8 @@ def smooth_ps(ps,dfact=(16,16),radial_fit_lmin=300,
         dnoise,_,_ = covtools.noise_average(ps[i,i].copy(),dfact=dfact,
                                             lmin=radial_fit_lmin,lmax=radial_fit_lmax,
                                             wnoise_annulus=radial_fit_wnoise_annulus,
-                                            bin_annulus=radial_fit_annulus,radial_fit=do_radial)
+                                            bin_annulus=radial_fit_annulus,
+                                            radial_fit=do_radial,fill_lmax=fill_lmax)
         sps[i,i] = dnoise.copy()
         if plot_fname is not None: plot("%s_unsmoothed_%d_%d" \
                                         % (plot_fname,i,i),
@@ -414,7 +424,7 @@ def smooth_ps(ps,dfact=(16,16),radial_fit_lmin=300,
             dnoise,_,_ = covtools.noise_average(afit,dfact=dfact,
                                                 lmin=radial_fit_lmin,lmax=radial_fit_lmax,
                                                 wnoise_annulus=radial_fit_wnoise_annulus,
-                                                bin_annulus=radial_fit_annulus,radial_fit=do_radial)
+                                                bin_annulus=radial_fit_annulus,radial_fit=do_radial,fill_lmax=fill_lmax)
             dnoise = dnoise * mul
 
             sps[i,j] = dnoise.copy()
@@ -453,7 +463,9 @@ def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
 
     dpi = 300
     ncomps = p1ds1.shape[0]
-    if ncomps==3:
+    if ncomps==1:
+        pols = ['I']
+    elif ncomps==3:
         pols = ['150-I','150-Q','150-U']
     elif ncomps==6:
         pols = ['150-I','150-Q','150-U','90-I','90-Q','90-U']

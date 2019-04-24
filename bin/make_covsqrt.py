@@ -7,7 +7,7 @@ matplotlib.use('Agg')
 from pixell import enmap,enplot,fft
 import numpy as np
 import os,sys
-from actsims import noise,utils
+from actsims import noise
 from soapack import interfaces as sints
 from enlib import bench
 from orphics import io,stats
@@ -19,7 +19,7 @@ import argparse
 parser = argparse.ArgumentParser(description='Make covsqrt, generate some test sims, make verification plots.')
 parser.add_argument("version", type=str,help='A prefix for a unique version name')
 parser.add_argument("model", type=str,help='Name of a datamodel specified in soapack.interfaces.')
-parser.add_argument("--mask-version", type=str,  default="180323",help='Mask version')
+parser.add_argument("--mask-version", type=str,  default="padded_v1",help='Mask version')
 parser.add_argument("--mask-kind", type=str,  default="binary_apod",help='Mask kind')
 parser.add_argument("--mask-patch", type=str,  default=None,help='Mask patch')
 parser.add_argument("--mask-pad", type=int,  default=None,
@@ -40,6 +40,7 @@ parser.add_argument("--no-off", action='store_true',help='Null the off-diagonals
 parser.add_argument("--no-prewhiten", action='store_true',help='Do not prewhiten spectra before smoothing. Use this flag for Planck.')
 parser.add_argument("--overwrite", action='store_true',help='Overwrite an existing version.')
 parser.add_argument("--debug", action='store_true',help='Debug plots.')
+parser.add_argument("--lmax",     type=int,  default=None,help="Maximum ell.")
 args = parser.parse_args()
 coadd = not(args.aminusc)
 nsims = args.nsims
@@ -69,21 +70,6 @@ mask = sints.get_act_mr3_crosslinked_mask(mask_patch,
                                           kind=args.mask_kind,
                                           season=args.season,array=args.array+"_f150",
                                           pad=args.mask_pad)
-### Make it FFT friendly
-if args.mask_pad is not None:
-    Ny,Nx = mask.shape[-2:]
-    dNy = fft.fft_len(Ny,"above")
-    dNx = fft.fft_len(Nx,"above")
-    pny = dNy - Ny
-    pnx = dNx - Nx
-    assert pny%2==0
-    assert pnx%2==0
-    pady = pny//2
-    padx = pnx//2
-    print(pady,padx)
-    mask = enmap.pad(mask,(pady,padx))
-
-
 
 if args.debug: noise.plot(pout+"_mask",mask,grid=True)
 dm = sints.models[args.model](region=mask)
@@ -106,6 +92,9 @@ if args.debug:
 
 modlmap = splits.modlmap()
 n2d_flat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=True,plot_fname=pout+"_n2d_flat" if args.debug else None)
+ncomps = n2d_flat.shape[0]
+if ncomps==1: npol = 1
+else: npol = 3
 mask_ell = args.rlmin - args.radial_fit_annulus
 del splits
 
@@ -115,12 +104,13 @@ if smooth:
                                         radial_pairs=radial_pairs,
                                         plot_fname=pout+"_n2d_flat_smoothed" if args.debug else None,
                                         radial_fit_annulus = args.radial_fit_annulus,
-                                        radial_fit_lmin=args.rlmin)
+                                        radial_fit_lmin=args.rlmin,fill_lmax=args.lmax)
 else:
     n2d_flat_smoothed = n2d_flat.copy()
 del n2d_flat
 
 n2d_flat_smoothed[:,:,modlmap<mask_ell] = 0
+if args.lmax is not None: n2d_flat_smoothed[:,:,modlmap>args.lmax] = 0
 
 if args.no_off: n2d_flat_smoothed = noise.null_off_diagonals(n2d_flat_smoothed)
 
@@ -168,4 +158,4 @@ if nsims>0:
     noise.plot_corrcoeff(cents2,c1ds_data,plot_fname=pout)
 
     nfreqs = len(dm.array_freqs[args.array])
-    noise.compare_ps(cents,p1dstats['mean'].reshape((nfreqs*3,nfreqs*3,cents.size)),p1ds_data,plot_fname="%s_compare" % (pout),err=p1dstats['errmean'].reshape((nfreqs*3,nfreqs*3,cents.size)))
+    noise.compare_ps(cents,p1dstats['mean'].reshape((nfreqs*npol,nfreqs*npol,cents.size)),p1ds_data,plot_fname="%s_compare" % (pout),err=p1dstats['errmean'].reshape((nfreqs*npol,nfreqs*npol,cents.size)))

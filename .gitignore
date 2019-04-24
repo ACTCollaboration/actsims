@@ -2,3 +2,4 @@
 actsims.egg-info/
 *.png
 inputParams/paths.yml
+*.sh
