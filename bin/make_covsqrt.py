@@ -93,7 +93,10 @@ if args.debug:
 
 modlmap = splits.modlmap()
 flatstring = "un" if args.do_only_filter_noise else ""
-n2d_xflat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,flattened=not(args.do_only_filter_noise),plot_fname=pout+"_n2d_%sflat" % flatstring if args.debug else None)
+n2d_xflat = noise.get_n2d_data(splits,ivars,mask,coadd_estimator=coadd,
+                               flattened=not(args.do_only_filter_noise),
+                               plot_fname=pout+"_n2d_%sflat" % flatstring if args.debug else None,
+                               dtype=dm.dtype)
 ncomps = n2d_xflat.shape[0]
 if ncomps==1: npol = 1
 else: npol = 3
@@ -141,7 +144,10 @@ if nsims>0:
         if args.debug and i==0: noise.plot(pout+"_sims",sims)
         if not(args.no_write):
             ngen.save_sims(i,sims,args.season,args.patch,args.array,coadd=coadd,mask_patch=mask_patch)
-        n2d_sim = noise.get_n2d_data(sims,ivars2,emask,coadd_estimator=coadd,flattened=False,plot_fname=pout+"_n2d_sim" if (args.debug and i==0) else None)
+        n2d_sim = noise.get_n2d_data(sims,ivars2,emask,coadd_estimator=coadd,
+                                     flattened=False,
+                                     plot_fname=pout+"_n2d_sim" if (args.debug and i==0) else None,
+                                     dtype = dm.dtype)
         del sims
         cents,op1ds_sim = noise.get_p1ds(n2d_sim,modlmap,bin_edges)
         p1ds.append(op1ds_sim.copy().reshape(-1))
@@ -155,7 +161,7 @@ if nsims>0:
     if args.extract_mask is not None: 
         splits = enmap.extract(splits,eshape,ewcs)
 
-    n2d_data = noise.get_n2d_data(splits,ivars2,emask,coadd_estimator=coadd)
+    n2d_data = noise.get_n2d_data(splits,ivars2,emask,coadd_estimator=coadd,dtype=dm.dtype)
     cents,p1ds_data = noise.get_p1ds(n2d_data,modlmap,bin_edges)
     corr = noise.corrcoef(n2d_data)
     del n2d_data

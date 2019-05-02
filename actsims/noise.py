@@ -65,7 +65,7 @@ class NoiseGen(object):
         
     def generate_sim(self,season=None,patch=None,array=None,seed=None,mask_patch=None,apply_ivar=True):
         covsqrt,ivars = self.load_covsqrt(season=season,patch=patch,array=array,mask_patch=mask_patch)
-        sims,ivars = generate_noise_sim(covsqrt,ivars,seed=seed)
+        sims,ivars = generate_noise_sim(covsqrt,ivars,seed=seed,dtype=self.dm.dtype)
         if apply_ivar: 
             sims = apply_ivar_window(sims,ivars)
             return sims
@@ -142,7 +142,7 @@ def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=F
     return pout,cout,sout
 
 
-def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_fname=None):
+def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_fname=None,dtype=None):
     assert np.all(np.isfinite(splits))
     assert np.all(np.isfinite(ivars))
     assert np.all(np.isfinite(mask_a))
@@ -161,7 +161,7 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
         sivars[~np.isfinite(sivars)] = 0
         ffts = enmap.fft(data*mask_a*sivars,normalize="phys")
         if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*sivars,quantile=0)
-        wmaps = mask_a + enmap.zeros(ffts.shape,mask_a.wcs,dtype=sints.dtype) # WARNING: type
+        wmaps = mask_a + enmap.zeros(ffts.shape,mask_a.wcs,dtype=dtype) # WARNING: type
         del ivars, data, splits
     else:
         assert np.all(np.isfinite(data*mask_a*ivars))
@@ -169,12 +169,12 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
         if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars,quantile=0)
         wmaps = ivars * mask_a
         del ivars, data, splits
-    n2d = get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname)
+    n2d = get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname,dtype=dtype)
     assert np.all(np.isfinite(n2d))
     return n2d
 
 
-def generate_noise_sim(covsqrt,ivars,seed=None):
+def generate_noise_sim(covsqrt,ivars,seed=None,dtype=None):
     """
     Supports only two cases
     1) nfreqs>=1,npol=3
@@ -193,8 +193,8 @@ def generate_noise_sim(covsqrt,ivars,seed=None):
     wmaps = enmap.extract(ivars,shape[-2:],wcs)
     nsplits = wmaps.shape[1]
 
-    if sints.dtype is np.float32: ctype = np.complex64 
-    elif sints.dtype is np.float64: ctype = np.complex128 
+    if dtype is np.float32: ctype = np.complex64 
+    elif dtype is np.float64: ctype = np.complex128 
 
     # Old way with loop
     kmap = []
@@ -344,7 +344,7 @@ def noise_power(kmaps1,weights1,kmaps2=None,weights2=None,
         return (autos-crosses)/nsplits
 
 
-def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
+def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False,dtype=None):
     assert np.all(np.isfinite(ffts))
     assert np.all(np.isfinite(wmaps))
     shape,wcs = ffts.shape[-2:],ffts.wcs
@@ -360,7 +360,7 @@ def get_n2d(ffts,wmaps,plot_fname=None,coadd_estimator=False):
         ipol = index % 3
         return ifreq, ipol
 
-    n2d = enmap.zeros((ncomps,ncomps,Ny,Nx),wcs,dtype=sints.dtype) # WARNING: type)
+    n2d = enmap.zeros((ncomps,ncomps,Ny,Nx),wcs,dtype=dtype) # WARNING: type)
     pols = ['I','Q','U']
     for i in range(ncomps):
         for j in range(i,ncomps):
@@ -457,8 +457,8 @@ def binary_mask(mask,threshold=0.5):
     return m
 
 
-def get_p1ds(p2d,modlmap,bin_edges):
-    p1ds = np.zeros((p2d.shape[0],p2d.shape[0],bin_edges.size-1),dtype=sints.dtype) # WARNING: type)
+def get_p1ds(p2d,modlmap,bin_edges,dtype=None):
+    p1ds = np.zeros((p2d.shape[0],p2d.shape[0],bin_edges.size-1),dtype=dtype) # WARNING: type)
     for i in range(p2d.shape[0]):
         for j in range(p2d.shape[0]):
             p1ds[i,j] = binned_power(p2d[i,j],modlmap,bin_edges)[1]

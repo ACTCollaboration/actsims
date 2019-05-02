@@ -16,8 +16,8 @@ a bit more to make it FFT friendly.
 
 out_version = "padded_v1"
 in_versions = {'actpol': "mr3c_20190215_pickupsub_190301",'advact': "mr3c_20190215_pickupsub_190303"}
-patches = {'actpol':['deep1','deep5','deep6','deep56','boss'],'advact':['patch00%d' % i for i in range(9)]}
- pads = {'deep':200, 'boss':400, 'patch': 600}
+patches = {'actpol':['deep8','deep1','deep5','deep6','deep56','boss'],'advact':['patch00%d' % i for i in range(9)]}
+pads = {'deep':200, 'boss':400, 'patch': 600}
 
 #out_version = "padded_deep_v2"
 #in_versions = {'actpol': "180323"}
