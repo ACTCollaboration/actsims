@@ -6,17 +6,23 @@ import os,sys
 import soapack.interfaces as sints
 from enlib import bench
 
+apatch = sys.argv[1]
+
+out_dir = "/scratch/r/rbond/msyriac/data/depot/actsims/inpainted/"
+
 plot_img = lambda x,y: io.plot_img(x,os.environ['WORK']+"/"+y)
 noise_pix = 60
 cmb_theory_fn = lambda s,l: cosmology.default_theory().lCl(s,l)
 hole_radius = 9.
 res = np.deg2rad(0.5/60.)
 
-def plot_cutout(cutout,ivars,tag="",skip_plots=False):
+def plot_cutout(nsplits,cutout,ivars,tag="",skip_plots=False):
     pols = ['I','Q','U']
     retvars = ivars.copy()
-    for s in range(4):
-        if np.std(cutout[s])<1e-3: continue
+    for s in range(nsplits):
+        if np.std(cutout[s])<1e-3: 
+            print("Skipping split %d as it seems empty")
+            continue
         iname = "%s%s_%s_%s_split_%d_%d" % (tag,season,patch,array,s,sid)
         if not(skip_plots): plot_img(ivars[s,0],"ivars_%s.png" % iname)
         for p in range(3):
@@ -42,9 +48,8 @@ dm = sints.ACTmr3(calibrated=False)
 
 for season in dm.seasons:
     for patch in dm.patches:
-        if patch!="deep56": continue
+        if patch!=apatch: continue
         for array in dm.arrays:
-            if array!="pa3_f090": continue
             try: 
                 splits = dm.get_splits(season,patch,array,ncomp=None,srcfree=True)[0]
                 print("Found %s %s %s" % (season,patch,array))
@@ -52,7 +57,7 @@ for season in dm.seasons:
                 continue
             ivars = dm.get_splits_ivar(season,patch,array,ncomp=None)[0]
             wcs = ivars.wcs
-            print(splits.shape,ivars.shape)
+            nsplits = ivars.shape[0]
 
             ids = []
             for sid,(ra,dec) in enumerate(zip(ras,decs)):
@@ -60,16 +65,18 @@ for season in dm.seasons:
                 if (cutout is not None): 
                     sel_ivar = reproject.cutout(ivars, ra=np.deg2rad(ra), dec=np.deg2rad(dec), pad=1, corner=False,npix=noise_pix,return_slice=True)
                     cut_ivar = ivars[sel_ivar]
-                    retv = plot_cutout(cutout,cut_ivar,skip_plots=True)
+                    retv = plot_cutout(nsplits,cutout,cut_ivar)#,skip_plots=True)
                     ivars[sel_ivar] = retv
                     ids.append(sid)
 
 
             # Save ivar map
             #....
+            for i in range(nsplits):
+                fname = out_dir+os.path.basename(dm.get_split_ivar_fname(season,patch,array,i)).replace(".fits","_inpainted.fits")
+                enmap.write_map(fname,ivars[i])
             
             # Inpaint each split
-            nsplits = ivars.shape[0]
             beam_fn = lambda x: dm.get_beam(season=season,patch=patch,array=array,ells=x)
             inpainted = []
             for i in range(nsplits):
@@ -77,6 +84,7 @@ for season in dm.seasons:
                 gdicts = {}
                 pcoords = np.zeros((2,len(ids)))
                 for sindex,sid in enumerate(ids):
+                    if np.std(splits[i,:])<1e-3: continue
                     with bench.show("geometry"):
                         pcov = pixcov.pcov_from_ivar(noise_pix,np.deg2rad(decs[sid]),np.deg2rad(ras[sid]),ivars[i,0],cmb_theory_fn,beam_fn,iau=False)
                         gdicts[sid]  = pixcov.make_geometry(hole_radius=np.deg2rad(hole_radius/60.),n=noise_pix,deproject=True,iau=False,pcov=pcov,res=res)
@@ -92,8 +100,13 @@ for season in dm.seasons:
                 if (cutout is not None): 
                     sel_ivar = reproject.cutout(ivars, ra=np.deg2rad(ra), dec=np.deg2rad(dec), pad=1, corner=False,npix=noise_pix,return_slice=True)
                     cut_ivar = ivars[sel_ivar]
-                    retv = plot_cutout(cutout,cut_ivar,tag="inpainted_")
+                    retv = plot_cutout(nsplits,cutout,cut_ivar,tag="inpainted_")
 
 
             # Save inpainted map
             #....
+
+            for i in range(nsplits):
+                fname = out_dir+os.path.basename(dm.get_split_fname(season,patch,array,i,srcfree=True)).replace(".fits","_inpainted.fits")
+                enmap.write_map(fname,inpainted[i])
+                
