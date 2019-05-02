@@ -1,4 +1,6 @@
 from __future__ import print_function
+import matplotlib
+matplotlib.use('Agg')
 from orphics import maps,io,cosmology,pixcov
 from pixell import enmap,reproject
 import numpy as np
@@ -21,7 +23,7 @@ def plot_cutout(nsplits,cutout,ivars,tag="",skip_plots=False):
     retvars = ivars.copy()
     for s in range(nsplits):
         if np.std(cutout[s])<1e-3: 
-            print("Skipping split %d as it seems empty")
+            print("Skipping split %d as it seems empty" % s)
             continue
         iname = "%s%s_%s_%s_split_%d_%d" % (tag,season,patch,array,s,sid)
         if not(skip_plots): plot_img(ivars[s,0],"ivars_%s.png" % iname)
@@ -60,14 +62,16 @@ for season in dm.seasons:
             nsplits = ivars.shape[0]
 
             ids = []
+            sel_ivars = []
             for sid,(ra,dec) in enumerate(zip(ras,decs)):
                 cutout = reproject.cutout(splits, ra=np.deg2rad(ra), dec=np.deg2rad(dec), pad=1, corner=False,npix=noise_pix)
                 if (cutout is not None): 
                     sel_ivar = reproject.cutout(ivars, ra=np.deg2rad(ra), dec=np.deg2rad(dec), pad=1, corner=False,npix=noise_pix,return_slice=True)
                     cut_ivar = ivars[sel_ivar]
-                    retv = plot_cutout(nsplits,cutout,cut_ivar)#,skip_plots=True)
+                    retv = plot_cutout(nsplits,cutout,cut_ivar,skip_plots=True)
                     ivars[sel_ivar] = retv
                     ids.append(sid)
+                    sel_ivars.append(sel_ivar)
 
 
             # Save ivar map
@@ -82,15 +86,21 @@ for season in dm.seasons:
             for i in range(nsplits):
                 gtags = []
                 gdicts = {}
-                pcoords = np.zeros((2,len(ids)))
+                pcoords = []
                 for sindex,sid in enumerate(ids):
-                    if np.std(splits[i,:])<1e-3: continue
+                    cutout = reproject.cutout(splits[i], ra=np.deg2rad(ras[sid]), dec=np.deg2rad(decs[sid]), pad=1, corner=False,npix=noise_pix)
+                    if np.std(cutout)<1e-3: continue
                     with bench.show("geometry"):
                         pcov = pixcov.pcov_from_ivar(noise_pix,np.deg2rad(decs[sid]),np.deg2rad(ras[sid]),ivars[i,0],cmb_theory_fn,beam_fn,iau=False)
                         gdicts[sid]  = pixcov.make_geometry(hole_radius=np.deg2rad(hole_radius/60.),n=noise_pix,deproject=True,iau=False,pcov=pcov,res=res)
                         gtags.append(sid)
-                    pcoords[:,sindex] = np.array((decs[sid],ras[sid]))
-                inpainted.append( pixcov.inpaint(splits[i],pcoords,deproject=True,iau=False,geometry_tags=gtags,geometry_dicts=gdicts,verbose=True))
+                    pcoords.append(np.array((decs[sid],ras[sid])))
+                if len(gtags)>0: 
+                    pcoords = np.stack(pcoords).swapaxes(0,1)
+                    result = pixcov.inpaint(splits[i],pcoords,deproject=True,iau=False,geometry_tags=gtags,geometry_dicts=gdicts,verbose=True)
+                else:
+                    result = splits[i].copy()
+                inpainted.append( result)
             inpainted = enmap.enmap(np.stack(inpainted),wcs)
 
                 
