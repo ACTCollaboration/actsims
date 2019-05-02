@@ -13,9 +13,18 @@ binary masks from Steve, pads it a bit and then pads it
 a bit more to make it FFT friendly.
 """
 
+
 out_version = "padded_v1"
 in_versions = {'actpol': "mr3c_20190215_pickupsub_190301",'advact': "mr3c_20190215_pickupsub_190303"}
 patches = {'actpol':['deep1','deep5','deep6','deep56','boss'],'advact':['patch00%d' % i for i in range(9)]}
+ pads = {'deep':200, 'boss':400, 'patch': 600}
+
+#out_version = "padded_deep_v2"
+#in_versions = {'actpol': "180323"}
+#patches = {'actpol':['deep1','deep5','deep6','deep56','boss']}
+#pads = {'deep':1, 'boss':1}
+
+
 out_path = "/home/r/rbond/msyriac/data/act/maps/steve/%s/" % out_version
 
 
@@ -23,11 +32,11 @@ for survey in in_versions.keys():
     for patch in patches[survey]:
 
         if 'deep' in patch:
-            pad = 200
+            pad = pads['deep']
         elif patch=='boss':
-            pad = 400
+            pad = pads['boss']
         elif 'patch' in patch:
-            pad = 600
+            pad = pads['patch']
         else:
             raise ValueError
 
