@@ -218,7 +218,7 @@ class SignalGen(object):
                 print("[Warning] want to apply rotation but alpha map is not provided...")
             else:
                 alpha_map = self.alpha_map
-                print("applying rotation field...")
+                print("applying rotation field")
                 # get wcs from rot_map: doesn't matter which wcs is used because eventually
                 # it is converted back to alm
                 wcs = alpha_map.wcs
@@ -229,7 +229,7 @@ class SignalGen(object):
                 curvedsky.alm2map(alm_signal, cmb_map)
 
                 # apply the rotation field
-                cmb_map = enmap.rotate_pol(cmb_map, alpha_map)
+                cmb_map = enmap.rotate_pol(cmb_map, 2*alpha_map)
 
                 # convert back to alm
                 lmax = hp.Alm.getlmax(alm_signal.shape[-1])
