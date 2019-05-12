@@ -9,7 +9,7 @@ actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None):
+    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None):
         """
         model: The name of an implemented soapack datamodel
         extract_region: An optional map whose footprint on to which the sims are made
@@ -45,6 +45,8 @@ class SignalGen(object):
         self.apply_window     = apply_window
         self.add_foregrounds  = add_foregrounds
         self.dobeam           = dobeam
+        self.apply_rotation   = apply_rotation
+        self.alpha_map        = alpha_map
 
     def is_supported(self, sesaon, array, patch, freq):
         signal_idx      = self.__combine_idxes__(sesaon, patch, array , freq)
@@ -209,6 +211,31 @@ class SignalGen(object):
         cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d.fits' %(self.cmb_type, set_idx, sim_idx))
         print("loading %s" %cmb_file)
         alm_signal = np.complex128(hp.fitsfunc.read_alm(cmb_file, hdu = (1,2,3))) 
+
+        # check if rotation is needed
+        if self.apply_rotation:
+            if not np.any(self.alpha_map):
+                print("[Warning] want to apply rotation but alpha map is not provided...")
+            else:
+                alpha_map = self.alpha_map
+                print("applying rotation field")
+                # get wcs from rot_map: doesn't matter which wcs is used because eventually
+                # it is converted back to alm
+                wcs = alpha_map.wcs
+                shape = (3,) + alpha_map.shape[-2:]
+
+                # generate cmb map from alm_signal
+                cmb_map = enmap.empty(shape, wcs)
+                curvedsky.alm2map(alm_signal, cmb_map)
+
+                # apply the rotation field
+                cmb_map = enmap.rotate_pol(cmb_map, 2*alpha_map)
+
+                # convert back to alm
+                lmax = hp.Alm.getlmax(alm_signal.shape[-1])
+                alm_signal = curvedsky.map2alm(cmb_map, lmax=lmax)
+                del cmb_map
+
         alm_signal = np.tile(alm_signal, (len(self.freqs), 1, 1))
 
         if fg_override is not None: print("[Warning] override the default foreground flag....")
