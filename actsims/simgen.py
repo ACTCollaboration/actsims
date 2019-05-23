@@ -34,6 +34,7 @@ class SimGen(object):
         self.noise_gen  = noise.NoiseGen(version=version,model=model,ncache=max_cached,verbose=False)
         self.signal_gen = signal.SignalGen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model)
         self.default_geometries = {}
+        self.model = model
         
         if (extract_region is not None) or (extract_region_shape is not None):
             self._refoot = True
@@ -95,7 +96,17 @@ class SimGen(object):
         afreqs = self.noise_gen.dm.array_freqs[array]
         signals = []
         for afreq in afreqs:
-            imap = self.get_signal(season, patch, array, afreq.split('_')[1], sim_num, save_alm=save_alm, save_map=save_map, set_idx=set_idx,oshape=shape,owcs=wcs)
+
+            # This could be improved
+            if self.model=='act_mr3': pfreq = afreq.split('_')[1] 
+            elif self.model=='planck_hybrid': 
+                pfreq = afreq
+                assert season is None
+                season = "planck"
+                patch = "planck"
+                array = "planck"
+
+            imap = self.get_signal(season, patch, array, pfreq, sim_num, save_alm=save_alm, save_map=save_map, set_idx=set_idx,oshape=shape,owcs=wcs)
             signals.append(imap)
         owcs = imap.wcs
         # (nfreqs,npol,Ny,Nx)

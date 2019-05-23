@@ -37,6 +37,7 @@ parser.add_argument("-r", "--radial-fit-annulus",     type=int,  default=20,help
 parser.add_argument("-d", "--dfact",     type=int,  default=8,help="Downsample factor.")
 parser.add_argument("-a", "--aminusc", action='store_true',help='Whether to use the auto minus cross estimator.')
 parser.add_argument("--no-write", action='store_true',help='Do not write any FITS to disk.')
+parser.add_argument("--calibrated", action='store_true',help='Apply default calibration factors to arrays.')
 parser.add_argument("--no-off", action='store_true',help='Null the off-diagonals.')
 parser.add_argument("--no-prewhiten", action='store_true',help='Do not prewhiten spectra before smoothing. Use this flag for Planck.')
 parser.add_argument("--overwrite", action='store_true',help='Overwrite an existing version.')
@@ -73,7 +74,7 @@ mask = sints.get_act_mr3_crosslinked_mask(mask_patch,
                                           pad=args.mask_pad)
 
 if args.debug: noise.plot(pout+"_mask",mask,grid=True)
-dm = sints.models[args.model](region=mask)
+dm = sints.models[args.model](region=mask,calibrated=args.calibrated)
 
 # Get a NoiseGen model
 if args.extract_mask is not None:

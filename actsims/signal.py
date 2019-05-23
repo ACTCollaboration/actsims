@@ -25,13 +25,22 @@ class SignalGen(object):
         assert(self.signal_path is not None)
         assert(cmb_type in self.cmb_types)
 
+        self.supported_sims = []
+        # ACT
+        patches = {'s13':['deep1','deep5','deep6'],'s14':['deep56'],'s15':['deep56','boss','deep8'],'s16':['cmb']}
+        arrays = {'s13':['pa1_f150'],'s14':['pa1_f150','pa2_f150'],'s15':['pa1_f150','pa2_f150','pa3_f150','pa3_f090'],'s16':['pa2_f150','pa3_f150','pa3_f090']}
+        for season in patches.keys():
+            for patch in patches[season]:
+                for array in arrays[season]:
+                    sstr = "%s_%s_%s" % (season,patch,array)
+                    self.supported_sims.append(sstr)
 
-        self.supported_sims = ['s13_pa1_deep1_f150', 's13_pa1_deep5_f150', 's13_pa1_deep6_f150', 's14_pa1_deep56_f150', 's14_pa2_deep56_f150', \
-                               's15_pa1_boss_f150', 's15_pa1_deep56_f150', 's15_pa1_deep8_f150', 's15_pa2_boss_f150', 's15_pa2_deep56_f150', \
-                               's15_pa2_deep8_f150','s15_pa3_boss_f090', 's15_pa3_boss_f150', 's15_pa3_deep56_f090', 's15_pa3_deep56_f150', \
-                               's15_pa3_deep8_f090', 's15_pa3_deep8_f150','s16_pa2_cmb_f150','s16_pa3_cmb_f150','s16_pa3_cmb_f090']
+        # Planck
+        for freq in [30,44,70,100,143,217,353,545,857]:
+            self.supported_sims.append("planck_planck_planck_%s" % (str(freq).zfill(3)))
+
         self.supported_sims.sort()
-        self.freqs           = ['f090', 'f150']
+        self.freqs           = ['f150','f090']
         self.cmb_type         = cmb_type
         self.max_cached       = max_cached
         self.alms_base        = ODict()
@@ -46,8 +55,8 @@ class SignalGen(object):
         self.add_foregrounds  = add_foregrounds
         self.dobeam           = dobeam
 
-    def is_supported(self, sesaon, array, patch, freq):
-        signal_idx      = self.__combine_idxes__(sesaon, patch, array , freq)
+    def is_supported(self, season, patch,array, freq):
+        signal_idx      = self.__combine_idxes__(season, patch, array , freq)
         supported = signal_idx in self.supported_sims
         if not supported:
             print("unknown type of sims: {} ".format(signal_idx))
@@ -174,7 +183,7 @@ class SignalGen(object):
     def __apply_beam__(self, alm_patch, season, patch, array, freq):
         lmax      = hp.Alm.getlmax(alm_patch.shape[-1])
         l_beam    = np.arange(0, lmax+100, dtype=np.float)
-        beam_data = self.data_model.get_beam(l_beam, season, patch, '{}_{}'.format(array, freq)) 
+        beam_data = self.data_model.get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq) 
         
         for idx in range(alm_patch.shape[0]):
             alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
