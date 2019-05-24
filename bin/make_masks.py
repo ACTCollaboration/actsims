@@ -13,6 +13,21 @@ binary masks from Steve, pads it a bit and then pads it
 a bit more to make it FFT friendly.
 """
 
+def mask_smoothing(inmap, N, f = 0.5):
+    import scipy
+    smoothed = scipy.ndimage.filters.gaussian_filter(inmap, N)
+    new = np.zeros(smoothed.shape)
+    new[smoothed > f] = 1.
+    smoothedagain = scipy.ndimage.filters.gaussian_filter(new, N)
+    new = enmap.enmap(smoothedagain, inmap.wcs)
+    assert np.all((inmap-new)>=0)
+    return new
+
+def get_smooth_N(patch):
+    if patch in ['deep1','deep5','deep6','deep8']:
+        return 50
+    else:
+        return 75
 
 out_version = "padded_v1"
 in_versions = {'actpol': "mr3c_20190215_pickupsub_190301",'advact': "mr3c_20190215_pickupsub_190303"}
@@ -63,4 +78,9 @@ for survey in in_versions.keys():
 
         enmap.write_map(out_path+"%s.fits" % patch,mask)
         io.hplot(enmap.downgrade(mask,8),out_path+"%s" % patch)
+
+        sN = get_smooth_N(patch)
+        smoothed = mask_smoothing(mask,sN)
+        enmap.write_map(out_path+"%s_smoothed.fits" % patch,smoothed)
+        io.hplot(enmap.downgrade(smoothed,8),out_path+"%s_smoothed" % patch)
         
