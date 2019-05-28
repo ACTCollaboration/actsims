@@ -12,7 +12,7 @@ apatch = sys.argv[1]
 
 out_dir = "/scratch/r/rbond/msyriac/data/depot/actsims/inpainted/"
 
-plot_img = lambda x,y: io.plot_img(x,os.environ['WORK']+"/"+y)
+plot_img = lambda x,y: io.plot_img(x,os.environ['WORK']+"/new_mr3f/"+y)
 noise_pix = 60
 cmb_theory_fn = lambda s,l: cosmology.default_theory().lCl(s,l)
 hole_radius = 9.
@@ -44,7 +44,7 @@ def plot_cutout(nsplits,cutout,ivars,tag="",skip_plots=False):
         if not(skip_plots): plot_img(retvars[s,0],"ivars_filled_%s.png" % iname)
     return retvars
 
-ras,decs = np.loadtxt("inputParams/mr3_cut_sources.txt",unpack=True)
+ras,decs = np.loadtxt("/home/r/rbond/sigurdkn/project/actpol/maps/mr3f_20190502/cat_bright_tot.txt",unpack=True,usecols=[0,1])
 
 dm = sints.ACTmr3(calibrated=False)
 
@@ -52,6 +52,7 @@ for season in dm.seasons:
     for patch in dm.patches:
         if patch!=apatch: continue
         for array in dm.arrays:
+            if array!="pa3_f090": continue # !!!
             try: 
                 splits = dm.get_splits(season,patch,array,ncomp=None,srcfree=True)[0]
                 print("Found %s %s %s" % (season,patch,array))
@@ -77,7 +78,7 @@ for season in dm.seasons:
             # Save ivar map
             #....
             for i in range(nsplits):
-                fname = out_dir+os.path.basename(dm.get_split_ivar_fname(season,patch,array,i)).replace(".fits","_inpainted.fits")
+                fname = out_dir+os.path.basename(dm.get_split_ivar_fname(season,patch,array,i))
                 enmap.write_map(fname,ivars[i])
             
             # Inpaint each split
@@ -117,6 +118,6 @@ for season in dm.seasons:
             #....
 
             for i in range(nsplits):
-                fname = out_dir+os.path.basename(dm.get_split_fname(season,patch,array,i,srcfree=True)).replace(".fits","_inpainted.fits")
+                fname = out_dir+os.path.basename(dm.get_split_fname(season,patch,array,i,srcfree=True))
                 enmap.write_map(fname,inpainted[i])
                 
