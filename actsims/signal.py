@@ -406,8 +406,8 @@ class SignalGen(object):
         #GET ALMs
         import healpy
         output = curvedsky.map2alm(templ[0], lmax = healpy.Alm.getlmax(alm_shape[0]))
-        import pdb
-        pdb.set_trace()
+        # import pdb
+        # pdb.set_trace()
 
         return output
                            
