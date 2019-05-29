@@ -9,7 +9,7 @@ actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None):
+    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None, add_poisson_srcs = False):
         """
         model: The name of an implemented soapack datamodel
         extract_region: An optional map whose footprint on to which the sims are made
@@ -53,6 +53,7 @@ class SignalGen(object):
         self.templates        = ODict()
         self.apply_window     = apply_window
         self.add_foregrounds  = add_foregrounds
+        self.add_poisson_srcs = add_poisson_srcs
         self.dobeam           = dobeam
         self.apply_rotation   = apply_rotation
         self.alpha_map        = alpha_map
@@ -96,6 +97,8 @@ class SignalGen(object):
                 self.manage_cache(self.alms_base, self.max_cached-1)
                 self.load_alms_base(set_idx, sim_num)
             alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
+            if self.add_poisson_srcs:
+                alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape)
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
                 alm_patch = self.__apply_beam__(alm_patch, season, patch, array, freq)
@@ -273,7 +276,7 @@ class SignalGen(object):
 
             alm_signal = alm_out.copy()
             del alm_out, alm_fg90_150
-
+            
         if cache: self.alms_base[self.get_base_alm_idx(set_idx, sim_idx)] = alm_signal.copy()
         
         if ret_alm: return alm_signal
@@ -341,3 +344,70 @@ class SignalGen(object):
             del self.signals[key]
 
 
+    def get_poisson_srcs_alms(self, set_idx, sim_num, patch, alm_shape):
+        def deltaTOverTcmbToJyPerSr(freqGHz,T0 = 2.726):
+            """
+            @brief the function name is self-eplanatory
+            @return the converstion factor
+            stolen from Flipper -- van engelen
+            """
+            kB = 1.380658e-16
+            h = 6.6260755e-27
+            c = 29979245800.
+            nu = freqGHz*1.e9
+            x = h*nu/(kB*T0)
+            cNu = 2*(kB*T0)**3/(h**2*c**2)*x**4/(4*(np.sinh(x/2.))**2)
+            cNu *= 1e23
+            return cNu
+
+        TCMB_uk = 2.72e6
+        #FIXME this is assumed at the moment
+        freq_ghz = 148
+        
+        #ideally this RNG stuff would be defined in a central place to
+        #avoid RNG collisions.  Old version is currently commented out at top of
+        #simgen.py
+        poissonSeedInd = 4
+        poissonSeed = (set_idx, 0, poissonSeedInd, sim_num)
+
+        templ = self.get_template(patch)
+        templ[:] = 0
+        np.random.seed(seed = poissonSeed)
+
+        #Wasn't sure how to codify this stuff outside this routine - hardcoded for now
+        S_min_Jy = .001
+        S_max_Jy = .015
+
+
+        tucci = np.loadtxt(os.path.join(os.path.dirname(os.path.abspath(__file__)) , '../data/ns_148GHz_modC2Ex.dat'))
+
+        S = tucci[:, 0]
+        dS = S[1:] - S[0:-1]
+        dS = np.append(dS, [0.])
+        dNdS = tucci[:, 1]
+
+        mean_numbers_per_patch = dNdS * enmap.area(templ.shape, templ.wcs) * dS
+
+        numbers_per_fluxbin = np.random.poisson(mean_numbers_per_patch)
+
+        #note pixel areas not constant for pixell maps
+        pixel_areas = enmap.pixsizemap(templ.shape, templ.wcs)
+        
+        for si, fluxval in enumerate(S[S <= S_max_Jy]):
+            xlocs = np.random.randint( templ.shape[-1], size = numbers_per_fluxbin[si])
+            ylocs = np.random.randint( templ.shape[-2], size = numbers_per_fluxbin[si])
+
+            #add the value in jy / sr, i.e. divide by the solid angle of a pixel.
+            templ[0, ylocs, xlocs] += fluxval / pixel_areas[ylocs, xlocs]
+
+        map_factor = TCMB_uk / deltaTOverTcmbToJyPerSr(freq_ghz)
+        templ *= map_factor
+
+        #GET ALMs
+        import healpy
+        output = curvedsky.map2alm(templ[0], lmax = healpy.Alm.getlmax(alm_shape[0]))
+        import pdb
+        pdb.set_trace()
+
+        return output
+                           
