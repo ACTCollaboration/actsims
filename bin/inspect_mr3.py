@@ -9,28 +9,43 @@ import soapack.interfaces as sints
 from enlib import bench
 from actsims import noise
 
-# apatch = sys.argv[1]
-# season = sys.argv[2]
-# array = sys.argv[3]
-
-dm = sints.ACTmr3(calibrated=False)
-
 for season in ['s13','s14','s15']:
-    for apatch in ['deep1','deep5','deep6','deep8','deep56','boss']:
+    for apatch in ['boss','deep1','deep5','deep6','deep8','deep56']:
+        #for apatch in ['deep1','deep5','deep6','deep8','deep56','boss']:
+        mask = sints.get_act_mr3_crosslinked_mask(apatch)
+        ellcen = 5000
+        ellsig = 1000
+        modlmap = mask.modlmap()
+        ells = np.arange(0,modlmap.max())
+        mfilter = maps.interp(ells,np.exp(-(ells-ellcen)**2./2./ellsig**2.))(modlmap)
         for array in ['pa1_f150','pa2_f150','pa3_f150','pa3_f090']:
-
+            dm = sints.ACTmr3(calibrated=False,region=mask)
             fname = "%s_%s_%s" % (season,apatch,array)
             try:
-                splits = dm.get_splits(season=season,patch=apatch,arrays=[array],ncomp=1,srcfree=False)[0,:,0,...]
+                splits = dm.get_splits(season=season,patch=apatch,arrays=[array],ncomp=3,srcfree=False)[0,:,:,...]
+                cmap = dm.get_coadd(season=season,patch=apatch,array=array,ncomp=3,srcfree=False)
             except:
                 continue
-            ivars = dm.get_splits_ivar(season=season,patch=apatch,arrays=[array],ncomp=None)[0,:,0,...]
-            cmap,_ = noise.get_coadd(splits,ivars,axis=0)
+            io.hplot(splits,os.environ['WORK']+"/new_mr3f/splits_%s" % fname,min=-300,max=600,grid=True)
+            # ivars = dm.get_splits_ivar(season=season,patch=apatch,arrays=[array],ncomp=None)[0,:,0,...]
+            # cmap,_ = noise.get_coadd(splits,ivars,axis=0)
+            rmap = maps.filter_map(cmap*mask,mfilter)
+            io.hplot(rmap,os.environ['WORK']+"/new_mr3f/coadd_filtered_%s" % fname,grid=True)
+            rmap = maps.filter_map(splits*mask,mfilter)
+            io.hplot(rmap,os.environ['WORK']+"/new_mr3f/splits_filtered_%s" % fname,grid=True)
 
-            io.hplot(cmap,os.environ['WORK']+"/new_mr3f/coadd_%s.png" % fname,min=-300,max=600,grid=True)
-            splits = dm.get_splits(season=season,patch=apatch,arrays=[array],ncomp=1,srcfree=True)[0,:,0,...]
-            cmap,_ = noise.get_coadd(splits,ivars,axis=0)
-            io.hplot(cmap,os.environ['WORK']+"/new_mr3f/coadd_srcfree_%s.png" % fname,min=-300,max=600,grid=True)
+            io.hplot(cmap,os.environ['WORK']+"/new_mr3f/coadd_%s" % fname,min=-300,max=600,grid=True)
+            splits = dm.get_splits(season=season,patch=apatch,arrays=[array],ncomp=3,srcfree=True)[0,:,:,...]
+            cmap = dm.get_coadd(season=season,patch=apatch,array=array,ncomp=3,srcfree=True)
+            # cmap,_ = noise.get_coadd(splits,ivars,axis=0)
+            io.hplot(cmap,os.environ['WORK']+"/new_mr3f/coadd_srcfree_%s" % fname,min=-300,max=600,grid=True)
+            io.hplot(splits,os.environ['WORK']+"/new_mr3f/splits_srcfree_%s" % fname,min=-300,max=600,grid=True)
+
+            rmap = maps.filter_map(cmap*mask,mfilter)
+            io.hplot(rmap,os.environ['WORK']+"/new_mr3f/coadd_srcfree_filtered_%s" % fname,grid=True)
+            rmap = maps.filter_map(splits*mask,mfilter)
+            io.hplot(rmap,os.environ['WORK']+"/new_mr3f/splits_srcfree_filtered_%s" % fname,grid=True)
+
 sys.exit()
 
 out_dir = "/scratch/r/rbond/msyriac/data/depot/actsims/inpainted/"

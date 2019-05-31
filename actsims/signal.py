@@ -282,7 +282,6 @@ class SignalGen(object):
         seed         = (set_idx, 0, 1, sim_idx)# copying the structure from simtools
         fg_file      = os.path.join(actsim_root, '../data/fg.dat')
         fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
-        print(fg_power.shape,seed)
         alm_fg90_150 = curvedsky.rand_alm_healpy(fg_power, seed = seed)#, lmax=lmax_sg)
         return alm_fg90_150
     
