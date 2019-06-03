@@ -98,6 +98,9 @@ class SignalGen(object):
                 self.load_alms_base(set_idx, sim_num)
             alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
             if self.add_poisson_srcs:
+                import pdb
+                pdb.set_trace()
+                
                 alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape)
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
@@ -345,6 +348,10 @@ class SignalGen(object):
 
 
     def get_poisson_srcs_alms(self, set_idx, sim_num, patch, alm_shape):
+        
+        import pdb
+        pdb.set_trace()
+
         def deltaTOverTcmbToJyPerSr(freqGHz,T0 = 2.726):
             """
             @brief the function name is self-eplanatory
