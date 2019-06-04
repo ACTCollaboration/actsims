@@ -91,9 +91,6 @@ class SimGen(object):
         return self._footprint(self.noise_gen.generate_sim(season,patch,array,seed=seed,mask_patch=mask_patch,apply_ivar=apply_ivar))
 
     def get_sim(self,season,patch,array,sim_num, save_alm=True, save_map=False, set_idx=0,mask_patch=None):
-        import pdb
-        pdb.set_trace()
-
         shape,wcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
         # (nfreqs,nsplits,npol,Ny,Nx)
         noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=sim_num,mask_patch=mask_patch,set_idx=set_idx,apply_ivar=False)

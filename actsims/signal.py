@@ -98,10 +98,8 @@ class SignalGen(object):
                 self.load_alms_base(set_idx, sim_num)
             alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
             if self.add_poisson_srcs:
-                import pdb
-                pdb.set_trace()
                 
-                alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape)
+                alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape, oshape, owcs)
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
                 alm_patch = self.__apply_beam__(alm_patch, season, patch, array, freq)
@@ -347,10 +345,7 @@ class SignalGen(object):
             del self.signals[key]
 
 
-    def get_poisson_srcs_alms(self, set_idx, sim_num, patch, alm_shape):
-        
-        import pdb
-        pdb.set_trace()
+    def get_poisson_srcs_alms(self, set_idx, sim_num, patch, alm_shape, map_shape, map_wcs):
 
         def deltaTOverTcmbToJyPerSr(freqGHz,T0 = 2.726):
             """
@@ -368,8 +363,13 @@ class SignalGen(object):
             return cNu
 
         TCMB_uk = 2.72e6
-        #FIXME this is assumed at the moment
-        freq_ghz = 148
+        
+        if map_shape[0] > 3:
+            #then this is a multichroic array, and sadly we only have this at 150 GHz for now
+            raise Exception('get_poisson_srcs_alms only implemented for 150 GHz so far ' \
+                            + '(that is the model we currently have for radio sources) ')
+        else:
+            freq_ghz = 148
         
         #ideally this RNG stuff would be defined in a central place to
         #avoid RNG collisions.  Old version is currently commented out at top of
@@ -377,7 +377,8 @@ class SignalGen(object):
         poissonSeedInd = 4
         poissonSeed = (set_idx, 0, poissonSeedInd, sim_num)
 
-        templ = self.get_template(patch)
+        templ = self.get_template(patch, shape = map_shape, wcs = map_wcs)
+        
         templ[:] = 0
         np.random.seed(seed = poissonSeed)
 
