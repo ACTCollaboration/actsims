@@ -320,8 +320,10 @@ class SignalGen(object):
         if patch not in self.templates:
             self.manage_cache(self.templates, self.max_cached-1) 
             if shape is None:
-                template      = self.data_model.get_mask(patch)
-                shape,wcs = template.shape,template.wcs
+                # template      = self.data_model.get_mask(patch)
+                # shape,wcs = template.shape,template.wcs
+                # This was causing a hard-to-find bug.  So Alex switched it off until fixed.
+                raise Exception('Not curretly implemented.  For now, make sure to pass (shape, wcs) to this routine.')
             self.templates[patch] = enmap.empty((3,) + shape[-2:], wcs)
         else: pass
         return self.templates[patch].copy()
