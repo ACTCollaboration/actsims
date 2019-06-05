@@ -2,7 +2,7 @@ import numpy as np
 import os,sys
 from pixell import enmap,enplot,fft as pfft
 from soapack import interfaces as sints
-from actsims import util
+from actsims import util, simgen_common as sgcom
 from enlib import bench
 import warnings
 if 'fftw' not in pfft.engine: warnings.warn("No pyfftw found. Using much slower numpy fft engine.")
@@ -27,7 +27,7 @@ class NoiseGen(object):
         self.verbose = verbose
 
     def save_covsqrt(self,covsqrt,season=None,patch=None,array=None,coadd=True,mask_patch=None):
-        pout,cout,sout = get_save_paths(self._model,self._version,
+        pout,cout,sout = sgcom.get_save_paths(self._model,self._version,
                                         coadd=coadd,season=season,patch=patch,array=array,
                                         overwrite=False,mask_patch=mask_patch)
         fpath = "%s_covsqrt.fits" % (cout)
@@ -35,7 +35,7 @@ class NoiseGen(object):
         print(fpath,covsqrt.shape)
 
     def save_filter_noise(self,n2d,season=None,patch=None,array=None,coadd=True,mask_patch=None):
-        pout,cout,sout = get_save_paths(self._model,self._version,
+        pout,cout,sout = sgcom.get_save_paths(self._model,self._version,
                                         coadd=coadd,season=season,patch=patch,array=array,
                                         overwrite=False,mask_patch=mask_patch)
         fpath = "%s_filter_noise.fits" % (cout)
@@ -43,7 +43,7 @@ class NoiseGen(object):
         print(fpath,n2d.shape,n2d.wcs)
 
     def load_covsqrt(self,season=None,patch=None,array=None,coadd=True,mask_patch=None,get_geometry=False):
-        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
+        pout,cout,sout = sgcom.get_save_paths(self._model,self._version,coadd=coadd,
                                         season=season,patch=patch,array=array,
                                         overwrite=False,mask_patch=mask_patch)
         fpath = "%s_covsqrt.fits" % (cout)
@@ -74,7 +74,7 @@ class NoiseGen(object):
 
 
     def save_sims(self,seed,sims,season,patch,array,mask_patch,coadd=True):
-        pout,cout,sout = get_save_paths(self._model,self._version,coadd=coadd,
+        pout,cout,sout = sgcom.get_save_paths(self._model,self._version,coadd=coadd,
                                         season=season,patch=patch,array=array,
                                         overwrite=False,mask_patch=mask_patch)
         insplits = self.dm.get_nsplits(season,patch,array)
@@ -100,46 +100,6 @@ def apply_ivar_window(imaps,ivars):
             win = ivars[ifreq,isplit,0,...]
             imaps[ifreq,isplit,:,win==0.] = 0 # FIXME: make 0 comparison robust
     return imaps
-
-def get_save_paths(model,version,coadd,season=None,patch=None,array=None,mkdir=False,overwrite=False,mask_patch=None):
-    paths = sints.dconfig['actsims']
-
-    try: assert paths['plot_path'] is not None
-    except: paths['plot_path'] = "./"
-    assert paths['covsqrt_path'] is not None
-    assert paths['trial_sim_path'] is not None
-
-    # Prepare output dirs
-    pdir = "%s/%s/" % (paths['plot_path'] ,version) 
-    cdir = "%s/%s/" % (paths['covsqrt_path'] ,version)
-    sdir = "%s/%s/" % (paths['trial_sim_path'] ,version)
-    
-    if mkdir:
-        exists1 = util.mkdir(pdir)
-        exists2 = util.mkdir(cdir)
-        exists3 = util.mkdir(sdir)
-        if any([exists1,exists2,exists3]): 
-            if not(overwrite): raise IOError
-            warnings.warn("Version directory already exists. Overwriting.")
-
-    if model=='planck_hybrid': 
-        assert season is None
-        suff = '_'.join([model,patch,array,"coadd_est_"+str(coadd)])
-    else:
-        suff = '_'.join([model,season,patch,array,"coadd_est_"+str(coadd)])
-
-
-    pout = pdir + suff
-    cout = cdir + suff
-    sout = sdir
-
-    if mask_patch is not None:
-        if mask_patch != patch:
-            pout = pout+"_"+mask_patch
-            cout = cout+"_"+mask_patch
-            sout = sout+mask_patch+"_"
-
-    return pout,cout,sout
 
 
 def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_fname=None,dtype=None):

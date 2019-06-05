@@ -33,7 +33,7 @@ class SimGen(object):
         max_cached: The maximum number of cached sim/or alms
         """
         self.noise_gen  = noise.NoiseGen(version=version,model=model,ncache=max_cached,verbose=False)
-        self.signal_gen = signal.SignalGen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model, add_poisson_srcs=add_poisson_srcs)
+        self.signal_gen = signal.SignalGen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model, add_poisson_srcs=add_poisson_srcs, version=version)
         self.default_geometries = {}
         self.model = model
         

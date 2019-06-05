@@ -4,26 +4,30 @@ from soapack import interfaces as sints
 import healpy as hp
 import warnings
 from collections import OrderedDict as ODict
+from actsims import simgen_common as sgcom
 
 actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None, add_poisson_srcs = False):
+    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None, add_poisson_srcs = False, version=''):
         """
         model: The name of an implemented soapack datamodel
         extract_region: An optional map whose footprint on to which the sims are made
         extract_region_shape: Instead of passing a map for extract_region, one can pass its shape and wcs
         extract_region_wcs: Instead of passing a map for extract_region, one can pass its shape and wcs
-        ncache: The number of 
+        ncache: The max number of objects being cached  
 
         """ 
         self.data_model = sints.models[model](region=extract_region, region_shape=extract_region_shape,region_wcs=extract_region_wcs)
         self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
         paths            = sints.dconfig['actsims']
         self.signal_path = paths['signal_path']
+        self._model      = model
+        self._version    = version
         assert(self.signal_path is not None)
         assert(cmb_type in self.cmb_types)
+        assert(self._version) # make sure that the version is provided
 
         self.supported_sims = []
         # ACT
@@ -320,10 +324,20 @@ class SignalGen(object):
         if patch not in self.templates:
             self.manage_cache(self.templates, self.max_cached-1) 
             if shape is None:
-                # template      = self.data_model.get_mask(patch)
-                # shape,wcs = template.shape,template.wcs
-                # This was causing a hard-to-find bug.  So Alex switched it off until fixed.
-                raise Exception('Not curretly implemented.  For now, make sure to pass (shape, wcs) to this routine.')
+                # searching for a correct template geometry. Note that given patch we have the same geometry for all array and freqs
+                temp_idx = ''
+                for known_idx in self.supported_sims:
+                    if patch in known_idx:
+                        temp_idx = known_idx
+                        break
+                    else: pass
+                if temp_idx is '': raise NotImplemented("the default geometry for patch %s is unknown" %patch) 
+                season, patch, array, freq = temp_idx.split('_')        
+                pout,cout,sout = sgcom.get_save_paths(self._model,self._version,coadd=True,
+                                        season=season,patch=patch,array=array,
+                                        overwrite=False,mask_patch=None)
+                fpath = "%s_covsqrt.fits" % (cout)
+                shape, wcs = enmap.read_map_geometry(fpath)
             self.templates[patch] = enmap.empty((3,) + shape[-2:], wcs)
         else: pass
         return self.templates[patch].copy()

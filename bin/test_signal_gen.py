@@ -7,10 +7,12 @@ def make_plots(prefix, emaps):
         file_name = "{}_{}.png".format(prefix, cmb_type)
         io.high_res_plot_img(emaps[idx], file_name, down=3)
 
-SG      = signal.SignalGen()
-emaps   = SG.get_signal_sim('s15', 'pa3', 'deep56', 'f090', 0, 0)
-cmbmaps = SG.get_cmb_sim('s15', 'pa3', 'deep56', 'f090', 0, 0)
-fgmaps  = SG.get_fg_sim('s15', 'pa3', 'deep56', 'f090', 0, 0) 
+version = 'v4.0_mask_version_mr3c_20190215_pickupsub_190301'
+SG      = signal.SignalGen(version=version)
+
+emaps   = SG.get_signal_sim('s15',  'deep56', 'pa3', 'f090', 0, 0)
+cmbmaps = SG.get_cmb_sim('s15',  'deep56', 'pa3', 'f090', 0, 0)
+fgmaps  = SG.get_fg_sim('s15',  'deep56', 'pa3', 'f090', 0, 0) 
 
 make_plots('cmb', cmbmaps)
 make_plots('cmb_fg', emaps)
@@ -30,3 +32,4 @@ extract_region = enmap.zeros(shape, wcs)
 SG      = signal.SignalGen(extract_region=extract_region)
 cmbmaps = SG.get_cmb_sim('s15', 'pa3', 'deep56', 'f090', 0, 0)
 make_plots('cmb_ext2', cmbmaps)
+'''
