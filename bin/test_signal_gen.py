@@ -1,4 +1,4 @@
-from actsims import signal
+from actsims import signal, simgen
 from orphics import io, maps
 from pixell import enmap
 
@@ -7,10 +7,17 @@ def make_plots(prefix, emaps):
         file_name = "{}_{}.png".format(prefix, cmb_type)
         io.high_res_plot_img(emaps[idx], file_name, down=3)
 
+# our test data set
+
+version = 'v4.0_mask_version_mr3c_20190215_pickupsub_190301'
+season, array, patch, freq = ('s13', 'pa1', 'deep1', 'f150')
+shape, wcs = simgen.get_default_geometry(version, season, patch, array, freq)
+
+
 SG      = signal.SignalGen()
-emaps   = SG.get_signal_sim('s15', 'pa3', 'deep56', 'f090', 0, 0)
-cmbmaps = SG.get_cmb_sim('s15', 'pa3', 'deep56', 'f090', 0, 0)
-fgmaps  = SG.get_fg_sim('s15', 'pa3', 'deep56', 'f090', 0, 0) 
+emaps   = SG.get_signal_sim(season, patch, array, freq, 0, 0, oshape=shape, owcs=wcs)
+cmbmaps = SG.get_cmb_sim(season, patch, array, freq, 0, 0, oshape=shape, owcs=wcs)
+fgmaps  = SG.get_fg_sim(season, patch, array, freq, 0, 0, oshape=shape, owcs=wcs) 
 
 make_plots('cmb', cmbmaps)
 make_plots('cmb_fg', emaps)

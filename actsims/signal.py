@@ -9,16 +9,13 @@ actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None, add_poisson_srcs = False):
+    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None, add_poisson_srcs = False):
         """
         model: The name of an implemented soapack datamodel
-        extract_region: An optional map whose footprint on to which the sims are made
-        extract_region_shape: Instead of passing a map for extract_region, one can pass its shape and wcs
-        extract_region_wcs: Instead of passing a map for extract_region, one can pass its shape and wcs
         ncache: The number of 
 
         """ 
-        self.data_model = sints.models[model](region=extract_region, region_shape=extract_region_shape,region_wcs=extract_region_wcs)
+        self.data_model = sints.models[model]()
         self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
         paths            = sints.dconfig['actsims']
         self.signal_path = paths['signal_path']
@@ -76,7 +73,7 @@ class SignalGen(object):
     def get_signal_idx(self, season, patch, array, freq, set_idx, sim_num):
         return '_'.join([season, patch, array, freq, 'set0%d'%set_idx, '%05d'%sim_num])
 
-    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False, save_map=False,oshape=None,owcs=None):
+    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False, save_map=False):
         assert(self.is_supported(season, patch, array, freq))
 
         base_alm_idx = self.get_base_alm_idx(set_idx, sim_num) 
@@ -99,7 +96,7 @@ class SignalGen(object):
             alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
             if self.add_poisson_srcs:
                 
-                alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape, oshape, owcs)
+                alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape, oshape=oshape, owcs=owcs)
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
                 alm_patch = self.__apply_beam__(alm_patch, season, patch, array, freq)
@@ -110,7 +107,7 @@ class SignalGen(object):
         
         return self.__signal_postprocessing__(patch, signal_idx, alm_patch, save_map=save_map,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
  
-    def get_cmb_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False,oshape=None,owcs=None):
+    def get_cmb_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False ):
         assert(self.is_supported(season, patch, array, freq))
         print("[WARNING] get_cmb_sim() is implemented for debugging purpose. Use get_signal_sim() for the production run")
 
@@ -135,7 +132,7 @@ class SignalGen(object):
         return self.__signal_postprocessing__(patch, signal_idx, alm_cmb, save_map=False,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
 
 
-    def get_fg_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False,oshape=None,owcs=None):
+    def get_fg_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False):
         assert(self.is_supported(season, patch, array, freq))
         print("[WARNING] get_fg_sim() is implemented for debugging purpose. Use get_signal_sim() for the production run")
 
@@ -162,13 +159,13 @@ class SignalGen(object):
 
         return self.__signal_postprocessing__(patch, signal_idx, alm_fg, save_map=False,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
         
-    def get_phi_sim(self, patch, set_idx, sim_num, save_alm=False, oshape=None, owcs=None):
+    def get_phi_sim(self, patch, set_idx, sim_num, oshape, owcs, save_alm=False):
         return self.__get_lens_potential_sim__(patch, set_idx, sim_num, mode='phi', save_alm=save_alm, oshape=oshape, owcs=owcs)
 
-    def get_kappa_sim(self, patch, set_idx, sim_num, save_alm=False, oshape=None, owcs=None): 
+    def get_kappa_sim(self, patch, set_idx, sim_num, oshape, owcs, save_alm=False): 
         return self.__get_lens_potential_sim__(patch, set_idx, sim_num, mode='kappa', save_alm=save_alm, oshape=oshape, owcs=owcs)
     
-    def __get_lens_potential_sim__(self, patch, set_idx, sim_num, mode='phi', save_alm=False, oshape=None, owcs=None):
+    def __get_lens_potential_sim__(self, patch, set_idx, sim_num, oshape, owcs, mode='phi', save_alm=False):
         assert(mode in ['phi', 'kappa'])
         lenp_idx     = self.get_base_alm_idx(set_idx, sim_num)
         alms_lenp    = self.alms_phi     if mode == 'phi' else self.alms_kappa       
@@ -195,7 +192,7 @@ class SignalGen(object):
             alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
         return alm_patch 
 
-    def __signal_postprocessing__(self, patch, signal_idx, alm_patch, save_map, oshape=None, owcs=None, apply_window=True):
+    def __signal_postprocessing__(self, patch, signal_idx, alm_patch, save_map, oshape, owcs, apply_window=True):
         signal = self.get_template(patch,shape=oshape,wcs=owcs)
         signal = signal if len(alm_patch.shape) > 1 else signal[0,...]
         curvedsky.alm2map(alm_patch, signal, spin = [0,2], verbose=True)
@@ -316,14 +313,9 @@ class SignalGen(object):
         alm_fg90_150 = curvedsky.rand_alm_healpy(fg_power, seed = seed)#, lmax=lmax_sg)
         return alm_fg90_150
     
-    def get_template(self, patch,shape=None,wcs=None):
+    def get_template(self, patch, shape, wcs):
         if patch not in self.templates:
             self.manage_cache(self.templates, self.max_cached-1) 
-            if shape is None:
-                # template      = self.data_model.get_mask(patch)
-                # shape,wcs = template.shape,template.wcs
-                # This was causing a hard-to-find bug.  So Alex switched it off until fixed.
-                raise Exception('Not curretly implemented.  For now, make sure to pass (shape, wcs) to this routine.')
             self.templates[patch] = enmap.empty((3,) + shape[-2:], wcs)
         else: pass
         return self.templates[patch].copy()
