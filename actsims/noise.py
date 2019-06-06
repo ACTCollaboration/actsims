@@ -65,7 +65,7 @@ class NoiseGen(object):
         
     def generate_sim(self,season=None,patch=None,array=None,seed=None,mask_patch=None,apply_ivar=True):
         covsqrt,ivars = self.load_covsqrt(season=season,patch=patch,array=array,mask_patch=mask_patch)
-        sims,ivars = generate_noise_sim(covsqrt,ivars,seed=seed,dtype=self.dm.dtype)
+        sims,ivars = generate_noise_sim(covsqrt,ivars,seed=seed,dtype=np.float32)
         if apply_ivar: 
             sims = apply_ivar_window(sims,ivars)
             return sims

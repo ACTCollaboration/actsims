@@ -437,7 +437,7 @@ class Sehgal09Gen(SignalGen):
     # 2) CIB and TSZ maps are scaled by 0.75 following Section 2.4.1 of https://arxiv.org/abs/1808.07445
     # 3) 15mJy cuts are applied to CIB and Radio point sources
     # 4) all maps are in deltaT/Tcmb unit
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None, add_poisson_srcs = False):
+    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None, add_poisson_srcs = False, version=''):
         """
         model: The name of an implemented soapack datamodel
         extract_region: An optional map whose footprint on to which the sims are made
@@ -445,12 +445,12 @@ class Sehgal09Gen(SignalGen):
         extract_region_wcs: Instead of passing a map for extract_region, one can pass its shape and wcs
         ncache: 
         """
-        super(Sehgal09Gen, self).__init__(cmb_type='LensedCMB', dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model,\
+        super(Sehgal09Gen, self).__init__(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model,\
                 extract_region=extract_region, extract_region_shape=extract_region_shape, extract_region_wcs=extract_region_wcs, apply_rotation=apply_rotation, alpha_map=alpha_map, \
-                add_poisson_srcs = add_poisson_srcs)
+                add_poisson_srcs = False, version=version)
 
         self.data_model = sints.models[model](region=extract_region, region_shape=extract_region_shape,region_wcs=extract_region_wcs)
-        self.cmb_types   = ['LensedCMB', 'UnlensedCMB']
+        self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
         paths            = sints.dconfig['actsims']
         self.signal_path = paths['sehgal09_path']
         assert(self.signal_path is not None)
