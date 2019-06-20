@@ -435,9 +435,7 @@ class SRCFREE_SPECS(object):
         for patch in self.supported_psa.keys():
             self.full_arrays[patch] =  self.act_arrays[patch] + self.planck_arrays
         self.data_models    = {'act_mr3':'act','planck_hybrid':'planck'}
-
-        self.spec_storage   = {}
-
+        self.spec_storage   = None
         for patch in self.supported_psa.keys():
             for array in self.full_arrays[patch]:
                 dm        = self.data_models[sints.arrays(array,'data_model')]
@@ -453,6 +451,9 @@ class SRCFREE_SPECS(object):
                 for j, idxj in enumerate(self.supported_psa[patch][i:]):
                     spec_idx = '{}_{}_{}'.format(patch, idxi, idxj)
                     self.supported_spec[patch].append(spec_idx)
+
+        data_file          = os.path.join(actsim_root, '../data/srcfre_fit.npz')
+        self.spec_storage  = np.load(data_file)
 
     def __single_idx__(self, dm, season, array):
         return '{}_{}_{}'.format(dm, season, array)
