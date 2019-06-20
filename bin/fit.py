@@ -5,6 +5,7 @@ import numpy as np
 import os,sys
 import pickle
 from szar import foregrounds as fgs
+import soapack.interfaces as sints
 
 
 def plaw(ells,a1,a2,a3,e1,e2,e3,b,ellp):
@@ -37,19 +38,19 @@ def is_hfi(array):
         return ValueError    
 
 class Spec(object):
-    def __init__(self,loc='./'):
+    def __init__(self,loc='./data/spectra/'):
         with open(loc+'Planck_Planck.pickle', 'rb') as handle:
             self.pdict = pickle.load(handle)
-        with open('ACT_ACT.pickle', 'rb') as handle:
+        with open(loc+'ACT_ACT.pickle', 'rb') as handle:
             self.adict = pickle.load(handle)            
-        with open('ACT_planck.pickle', 'rb') as handle:
+        with open(loc+'ACT_planck.pickle', 'rb') as handle:
             self.apdict = pickle.load(handle)
 
         croot = "/home/msyriac/data/act/theory/cosmo2017_10K_acc3"
         self.theory = cosmology.loadTheorySpectraFromCAMB(croot,get_dimensionless=False)
 
         import pandas as pd
-        self.adf = pd.read_csv("wnoise.csv")
+        self.adf = pd.read_csv("./data/spectra/wnoise.csv")
 
         # 545 and 857 are wrong
         self.planck_rms = {'030':195,'044':226,'070':199,'100':77,'143':33,'217':47,'353':153,'545':1000,'857':1000}
@@ -83,13 +84,19 @@ class Spec(object):
                 r = mdict[patch,array1,season2,array2]
                 f1 = get_planck_freq(array1)
                 f2 = get_act_freq(array2)
-                assert float(array1)>90, "ACT cross with LFI not allowed under blinding"
+                try:
+                    assert float(array1)>90, "ACT cross with LFI not allowed under blinding"
+                except:
+                    return [None]*5
             except:
                 r = mdict[patch,array2,season1,array1]
                 f1 = get_act_freq(array1)
                 f2 = get_planck_freq(array2)
-                assert float(array2)>90, "ACT cross with LFI not allowed under blinding"
-            ellmin = 2000
+                try:
+                    assert float(array2)>90, "ACT cross with LFI not allowed under blinding"
+                except:
+                    return [None]*5
+            ellmin = 1000
             ellmax = 3000
             ellp = 2500
         elif dm1=='planck' and dm2=='planck':
@@ -203,6 +210,29 @@ class Spec(object):
         
     
 s = Spec()
+patches = ['deep56','boss']
+aarrays = {'deep56':['d56_%s' % str(x).zfill(2) for x in range(1,7) ], 'boss':['boss_%s' % str(x).zfill(2) for x in range(1,4) ]}
+planck_arrays = ['p0%d' % x for x in range(1,9)]
+dmap = {'act_mr3':'act','planck_hybrid':'planck'}
+
+for patch in patches:
+    act_arrays = aarrays[patch]
+    allarrs = act_arrays+planck_arrays
+    for i in range(len(allarrs)):
+        for j in range(i,len(allarrs)):
+            a1 = allarrs[i]
+            a2 = allarrs[j]
+            dm1 = dmap[sints.arrays(a1,'data_model')]
+            dm2 = dmap[sints.arrays(a2,'data_model')]
+            season1 = sints.arrays(a1,'season')
+            array1 = sints.arrays(a1,'array')+"_"+sints.arrays(a1,'freq')
+            if dm1=='planck': array1 = array1.split('_')[1]
+            season2 = sints.arrays(a2,'season')
+            array2 = sints.arrays(a2,'array')+"_"+sints.arrays(a2,'freq')
+            if dm2=='planck': array2 = array2.split('_')[1]
+            ls,Cls,Rcls,errs,pfit = s.get_spec(patch,dm1,dm2,season1=season1,array1=array1,season2=season2,array2=array2)
+sys.exit()
+
 # ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','act',season1='s15',array1='pa2_f150')
 # ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','act',season1='s15',array1='pa3_f150')
 # ls,Cls,Rcls,errs,pfit = s.get_spec('boss','act','act',season1='s15',array1='pa2_f150')
@@ -216,9 +246,9 @@ s = Spec()
 # ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','planck','planck',array1='217')
 # ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','planck','planck',array1='143')
 # ls,Cls,Rcls,errs,pfit = s.get_spec('boss','planck','planck',array1='100',array2='143')
-ls,Cls,Rcls,errs,pfit = s.get_spec('boss','act','planck',season1='s15',array1='pa3_f090',array2='143')
+# ls,Cls,Rcls,errs,pfit = s.get_spec('boss','act','planck',season1='s15',array1='pa3_f090',array2='143')
 # ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','act',season1='s15',array1='pa3_f090',season2='s15',array2='pa3_f150')
-ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','planck',season1='s15',array1='pa2_f150',array2='143')
-ls,Cls,Rcls,errs,pfit = s.get_spec('boss','act','planck',season1='s15',array1='pa2_f150',array2='143')
-ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','planck',season1='s15',array1='pa3_f090',array2='100')
+# ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','planck',season1='s15',array1='pa2_f150',array2='143')
+# ls,Cls,Rcls,errs,pfit = s.get_spec('boss','act','planck',season1='s15',array1='pa2_f150',array2='143')
+# ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','planck',season1='s15',array1='pa3_f090',array2='100')
 
