@@ -61,10 +61,10 @@ class SimGen(object):
 
     ## Note: It will be probably better to use a decorator to delegate. For now, it does it explicetly
 
-    def get_signal(self, season, patch, array, freq, sim_num, save_alm=True, save_map=False, set_idx=0,oshape=None,owcs=None,mask_patch=None):
+    def get_signal(self, season, patch, array, freq, sim_num, save_alm=True, save_map=False, set_idx=0,oshape=None,owcs=None,mask_patch=None,fgflux="15mjy"):
         # return cmb+fg sim
         if oshape is None: oshape, owcs = self.get_default_geometry(season, patch, array, freq, mask_patch)
-        return self._footprint(self.signal_gen.get_signal_sim(season, patch, array, freq, set_idx, sim_num, save_alm=save_alm, save_map=save_map,oshape=oshape,owcs=owcs))
+        return self._footprint(self.signal_gen.get_signal_sim(season, patch, array, freq, set_idx, sim_num, save_alm=save_alm, save_map=save_map,oshape=oshape,owcs=owcs, fgflux=fgflux))
 
     def get_cmb(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None):        
         if oshape is None: oshape, owcs = self.get_default_geometry(season, patch, array, freq, mask_patch) 
@@ -78,9 +78,9 @@ class SimGen(object):
         if oshape is None: oshape, owcs = self.get_default_geometry(season, patch, array, freq, mask_patch)
         return self._footprint(self.signal_gen.get_kappa_sim(patch, set_idx, sim_num, save_alm=save_alm, oshape=oshape,owcs=owcs))
     
-    def get_fg(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None): 
+    def get_fg(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None,fgflux="15mjy"): 
         if oshape is None: oshape, owcs = self.get_default_geometry(season, patch, array, freq, mask_patch)
-        return self._footprint(self.signal_gen.get_fg_sim(season, patch, array, freq, set_idx, sim_num, save_alm=save_alm, oshape=oshape,owcs=owcs))
+        return self._footprint(self.signal_gen.get_fg_sim(season, patch, array, freq, set_idx, sim_num, save_alm=save_alm, oshape=oshape,owcs=owcs, fgflux=fgflux))
     
     def get_noise(self, season=None,patch=None,array=None, sim_num=None,mask_patch=None,set_idx=0,apply_ivar=True):
         # indexing is slighly different for signal and noise sim code ..
@@ -90,7 +90,7 @@ class SimGen(object):
         seed = (set_idx, 0, 3, sim_num) + self.noise_gen.dm.get_noise_sim_seed(season,patch,array,patch_id)
         return self._footprint(self.noise_gen.generate_sim(season,patch,array,seed=seed,mask_patch=mask_patch,apply_ivar=apply_ivar))
 
-    def get_sim(self,season,patch,array,sim_num, save_alm=True, save_map=False, set_idx=0,mask_patch=None):
+    def get_sim(self,season,patch,array,sim_num, save_alm=True, save_map=False, set_idx=0,mask_patch=None,fgflux="15mjy"):
         shape,wcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
         # (nfreqs,nsplits,npol,Ny,Nx)
         noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=sim_num,mask_patch=mask_patch,set_idx=set_idx,apply_ivar=False)
@@ -107,7 +107,7 @@ class SimGen(object):
                 patch = "planck"
                 array = "planck"
 
-            imap = self.get_signal(season, patch, array, pfreq, sim_num, save_alm=save_alm, save_map=save_map, set_idx=set_idx,oshape=shape,owcs=wcs)
+            imap = self.get_signal(season, patch, array, pfreq, sim_num, save_alm=save_alm, save_map=save_map, set_idx=set_idx,oshape=shape,owcs=wcs,fgflux=fgflux)
             signals.append(imap)
         owcs = imap.wcs
         # (nfreqs,npol,Ny,Nx)
