@@ -518,6 +518,7 @@ def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
     #pl._ax.set_ylim(5e-6,3e0)
     pl._ax.set_ylim(1e-1,1e5)
     pl.vline(x=500)
+    pl.vline(x=300,ls='-.')
     pl.done(plot_fname+"_power.png", dpi=dpi)
 
     # ratios wrt data of auto-corrs and cross-freq-II
@@ -536,6 +537,7 @@ def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
     pl._ax.set_ylim(0.8,1.2)
     pl.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     pl.vline(x=500)
+    pl.vline(x=300,ls='-.')
     pl.hline(y=1)
     pl.hline(y=1.05)
     pl.hline(y=0.95)
@@ -562,6 +564,7 @@ def compare_ps(cents,p1ds1,p1ds2,plot_fname=None,err=None):
     pl.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     pl.hline(y=0)
     pl.vline(x=500)
+    pl.vline(x=300,ls='-.')
     pl.done(plot_fname+"_cross_power.png", dpi=dpi)
 
 def plot(fname,imap,dg=4,grid=False,**kwargs):
@@ -607,6 +610,7 @@ def plot_corrcoeff(cents,c1ds_data,plot_fname):
     pl.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     pl.hline(y=0,ls='-')
     pl.vline(x=500)
+    pl.vline(x=300,ls='-.')
     pl.done("%s_compare_corrcoeff.png" % (plot_fname), dpi=dpi)
 
 
