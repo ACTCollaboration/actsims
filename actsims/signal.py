@@ -76,7 +76,7 @@ class SignalGen(object):
     def get_signal_idx(self, season, patch, array, freq, set_idx, sim_num):
         return '_'.join([season, patch, array, freq, 'set0%d'%set_idx, '%05d'%sim_num])
 
-    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False, save_map=False,oshape=None,owcs=None):
+    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False, save_map=False,oshape=None,owcs=None, fgflux="15mjy"):
         assert(self.is_supported(season, patch, array, freq))
 
         base_alm_idx = self.get_base_alm_idx(set_idx, sim_num) 
@@ -95,7 +95,7 @@ class SignalGen(object):
             freq_idx  = 0 if freq == 'f090' else 1
             if base_alm_idx not in self.alms_base:
                 self.manage_cache(self.alms_base, self.max_cached-1)
-                self.load_alms_base(set_idx, sim_num)
+                self.load_alms_base(set_idx, sim_num, fgflux=fgflux)
             alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
             if self.add_poisson_srcs:
                 
@@ -135,7 +135,7 @@ class SignalGen(object):
         return self.__signal_postprocessing__(patch, signal_idx, alm_cmb, save_map=False,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
 
 
-    def get_fg_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False,oshape=None,owcs=None):
+    def get_fg_sim(self, season, patch, array, freq, set_idx, sim_num, save_alm=False,oshape=None,owcs=None,fgflux="15mjy"):
         assert(self.is_supported(season, patch, array, freq))
         print("[WARNING] get_fg_sim() is implemented for debugging purpose. Use get_signal_sim() for the production run")
 
@@ -145,7 +145,7 @@ class SignalGen(object):
             print ("loading precomputed alm cmb {}".format(signal_idx))
             alm_fg = self.alms_fg[signal_idx].copy()
         else:
-            alm_fg90_150  = self.load_alm_fg(set_idx, sim_num) 
+            alm_fg90_150  = self.load_alm_fg(set_idx, sim_num, fgflux=fgflux) 
             alm_out = np.zeros((3, len(alm_fg90_150[-1])), dtype = np.complex128) 
 
             freq_idx      = 1 if freq == 'f150' else 0
@@ -218,7 +218,7 @@ class SignalGen(object):
         return signal
 
 
-    def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False):
+    def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, fgflux="15mjy"):
         # note: beam is set to false
         print("loading alm base")
         cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d.fits' %(self.cmb_type, set_idx, sim_idx))
@@ -255,7 +255,7 @@ class SignalGen(object):
         add_foregrounds = fg_override if fg_override is not None else self.add_foregrounds
         if add_foregrounds:
             print("adding fgs to the base")     
-            alm_fg90_150 = self.load_alm_fg(set_idx, sim_idx)
+            alm_fg90_150 = self.load_alm_fg(set_idx, sim_idx, fgflux=fgflux)
             lmax_sg      = hp.Alm.getlmax(alm_signal.shape[-1])
             alm_out      = np.zeros((len(self.freqs), 3, len(alm_fg90_150[-1])), dtype = np.complex128) 
             lmax_fg      = hp.Alm.getlmax(alm_fg90_150.shape[-1])
@@ -308,10 +308,14 @@ class SignalGen(object):
         if ret_alm: return alm_kappa
         del alm_kappa
     
-    def load_alm_fg(self, set_idx, sim_idx):
+    def load_alm_fg(self, set_idx, sim_idx, fgflux):
         print("loading fg alm")
-        seed         = (set_idx, 0, 1, sim_idx)# copying the structure from simtools
-        fg_file      = os.path.join(actsim_root, '../data/fg.dat')
+        if fgflux == "15mjy":
+            seed         = (set_idx, 0, 1, sim_idx, 0) # need to unify sim seed structure!
+            fg_file      = os.path.join(actsim_root, '../data/fg.dat')
+        elif fgflux=="100mjy":
+            seed         = (set_idx, 0, 1, sim_idx, 1)
+            fg_file      = os.path.join(actsim_root, '../data/highflux_fg.dat')
         fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
         alm_fg90_150 = curvedsky.rand_alm_healpy(fg_power, seed = seed)#, lmax=lmax_sg)
         return alm_fg90_150
