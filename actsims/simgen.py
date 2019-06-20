@@ -22,7 +22,7 @@ class SimGen(object):
     def __init__(self, version, model="act_mr3", cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1,
                  extract_region = None,
                  extract_region_shape = None,
-                 extract_region_wcs = None, add_poisson_srcs = False):
+                 extract_region_wcs = None):
         
         """
         version: The version identifier for the filename of covsqrts on disk
@@ -33,7 +33,7 @@ class SimGen(object):
         max_cached: The maximum number of cached sim/or alms
         """
         self.noise_gen  = noise.NoiseGen(version=version,model=model,ncache=max_cached,verbose=False)
-        self.signal_gen = signal.SignalGen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model, add_poisson_srcs=add_poisson_srcs)
+        self.signal_gen = signal.SignalGen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model)
         self.default_geometries = {}
         self.model = model
         
@@ -61,10 +61,10 @@ class SimGen(object):
 
     ## Note: It will be probably better to use a decorator to delegate. For now, it does it explicetly
 
-    def get_signal(self, season, patch, array, freq, sim_num, save_alm=True, save_map=False, set_idx=0,oshape=None,owcs=None,mask_patch=None,fgflux="15mjy"):
+    def get_signal(self, season, patch, array, freq, sim_num, save_alm=True, save_map=False, set_idx=0,oshape=None,owcs=None,mask_patch=None,fgflux="15mjy", add_poisson_srcs=False):
         # return cmb+fg sim
         if oshape is None: oshape, owcs = self.get_default_geometry(season, patch, array, freq, mask_patch)
-        return self._footprint(self.signal_gen.get_signal_sim(season, patch, array, freq, set_idx, sim_num, save_alm=save_alm, save_map=save_map,oshape=oshape,owcs=owcs, fgflux=fgflux))
+        return self._footprint(self.signal_gen.get_signal_sim(season, patch, array, freq, set_idx, sim_num, save_alm=save_alm, save_map=save_map,oshape=oshape,owcs=owcs, fgflux=fgflux, add_poisson_srcs=add_poisson_srcs))
 
     def get_cmb(self, season, patch, array, freq, sim_num, save_alm=False, set_idx=0,oshape=None,owcs=None,mask_patch=None):        
         if oshape is None: oshape, owcs = self.get_default_geometry(season, patch, array, freq, mask_patch) 

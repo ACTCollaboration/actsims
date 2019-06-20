@@ -9,7 +9,7 @@ actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None, add_poisson_srcs = False):
+    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None):
         """
         model: The name of an implemented soapack datamodel
         ncache: The number of 
@@ -50,7 +50,6 @@ class SignalGen(object):
         self.templates        = ODict()
         self.apply_window     = apply_window
         self.add_foregrounds  = add_foregrounds
-        self.add_poisson_srcs = add_poisson_srcs
         self.dobeam           = dobeam
         self.apply_rotation   = apply_rotation
         self.alpha_map        = alpha_map
@@ -73,7 +72,7 @@ class SignalGen(object):
     def get_signal_idx(self, season, patch, array, freq, set_idx, sim_num):
         return '_'.join([season, patch, array, freq, 'set0%d'%set_idx, '%05d'%sim_num])
 
-    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False, save_map=False, fgflux="15mjy"):
+    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False, save_map=False, fgflux="15mjy", add_poisson_srcs=False):
         assert(self.is_supported(season, patch, array, freq))
 
         base_alm_idx = self.get_base_alm_idx(set_idx, sim_num) 
@@ -94,8 +93,7 @@ class SignalGen(object):
                 self.manage_cache(self.alms_base, self.max_cached-1)
                 self.load_alms_base(set_idx, sim_num, fgflux=fgflux)
             alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
-            if self.add_poisson_srcs:
-                
+            if add_poisson_srcs: 
                 alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape, oshape=oshape, owcs=owcs)
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
