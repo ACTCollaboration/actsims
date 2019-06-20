@@ -306,9 +306,11 @@ class SignalGen(object):
     def load_alm_fg(self, set_idx, sim_idx, fgflux):
         print("loading fg alm")
         if fgflux == "15mjy":
+            print("loading FG with 15mJy fluxcut")
             seed         = (set_idx, 0, 1, sim_idx, 0) # need to unify sim seed structure!
             fg_file      = os.path.join(actsim_root, '../data/fg.dat')
         elif fgflux=="100mjy":
+            print("loading FG with 100mJy fluxcut")
             seed         = (set_idx, 0, 1, sim_idx, 1)
             fg_file      = os.path.join(actsim_root, '../data/highflux_fg.dat')
         fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
@@ -340,7 +342,7 @@ class SignalGen(object):
             del self.signals[key]
 
 
-    def get_poisson_srcs_alms(self, set_idx, sim_num, patch, alm_shape, map_shape, map_wcs):
+    def get_poisson_srcs_alms(self, set_idx, sim_num, patch, alm_shape, oshape, owcs):
 
         def deltaTOverTcmbToJyPerSr(freqGHz,T0 = 2.726):
             """
@@ -359,7 +361,7 @@ class SignalGen(object):
 
         TCMB_uk = 2.72e6
         
-        if map_shape[0] > 3:
+        if oshape[0] > 3:
             #then this is a multichroic array, and sadly we only have this at 150 GHz for now
             raise Exception('get_poisson_srcs_alms only implemented for 150 GHz so far ' \
                             + '(that is the model we currently have for radio sources) ')
@@ -372,7 +374,7 @@ class SignalGen(object):
         poissonSeedInd = 4
         poissonSeed = (set_idx, 0, poissonSeedInd, sim_num)
 
-        templ = self.get_template(patch, shape = map_shape, wcs = map_wcs)
+        templ = self.get_template(patch, shape = oshape, wcs = owcs)
         
         templ[:] = 0
         np.random.seed(seed = poissonSeed)
