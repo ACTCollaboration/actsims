@@ -6,7 +6,7 @@ import os,sys
 import pickle
 from szar import foregrounds as fgs
 import soapack.interfaces as sints
-
+from actsims.signal import SRCFREE_SPECS
 
 def plaw(ells,a1,a2,a3,e1,e2,e3,b,ellp):
     return a1*(ells/ellp)**e1 + a2*(ells/ellp)**e2 + a3*(ells/ellp)**e3 + b
@@ -46,7 +46,7 @@ class Spec(object):
         with open(loc+'ACT_planck.pickle', 'rb') as handle:
             self.apdict = pickle.load(handle)
 
-        croot = "/home/msyriac/data/act/theory/cosmo2017_10K_acc3"
+        croot = "/home/r/rbond/nsehgal/workspace/cmblens/inputParams/cosmo2017_10K_acc3"
         self.theory = cosmology.loadTheorySpectraFromCAMB(croot,get_dimensionless=False)
 
         import pandas as pd
@@ -149,8 +149,6 @@ class Spec(object):
         pl.add(fells,pfit(fells),ls='-.')
         pl.hline()
         pl.done("fgfit_%s_full_region.png"  % sname)
-        
-                
         return ells,Cls,Rcls,errs,pfit
 
     def cl_theory(self,ells,nu1,nu2):
@@ -215,6 +213,8 @@ aarrays = {'deep56':['d56_%s' % str(x).zfill(2) for x in range(1,7) ], 'boss':['
 planck_arrays = ['p0%d' % x for x in range(1,9)]
 dmap = {'act_mr3':'act','planck_hybrid':'planck'}
 
+SRC = SRCFREE_SPECS()
+
 for patch in patches:
     act_arrays = aarrays[patch]
     allarrs = act_arrays+planck_arrays
@@ -230,7 +230,18 @@ for patch in patches:
             season2 = sints.arrays(a2,'season')
             array2 = sints.arrays(a2,'array')+"_"+sints.arrays(a2,'freq')
             if dm2=='planck': array2 = array2.split('_')[1]
+            print(patch, dm1, season1, array1, dm2, season2, array2)
+            assert(SRC.is_supported(patch, dm1, season1, array1, dm2, season2, array2))
             ls,Cls,Rcls,errs,pfit = s.get_spec(patch,dm1,dm2,season1=season1,array1=array1,season2=season2,array2=array2)
+            lss  = np.arange(2, 10001, 1.)
+            try:
+                Dls = pfit(lss)
+            except: 
+                print("setting correlations to zeros" )
+                Dls = np.zeros(len(lss))
+            
+            SRC.spec_storage['l'] = lss
+            SRC.spec_storage[SRC.get_spec_idx(patch, dm1, season1, array1, dm2, season2, array2)] = Dls    
 sys.exit()
 
 # ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','act',season1='s15',array1='pa2_f150')

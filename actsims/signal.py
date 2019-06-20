@@ -423,4 +423,52 @@ class SignalGen(object):
         # pdb.set_trace()
 
         return output
-                           
+    
+class SRCFREE_SPECS(object):
+    def __init__(self):
+        self.supported_psa  = {'deep56': [], 'boss': []}
+        self.supported_spec = {'deep56': [], 'boss': []}
+        self.act_arrays     = {'deep56':['d56_%s' % str(x).zfill(2) for x in range(1,7) ], \
+        'boss':['boss_%s'%str(x).zfill(2) for x in range(1,4) ]}
+        self.planck_arrays  = ['p0%d' % x for x in range(1,9)]
+        self.full_arrays    = {'deep56': [], 'boss': []}
+        for patch in self.supported_psa.keys():
+            self.full_arrays[patch] =  self.act_arrays[patch] + self.planck_arrays
+        self.data_models    = {'act_mr3':'act','planck_hybrid':'planck'}
+
+        self.spec_storage   = {}
+
+        for patch in self.supported_psa.keys():
+            for array in self.full_arrays[patch]:
+                dm        = self.data_models[sints.arrays(array,'data_model')]
+                season    = sints.arrays(array,'season')
+                array_str = '{}_{}'.format(sints.arrays(array,'array'),sints.arrays(array,'freq'))
+                if dm is 'planck': array_str = sints.arrays(array,'freq')
+
+                self.supported_psa[patch].append(self.__single_idx__(dm, season, array_str))
+            self.supported_psa[patch].sort()
+
+        for patch in self.supported_psa.keys():
+            for i, idxi in enumerate(self.supported_psa[patch]):
+                for j, idxj in enumerate(self.supported_psa[patch][i:]):
+                    spec_idx = '{}_{}_{}'.format(patch, idxi, idxj)
+                    self.supported_spec[patch].append(spec_idx)
+
+    def __single_idx__(self, dm, season, array):
+        return '{}_{}_{}'.format(dm, season, array)
+
+    def __double_idx__(self, dm1, season1, array1, dm2, season2, array2):
+        idx1 = self.__single_idx__(dm1, season1, array1)
+        idx2 = self.__single_idx__(dm2, season2, array2)
+
+        temp = [idx1,idx2]
+        temp.sort()
+        return '{}_{}'.format(temp[0], temp[1])
+
+    def get_spec_idx(self, patch, dm1, season1, array1, dm2, season2, array2):
+        return '{}_{}'.format(patch, self.__double_idx__(dm1, season1, array1, dm2, season2, array2))
+
+    def is_supported(self, patch, dm1, season1, array1, dm2, season2, array2):
+        spec_idx = self.get_spec_idx(patch, dm1, season1, array1, dm2, season2, array2)
+        return spec_idx in  self.supported_spec[patch]
+
