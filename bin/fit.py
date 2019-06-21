@@ -42,9 +42,15 @@ class Spec(object):
         with open(loc+'Planck_Planck.pickle', 'rb') as handle:
             self.pdict = pickle.load(handle)
         with open(loc+'ACT_ACT.pickle', 'rb') as handle:
-            self.adict = pickle.load(handle)            
+            self.adict = pickle.load(handle)
         with open(loc+'ACT_planck.pickle', 'rb') as handle:
             self.apdict = pickle.load(handle)
+        for patch in ['deep56', 'boss']:
+            spec = np.load(loc+'{}.npy'.format(patch))
+            self.adict[(patch, 's15', 'pa3_f090', 's15', 'pa3_f150')] = \
+            (self.adict[(patch, 's15', 'pa3_f090', 's15', 'pa3_f150')][0], spec.copy())
+            self.adict[(patch, 's15', 'pa3_f150', 's15', 'pa3_f090')] =\
+            (self.adict[(patch, 's15', 'pa3_f150', 's15', 'pa3_f090')][0], spec.copy())
 
         croot = "/home/r/rbond/nsehgal/workspace/cmblens/inputParams/cosmo2017_10K_acc3"
         self.theory = cosmology.loadTheorySpectraFromCAMB(croot,get_dimensionless=False)
@@ -135,20 +141,25 @@ class Spec(object):
 
         Rcls = Cls-cltheory
         ls = ells
+        '''
         pl = io.Plotter(xyscale='linlin',scalefn = lambda x: x**2./2./np.pi,xlabel='$\\ell$',ylabel='$D_{\\ell}$')
         pl.add_err(ls,Rcls,yerr=errs)
         fells = np.arange(ls.min(),ls.max(),1)
         pl.add(fells,pfit(fells),ls='-.')
         pl.hline()
         pl.done("fgfit_%s_fit_region.png" % sname)
-
-
+        '''
+        '''
         pl = io.Plotter(xyscale='linlin',scalefn = lambda x: x**2./2./np.pi,xlabel='$\\ell$',ylabel='$D_{\\ell}$')
         pl.add_err(ls,Rcls,yerr=errs)
         fells = np.arange(10,8000,1)
         pl.add(fells,pfit(fells),ls='-.')
         pl.hline()
         pl.done("fgfit_%s_full_region.png"  % sname)
+<<<<<<< Updated upstream
+=======
+        '''
+                
         return ells,Cls,Rcls,errs,pfit
 
     def cl_theory(self,ells,nu1,nu2):
@@ -214,7 +225,7 @@ planck_arrays = ['p0%d' % x for x in range(1,9)]
 dmap = {'act_mr3':'act','planck_hybrid':'planck'}
 
 SRC = SRCFREE_SPECS()
-
+storage = {}
 for patch in patches:
     act_arrays = aarrays[patch]
     allarrs = act_arrays+planck_arrays
@@ -235,13 +246,13 @@ for patch in patches:
             ls,Cls,Rcls,errs,pfit = s.get_spec(patch,dm1,dm2,season1=season1,array1=array1,season2=season2,array2=array2)
             lss  = np.arange(2, 10001, 1.)
             try:
-                Dls = pfit(lss)
+                Cls = pfit(lss)
             except: 
                 print("setting correlations to zeros" )
-                Dls = np.zeros(len(lss))
+                Cls = np.zeros(len(lss))
             
-            SRC.spec_storage['l'] = lss
-            SRC.spec_storage[SRC.get_spec_idx(patch, dm1, season1, array1, dm2, season2, array2)] = Dls    
+            storage['l'] = lss
+            storage[SRC.get_spec_idx(patch, dm1, season1, array1, dm2, season2, array2)] = Cls    
 sys.exit()
 
 # ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','act',season1='s15',array1='pa2_f150')
