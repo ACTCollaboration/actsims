@@ -444,7 +444,7 @@ class SRCFREE_SPECS(object):
                     spec_idx = '{}_{}_{}'.format(patch, idxi, idxj)
                     self.supported_spec[patch].append(spec_idx)
 
-        data_file          = os.path.join(actsim_root, '../data/srcfre_fit.npz')
+        data_file          = os.path.join(actsim_root, '../data/spectra/srcfre_fit_pa3fix.npz')
         self.spec_storage  = np.load(data_file)
 
     def __single_idx__(self, dm, season, array):
