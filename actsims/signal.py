@@ -37,7 +37,7 @@ class SignalGen(object):
             self.supported_sims.append("planck_planck_planck_%s" % (str(freq).zfill(3)))
 
         self.supported_sims.sort()
-        self.freqs           = ['f150','f090']
+        self.freqs           = ['f090','f150'] ## please don't change the ordering here !!
         self.cmb_type         = cmb_type
         self.max_cached       = max_cached
         self.alms_base        = ODict()
