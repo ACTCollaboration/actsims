@@ -5,6 +5,7 @@ import healpy as hp
 import warnings
 from collections import OrderedDict as ODict
 from actsims.util import SEED_TRACKER as seedgen
+from itertools import combinations
 actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
@@ -476,7 +477,19 @@ class SRCFREE_SPECS(object):
 
     def get_cov(self, patch):
         if patch in self.covs.keys(): return self.covs[patch].copy() # return cached cov
-        npad = int(spec_storage['l'][0]) # should have started at ell=0, but it starts at ell=2
+        npad  = int(self.spec_storage['l'][0]) # should have started at ell=0, but it starts at ell=2
+        nelmt = len(self.spec_storage['l'])+npad
+        nspec = len(self.supported_psa[patch])
+        cov   = np.zeros((nspec, nspec, nelmt))
+        
+        temp = lambda x, y, z: '{}_{}_{}'.format(x,y,z)
+        for i, psai in enumerate(self.supported_psa[patch]):
+            for j, psaj in enumerate(self.supported_psa[patch][i:]):
+                cov[i,j][npad:] = self.spec_storage[temp(patch, psai, psaj)].copy()
+                if i != j: cov[j,i][npad:] = self.spec_storage[temp(patch, psai, psaj)].copy()
+        self.covs[patch] = cov
+        return self.covs[patch]
+
 
         
 
