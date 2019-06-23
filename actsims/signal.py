@@ -433,19 +433,29 @@ class SRCFREE_SPECS(object):
                 dm        = self.data_models[sints.arrays(array,'data_model')]
                 season    = sints.arrays(array,'season')
                 array_str = '{}_{}'.format(sints.arrays(array,'array'),sints.arrays(array,'freq'))
-                if dm is 'planck': array_str = sints.arrays(array,'freq')
-
+                if dm is 'planck': 
+                    array_str = sints.arrays(array,'freq')
+                    # filter out planck low-fi (below 100GHz)
+                    is_lowfi = lambda x: float(x) < 100
+                    if is_lowfi(array_str): continue
                 self.supported_psa[patch].append(self.__single_idx__(dm, season, array_str))
             self.supported_psa[patch].sort()
 
-        for patch in self.supported_psa.keys():
-            for i, idxi in enumerate(self.supported_psa[patch]):
-                for j, idxj in enumerate(self.supported_psa[patch][i:]):
-                    spec_idx = '{}_{}_{}'.format(patch, idxi, idxj)
-                    self.supported_spec[patch].append(spec_idx)
+        # ordering (1) actxact, (2) actxplanck, (3) planckxplanck 
+        def __append_supported_spec_idx__(exp1, exp2):
+            for patch in self.supported_psa.keys():
+                for i, idxi in enumerate(self.supported_psa[patch]):
+                    for j, idxj in enumerate(self.supported_psa[patch][i:]):
+                        if not(exp1 in idxi and exp2 in idxj): continue
+                        spec_idx = '{}_{}_{}'.format(patch, idxi, idxj)
+                        self.supported_spec[patch].append(spec_idx)
+        __append_supported_spec_idx__('act','act')
+        __append_supported_spec_idx__('act','planck')
+        __append_supported_spec_idx__('plack','planck')
 
         data_file          = os.path.join(actsim_root, '../data/spectra/srcfre_fit_mr3f_cal.npz')
         self.spec_storage  = np.load(data_file)
+        self.covs          = {}
 
     def __single_idx__(self, dm, season, array):
         return '{}_{}_{}'.format(dm, season, array)
@@ -460,8 +470,17 @@ class SRCFREE_SPECS(object):
 
     def get_spec_idx(self, patch, dm1, season1, array1, dm2, season2, array2):
         return '{}_{}'.format(patch, self.__double_idx__(dm1, season1, array1, dm2, season2, array2))
-
     def is_supported(self, patch, dm1, season1, array1, dm2, season2, array2):
         spec_idx = self.get_spec_idx(patch, dm1, season1, array1, dm2, season2, array2)
         return spec_idx in  self.supported_spec[patch]
+
+    def get_cov(self, patch):
+        if patch in self.covs.keys(): return self.covs[patch].copy() # return cached cov
+        npad = int(spec_storage['l'][0]) # should have started at ell=0, but it starts at ell=2
+
+        
+
+
+
+
 

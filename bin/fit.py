@@ -218,7 +218,7 @@ class Spec(object):
 s = Spec()
 patches = ['deep56','boss']
 aarrays = {'deep56':['d56_%s' % str(x).zfill(2) for x in range(1,7) ], 'boss':['boss_%s' % str(x).zfill(2) for x in range(1,4) ]}
-planck_arrays = ['p0%d' % x for x in range(1,9)]
+planck_arrays = ['p0%d' % x for x in range(1,10)]
 dmap = {'act_mr3':'act','planck_hybrid':'planck'}
 
 SRC = SRCFREE_SPECS()
@@ -241,15 +241,15 @@ for patch in patches:
             print(patch, dm1, season1, array1, dm2, season2, array2)
             assert(SRC.is_supported(patch, dm1, season1, array1, dm2, season2, array2))
             ls,Cls,Rcls,errs,pfit = s.get_spec(patch,dm1,dm2,season1=season1,array1=array1,season2=season2,array2=array2)
-            lss  = np.arange(2, 10001, 1.)
+            lss  = np.arange(0, 10001, 1.)
             try:
                 Cls = pfit(lss)
-            except: 
-                print("setting correlations to zeros" )
-                Cls = np.zeros(len(lss))
+                storage['l'] = lss
+                Cls[:2]      = 0.
+                storage[SRC.get_spec_idx(patch, dm1, season1, array1, dm2, season2, array2)] = Cls               except: 
+                print("skip" )
+                #Cls = np.zeros(len(lss))
             
-            storage['l'] = lss
-            storage[SRC.get_spec_idx(patch, dm1, season1, array1, dm2, season2, array2)] = Cls    
 sys.exit()
 
 # ls,Cls,Rcls,errs,pfit = s.get_spec('deep56','act','act',season1='s15',array1='pa2_f150')
