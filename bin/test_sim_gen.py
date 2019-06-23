@@ -20,7 +20,7 @@ simgen = simgen.SimGen(version=version)
 
 # We can then get just signal = cmb + fg (and loop over season,patch,array,sim_num after the above initialization)
 with bench.show("signal"):
-    simgen.get_signal(season, patch, array, freq, sim_num=0)
+    simgen.get_signal(season, patch, array, freq, sim_num=0, fgflux='15mjy', add_poisson_srcs=False)
 # Or get just cmb
 #simgen.get_cmb(season, patch, array, freq, sim_num= 0)
 # Or get just foregrounds
