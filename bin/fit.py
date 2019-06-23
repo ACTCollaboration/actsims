@@ -39,18 +39,20 @@ def is_hfi(array):
 
 class Spec(object):
     def __init__(self,loc='./data/spectra/'):
-        with open(loc+'Planck_Planck.pickle', 'rb') as handle:
+        with open(loc+'Planck_Planck_mr3f_cal.pickle', 'rb') as handle:
             self.pdict = pickle.load(handle)
-        with open(loc+'ACT_ACT.pickle', 'rb') as handle:
+        with open(loc+'ACT_ACT_mr3f_cal.pickle', 'rb') as handle:
             self.adict = pickle.load(handle)
-        with open(loc+'ACT_planck.pickle', 'rb') as handle:
+        with open(loc+'ACT_planck_mr3f_cal.pickle', 'rb') as handle:
             self.apdict = pickle.load(handle)
+        '''
         for patch in ['deep56', 'boss']:
             spec = np.load(loc+'{}.npy'.format(patch))
             self.adict[(patch, 's15', 'pa3_f090', 's15', 'pa3_f150')] = \
             (self.adict[(patch, 's15', 'pa3_f090', 's15', 'pa3_f150')][0], spec.copy())
             self.adict[(patch, 's15', 'pa3_f150', 's15', 'pa3_f090')] =\
             (self.adict[(patch, 's15', 'pa3_f150', 's15', 'pa3_f090')][0], spec.copy())
+        '''
 
         croot = "/home/r/rbond/nsehgal/workspace/cmblens/inputParams/cosmo2017_10K_acc3"
         self.theory = cosmology.loadTheorySpectraFromCAMB(croot,get_dimensionless=False)
@@ -141,24 +143,19 @@ class Spec(object):
 
         Rcls = Cls-cltheory
         ls = ells
-        '''
         pl = io.Plotter(xyscale='linlin',scalefn = lambda x: x**2./2./np.pi,xlabel='$\\ell$',ylabel='$D_{\\ell}$')
         pl.add_err(ls,Rcls,yerr=errs)
         fells = np.arange(ls.min(),ls.max(),1)
         pl.add(fells,pfit(fells),ls='-.')
         pl.hline()
         pl.done("fgfit_%s_fit_region.png" % sname)
-        '''
-        '''
+        
         pl = io.Plotter(xyscale='linlin',scalefn = lambda x: x**2./2./np.pi,xlabel='$\\ell$',ylabel='$D_{\\ell}$')
         pl.add_err(ls,Rcls,yerr=errs)
         fells = np.arange(10,8000,1)
         pl.add(fells,pfit(fells),ls='-.')
         pl.hline()
         pl.done("fgfit_%s_full_region.png"  % sname)
-<<<<<<< Updated upstream
-=======
-        '''
                 
         return ells,Cls,Rcls,errs,pfit
 
