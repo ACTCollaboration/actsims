@@ -434,7 +434,6 @@ class Sehgal09Gen(SignalGen):
         self.eulers      = eulers
         assert(self.signal_path is not None)
         assert(cmb_type in self.cmb_types)
-    '''
     def load_alm_fg(self, set_idx, sim_idx):
         print("loading fg alm") 
         alm_file_postfix = '' if self.eulers is None else '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
@@ -446,7 +445,6 @@ class Sehgal09Gen(SignalGen):
         alm_fg150    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%148), hdu = (1))) 
         alm_fg90_150 = np.stack([alm_fg090, alm_fg150]) 
         return alm_fg90_150
-    '''
     def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, alm_file_postfix=''):
         if self.eulers is not None: alm_file_postfix = '{}_rot_{}_{}_{}'.format(alm_file_postfix, self.eulers[0], self.eulers[1], self.eulers[2])
         return super(Sehgal09Gen, self).load_alms_base(set_idx, sim_idx, cache=cache, fg_override=fg_override, ret_alm=ret_alm, alm_file_postfix=alm_file_postfix)
