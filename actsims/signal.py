@@ -6,6 +6,7 @@ import warnings
 from collections import OrderedDict as ODict
 from actsims.util import SEED_TRACKER as seedgen
 from itertools import combinations
+from orphics.maps import change_alm_lmax
 actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
@@ -13,7 +14,7 @@ class SignalGen(object):
     def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None):
         """
         model: The name of an implemented soapack datamodel
-        ncache: The number of 
+        max_cached: the maximum number of alms and sims can be cached at a time (per type) 
 
         """
         warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
@@ -41,7 +42,6 @@ class SignalGen(object):
             self.supported_sims.append("planck_planck_planck_%s" % (str(freq).zfill(3)))
 
         self.supported_sims.sort()
-        self.freqs           = ['f090','f150'] ## please don't change the ordering here !!
         self.cmb_type         = cmb_type
         self.max_cached       = max_cached
         self.alms_base        = ODict()
@@ -147,7 +147,7 @@ class SignalGen(object):
             alm_fg90_150  = self.load_alm_fg(set_idx, sim_num, fgflux=fgflux) 
             alm_out = np.zeros((3, len(alm_fg90_150[-1])), dtype = np.complex128) 
 
-            freq_idx      = 1 if freq == 'f150' else 0
+            freq_idx      = 0 if freq == 'f090' else 1
             alm_out[0, :] = alm_fg90_150[freq_idx, :].copy()
        
             alm_fg = alm_out
@@ -248,32 +248,22 @@ class SignalGen(object):
                 alm_signal = curvedsky.map2alm(cmb_map, lmax=lmax)
                 del cmb_map
 
-        alm_signal = np.tile(alm_signal, (len(self.freqs), 1, 1))
 
+        alm_signal   = np.tile(alm_signal, (2, 1, 1))
         if fg_override is not None: print("[Warning] override the default foreground flag....")
         add_foregrounds = fg_override if fg_override is not None else self.add_foregrounds
         if add_foregrounds:
-            print("adding fgs to the base")     
+            print("adding fgs to the base") 
             alm_fg90_150 = self.load_alm_fg(set_idx, sim_idx, fgflux=fgflux)
+            nfreq        = alm_fg90_150.shape[0]
             lmax_sg      = hp.Alm.getlmax(alm_signal.shape[-1])
-            alm_out      = np.zeros((len(self.freqs), 3, len(alm_fg90_150[-1])), dtype = np.complex128) 
+            alm_out      = np.zeros((nfreq, 3, len(alm_fg90_150[-1])), dtype = np.complex128) 
             lmax_fg      = hp.Alm.getlmax(alm_fg90_150.shape[-1])
 
-            for idx, freq in enumerate(self.freqs):
-                freq_idx = 1 if freq == 'f150' else 0
-                alm_out[idx, 0, :] = alm_fg90_150[freq_idx, :].copy()
+            for idx in range(nfreq):
+                alm_out[idx, 0, :] = alm_fg90_150[idx, :].copy()
             
-            for m in range(lmax_sg+1):
-                lmin = m
-                lmax = lmax_sg
-
-                idx_ssidx = hp.Alm.getidx(lmax_sg, lmin, m)
-                idx_seidx = hp.Alm.getidx(lmax_sg, lmax, m)
-                idx_fsidx = hp.Alm.getidx(lmax_fg, lmin, m)
-                idx_feidx = hp.Alm.getidx(lmax_fg, lmax, m)
-
-                alm_out[..., idx_fsidx:idx_feidx+1] = alm_out[..., idx_fsidx:idx_feidx+1] + alm_signal[..., idx_ssidx:idx_seidx+1]
-
+            alms_out   = alm_out + change_alm_lmax(alm_signal, lmax_fg)
             alm_signal = alm_out.copy()
             del alm_out, alm_fg90_150
             
@@ -374,11 +364,7 @@ class SignalGen(object):
         else:
             freq_ghz = 148
         
-        #ideally this RNG stuff would be defined in a central place to
-        #avoid RNG collisions.  Old version is currently commented out at top of
-        #simgen.py
         templ = self.get_template(patch, shape = oshape, wcs = owcs)
-        
         templ[:] = 0
         seed = seedgen.get_poisson_seed(set_idx, sim_num)
         np.random.seed(seed = seed)
@@ -413,8 +399,7 @@ class SignalGen(object):
         templ *= map_factor
 
         #GET ALMs
-        import healpy
-        output = curvedsky.map2alm(templ[0], lmax = healpy.Alm.getlmax(alm_shape[0]))
+        output = curvedsky.map2alm(templ[0], lmax = hp.Alm.getlmax(alm_shape[0]))
         # import pdb
         # pdb.set_trace()
 
@@ -487,7 +472,8 @@ class SRCFREE_SPECS(object):
         
         temp = lambda x, y, z: '{}_{}_{}'.format(x,y,z)
         for i, psai in enumerate(self.supported_psa[patch]):
-            for j, psaj in enumerate(self.supported_psa[patch][i:]):
+            for j, psaj in enumerate(self.supported_psa[patch]):
+                if j < i: continue
                 cov[i,j][npad:] = self.spec_storage[temp(patch, psai, psaj)].copy()
                 if i != j: cov[j,i][npad:] = self.spec_storage[temp(patch, psai, psaj)].copy()
         self.covs[patch] = cov
