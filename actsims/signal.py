@@ -15,7 +15,10 @@ class SignalGen(object):
         model: The name of an implemented soapack datamodel
         ncache: The number of 
 
-        """ 
+        """
+        warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
+        max_cached = 0
+
         self.data_model = sints.models[model]()
         self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
         paths            = sints.dconfig['actsims']
@@ -38,7 +41,7 @@ class SignalGen(object):
             self.supported_sims.append("planck_planck_planck_%s" % (str(freq).zfill(3)))
 
         self.supported_sims.sort()
-        self.freqs           = ['f150','f090']
+        self.freqs           = ['f090','f150'] ## please don't change the ordering here !!
         self.cmb_type         = cmb_type
         self.max_cached       = max_cached
         self.alms_base        = ODict()
