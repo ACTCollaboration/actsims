@@ -4,7 +4,6 @@ from soapack import interfaces as sints
 import healpy as hp
 import warnings
 from collections import OrderedDict as ODict
-from actsims import simgen_common as sgcom
 
 actsim_root = os.path.dirname(os.path.realpath(__file__))
 
