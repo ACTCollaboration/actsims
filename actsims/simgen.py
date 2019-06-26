@@ -93,7 +93,7 @@ class SimGen(object):
     def get_sim(self,season,patch,array,sim_num, save_alm=True, save_map=False, set_idx=0,mask_patch=None):
         shape,wcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
         # (nfreqs,nsplits,npol,Ny,Nx)
-        noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=0,mask_patch=mask_patch,set_idx=set_idx,apply_ivar=False)
+        noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=sim_num,mask_patch=mask_patch,set_idx=set_idx,apply_ivar=False)
         afreqs = self.noise_gen.dm.array_freqs[array]
         signals = []
         for afreq in afreqs:

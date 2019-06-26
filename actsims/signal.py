@@ -219,7 +219,7 @@ class SignalGen(object):
     def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, alm_file_postfix=''):
         # note: beam is set to false
         print("loading alm base")
-        cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, 0, alm_file_postfix))
+        cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, sim_idx, alm_file_postfix))
         print("loading %s" %cmb_file)
         alm_signal = np.complex128(hp.fitsfunc.read_alm(cmb_file, hdu = (1,2,3))) 
 
@@ -309,7 +309,8 @@ class SignalGen(object):
     def load_alm_fg(self, set_idx, sim_idx):
         print("loading fg alm")
         seed         = (set_idx, 0, 1, sim_idx)# copying the structure from simtools
-        fg_file      = os.path.join(actsim_root, '../data/Sehgal09FG_nodust_15mJycut.dat')
+        fg_file      = os.path.join(actsim_root, '../data/fg.dat')
+        #fg_file      = os.path.join(actsim_root, '../data/Sehgal09FG_nodust_15mJycut.dat')
         fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
         alm_fg90_150 = curvedsky.rand_alm_healpy(fg_power, seed = seed)#, lmax=lmax_sg)
         return alm_fg90_150
@@ -445,6 +446,7 @@ class Sehgal09Gen(SignalGen):
         alm_fg150    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%148), hdu = (1))) 
         alm_fg90_150 = np.stack([alm_fg090, alm_fg150]) 
         return alm_fg90_150
+    
     def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, alm_file_postfix=''):
         if self.eulers is not None: alm_file_postfix = '{}_rot_{}_{}_{}'.format(alm_file_postfix, self.eulers[0], self.eulers[1], self.eulers[2])
         return super(Sehgal09Gen, self).load_alms_base(set_idx, sim_idx, cache=cache, fg_override=fg_override, ret_alm=ret_alm, alm_file_postfix=alm_file_postfix)
