@@ -458,3 +458,7 @@ class Sehgal09Gen(SignalGen):
     def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, alm_file_postfix=''):
         if self.eulers is not None: alm_file_postfix = '{}_rot_{}_{}_{}'.format(alm_file_postfix, self.eulers[0], self.eulers[1], self.eulers[2])
         return super(Sehgal09Gen, self).load_alms_base(set_idx, sim_idx, cache=cache, fg_override=fg_override, ret_alm=ret_alm, alm_file_postfix=alm_file_postfix)
+
+
+    def __get_lens_potential_sim__(self, patch, set_idx, sim_num, oshape, owcs, mode='phi', save_alm=False):
+        raise NotImplemented('Not Yet Implemente')
