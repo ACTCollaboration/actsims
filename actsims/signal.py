@@ -41,7 +41,7 @@ class SignalGen(object):
             self.supported_sims.append("planck_planck_planck_%s" % (str(freq).zfill(3)))
 
         self.supported_sims.sort()
-        self.freqs            = ['f090','f150']
+        self.freqs            = ['f090','f150'] ## please don't change the ordering here !!
         self.cmb_type         = cmb_type
         self.max_cached       = max_cached
         self.alms_base        = ODict()
@@ -422,7 +422,7 @@ class Sehgal09Gen(SignalGen):
     # Switching out act baseline cmb and fg sims with Sehgal 09 sims with following modifications
     # 1) Included Lensed Q and U maps
     # 2) CIB and TSZ maps are scaled by 0.75 following Section 2.4.1 of https://arxiv.org/abs/1808.07445
-    # 3) 15mJy cuts are applied to CIB and Radio point sources
+    # 3) 15mJy cuts are applied to CIB and Radio point sources. Sources are identified at 150GHz
     # 4) all maps are in deltaT/Tcmb unit
     def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None, add_poisson_srcs = False, version='', eulers=None):
         """
@@ -442,6 +442,7 @@ class Sehgal09Gen(SignalGen):
         self.eulers      = eulers
         assert(self.signal_path is not None)
         assert(cmb_type in self.cmb_types)
+
     def load_alm_fg(self, set_idx, sim_idx):
         print("loading fg alm") 
         alm_file_postfix = '' if self.eulers is None else '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
