@@ -123,10 +123,10 @@ def get_default_geometry(version, season, patch, array, freq, model='act_mr3'):
     return (oshape, owcs)
 
 class Sehgal09Gen(SimGen):
-    def __init__(self, version, model="act_mr3", cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, extract_region = None,  extract_region_shape = None, extract_region_wcs = None, eulers=None):
+    def __init__(self, version, model="act_mr3", cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, extract_region = None,  extract_region_shape = None, extract_region_wcs = None, eulers=None):
         super(Sehgal09Gen, self).__init__(version=version, model=model, cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds,
                  apply_window=apply_window, max_cached=max_cached, 
-                 extract_region = extract_region, extract_region_shape = extract_region_shape, extract_region_wcs = extract_region_wcs, add_poisson_srcs = False)
+                 extract_region = extract_region, extract_region_shape = extract_region_shape, extract_region_wcs = extract_region_wcs)
 
-        self.signal_gen = signal.Sehgal09Gen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model, version=version, eulers=eulers)
+        self.signal_gen = signal.Sehgal09Gen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model,  eulers=eulers)
 

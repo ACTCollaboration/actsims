@@ -4,6 +4,7 @@ from soapack import interfaces as sints
 import healpy as hp
 import warnings
 from collections import OrderedDict as ODict
+from itertools import product
 
 actsim_root = os.path.dirname(os.path.realpath(__file__))
 
@@ -423,28 +424,32 @@ class Sehgal09Gen(SignalGen):
     # 2) CIB and TSZ maps are scaled by 0.75 following Section 2.4.1 of https://arxiv.org/abs/1808.07445
     # 3) 15mJy cuts are applied to CIB and Radio point sources. Sources are identified at 150GHz
     # 4) all maps are in deltaT/Tcmb unit
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", extract_region=None,extract_region_shape=None, extract_region_wcs=None, apply_rotation=False, alpha_map=None, add_poisson_srcs = False, version='', eulers=None):
+    def __init__(self, cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None,  eulers=None):
         """
         model: The name of an implemented soapack datamodel
-        extract_region: An optional map whose footprint on to which the sims are made
-        extract_region_shape: Instead of passing a map for extract_region, one can pass its shape and wcs
-        extract_region_wcs: Instead of passing a map for extract_region, one can pass its shape and wcs
-        ncache: 
+        eulers            : rotate alm by euler angles (psi, theta, phi) (i.e (0,15,0) ->  maps are rotated by 15 deg in theta) 
         """
         super(Sehgal09Gen, self).__init__(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model,\
-                apply_rotation=apply_rotation, alpha_map=alpha_map, add_poisson_srcs = False)
+                apply_rotation=apply_rotation, alpha_map=alpha_map)
 
         self.data_model = sints.models[model]()
-        self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
+        self.cmb_types   = ['LensedUnabberatedCMB']
         paths            = sints.dconfig['actsims']
         self.signal_path = paths['sehgal09_path']
-        self.eulers      = eulers
+        self.eulers      = tuple(np.array(eulers, dtype=np.int)) if eulers is not None else (0,0,0)
+        self.allowed_rots = []
+        rot_angs         = range(0, 90, 15)
+        for psi, theta in product(rot_angs, rot_angs):
+            self.allowed_rots.append(((psi,theta,0)))
+
+
         assert(self.signal_path is not None)
         assert(cmb_type in self.cmb_types)
-
-    def load_alm_fg(self, set_idx, sim_idx):
+        assert(self.eulers in self.allowed_rots)
+        
+    def load_alm_fg(self, set_idx, sim_idx, fgflux='sehgal09'):
         print("loading fg alm") 
-        alm_file_postfix = '' if self.eulers is None else '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
+        alm_file_postfix = '' if self.eulers == (0,0,0) else '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
         fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, 0, alm_file_postfix))
         print fg_file_temp
         #alm_fg090    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%90), hdu = (1))) 
@@ -454,9 +459,9 @@ class Sehgal09Gen(SignalGen):
         alm_fg90_150 = np.stack([alm_fg090, alm_fg150]) 
         return alm_fg90_150
     
-    def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, alm_file_postfix=''):
-        if self.eulers is not None: alm_file_postfix = '{}_rot_{}_{}_{}'.format(alm_file_postfix, self.eulers[0], self.eulers[1], self.eulers[2])
-        return super(Sehgal09Gen, self).load_alms_base(set_idx, sim_idx, cache=cache, fg_override=fg_override, ret_alm=ret_alm, alm_file_postfix=alm_file_postfix)
+    def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, fgflux="15mjy", alm_file_postfix=''):
+        if self.eulers != (0,0,0): alm_file_postfix = '{}_rot_{}_{}_{}'.format(alm_file_postfix, self.eulers[0], self.eulers[1], self.eulers[2])
+        return super(Sehgal09Gen, self).load_alms_base(set_idx, sim_idx, cache=cache, fg_override=fg_override, ret_alm=ret_alm, alm_file_postfix=alm_file_postfix, fgflux='sehgal09')
 
 
     def __get_lens_potential_sim__(self, patch, set_idx, sim_num, oshape, owcs, mode='phi', save_alm=False):
