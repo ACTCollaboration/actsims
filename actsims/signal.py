@@ -4,7 +4,7 @@ from soapack import interfaces as sints
 import healpy as hp
 import warnings
 from collections import OrderedDict as ODict
-from actsims.util import SEED_TRACKER as seedgen
+from actsims.util import seed_tracker as seedgen
 actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):

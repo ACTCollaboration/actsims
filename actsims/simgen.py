@@ -1,5 +1,5 @@
 from actsims import signal, noise
-from actsims.util import SEED_TRACKER as seedgen
+from actsims.util import seed_tracker as seedgen
 from pixell import enmap,wcsutils
 import numpy as np
 

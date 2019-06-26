@@ -5,7 +5,7 @@ import os,sys, numpy as np
 from collections import OrderedDict
 from soapack import interfaces as dmint
 
-class _SEED_TRACKER(object):
+class _SeedTracker(object):
     def __init__(self):
         self.CMB     = 0
         self.FG      = 1
@@ -41,7 +41,7 @@ class _SEED_TRACKER(object):
     def get_poisson_seed(self, set_idx, sim_idx):
         return (set_idx, 0, self.POISSON, sim_idx)
 
-SEED_TRACKER = _SEED_TRACKER()
+seed_tracker = _SeedTracker()
 
 
 #########################
