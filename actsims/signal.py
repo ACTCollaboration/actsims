@@ -316,6 +316,9 @@ class SignalGen(object):
         elif fgflux=="100mjy":
             print("loading FG with 100mJy fluxcut")
             fg_file      = os.path.join(actsim_root, '../data/highflux_fg.dat')
+        elif fgflux=="quick-srcfree":
+            print("loading FG with srcfree fg")
+            fg_file      = os.path.join(actsim_root, '../data/quick_srcfree_combined_d56.dat')
         else:
             assert(False) ### :o
         fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
