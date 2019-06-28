@@ -1,21 +1,7 @@
 from actsims import signal, noise
+from actsims.util import seed_tracker as seedgen
 from pixell import enmap,wcsutils
 import numpy as np
-
-
-"""
-
-cmbSeedInd = 0
-fgSeedInd = 1
-phiSeedInd = 2
-noiseSeedInd = 3
-poissonSeedInd = 4
-
-phiSeed = (0, 0, 2, i)
-cmbSeed = (set, 0, 0, i)
-fgseed = (set, 0, 1, i)
-
-"""
 
 
 class SimGen(object):
@@ -87,7 +73,7 @@ class SimGen(object):
         # array = None if (array is not None) and (freq is not None) else '{}_{}'.format(array, freq)   
         patch_id = None
         if mask_patch is not None: patch_id = int(mask_patch[-3:]) # handle s16 patches
-        seed = (set_idx, 0, 3, sim_num) + self.noise_gen.dm.get_noise_sim_seed(season,patch,array,patch_id)
+        seed = seedgen.get_noise_seed(set_idx, sim_num, self.noise_gen.dm, season, patch, array, patch_id)
         return self._footprint(self.noise_gen.generate_sim(season,patch,array,seed=seed,mask_patch=mask_patch,apply_ivar=apply_ivar))
 
     def get_sim(self,season,patch,array,sim_num, save_alm=True, save_map=False, set_idx=0,mask_patch=None,fgflux="15mjy"):

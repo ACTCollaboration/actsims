@@ -2,7 +2,7 @@
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-
+from actsims.util import SEED_TRACKER as seedgen
 
 import sys
 sys.path.append('../../')
@@ -23,7 +23,6 @@ print('hacking paths--remove this after merging to master')
 # from actsims import simTools
 
 sys.path.append('../actsims/')
-import simTools
 
 
 # p = flipper.flipperDict.flipperDict()
@@ -82,9 +81,8 @@ for cmbSet in range(p['START_SET'], p['STOP_SET']):
             ', iMin', iMin, ', iMax', iMax, 'calling lensing.rand_map', time.time() - start)
 
         #Turn this off for now as the interpol routine is not compiling for me ATM
-        phiSeed = (0, 0, simTools.phiSeedInd, iii)
-        cmbSeed = (cmbSet, 0, simTools.cmbSeedInd, iii)
-
+        phiSeed = seedgen.get_phi_seed(iii)
+        cmbSeed = seedgen.get_cmb_seed(cmbSet, iii)
 
         uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
                                                           phi_seed = phiSeed,

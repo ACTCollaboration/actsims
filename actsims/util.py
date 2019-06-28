@@ -3,6 +3,49 @@
 #-
 import os,sys, numpy as np
 from collections import OrderedDict
+from soapack import interfaces as dmint
+
+class _SeedTracker(object):
+    def __init__(self):
+        self.CMB     = 0
+        self.FG      = 1
+        self.PHI     = 2
+        self.NOISE   = 3
+        self.POISSON = 4
+
+        self.fgdict  = {'15mjy': 0, '100mjy': 1, 'srcfree': 2}
+        self.dmdict  = {'act_mr3':0,'act_c7v5':1,'planck_hybrid':2}
+    def get_cmb_seed(self, set_idx, sim_idx):
+        return (set_idx, 0, self.CMB, sim_idx)
+
+    def get_fg_seed(self, set_idx, sim_idx, fg_type):
+        assert(fg_type in self.fgdict.keys())
+        return (set_idx, 0, self.FG, sim_idx, self.fgdict[fg_type])
+
+    def get_phi_seed(self, sim_idx):
+        return (0, 0, self.PHI, sim_idx)
+
+    def get_noise_seed(self, set_idx, sim_idx, data_model, season, patch, array, patch_id=None):
+        ret = (set_idx, 0, self.NOISE, sim_idx)
+        dm  = data_model
+        
+        assert(dm.name in self.dmdict.keys())
+        sid =  dm.seasons.index(season) if dm.seasons is not None else 0
+        pid =  dm.patches.index(patch) if dm.patches is not None else 0
+        aid = list(dm.array_freqs.keys()).index(array)
+        ret = ret + (self.dmdict[dm.name],sid,pid,aid)
+        if patch_id is not None:
+            ret = ret + (patch_id,)
+        return ret
+
+    def get_poisson_seed(self, set_idx, sim_idx):
+        return (set_idx, 0, self.POISSON, sim_idx)
+
+seed_tracker = _SeedTracker()
+
+
+#########################
+
 
 def is_empty(s):
     '''
