@@ -103,6 +103,14 @@ class SimGen(object):
         assert wcsutils.equal(owcs,noises.wcs)
         return self._footprint(noise.apply_ivar_window(signals + noises,ivars))
 
+class MockSimGen(SimGen):
+    def __init__(self, version, model="act_mr3", cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, extract_region = None,  extract_region_shape = None, extract_region_wcs = None, eulers=None):
+        super(MockSimGen, self).__init__(version=version, model=model, cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds,
+                 apply_window=apply_window, max_cached=max_cached, 
+                 extract_region = extract_region, extract_region_shape = extract_region_shape, extract_region_wcs = extract_region_wcs)
+
+        self.signal_gen = signal.MockSignalGen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model)
+
 def get_default_geometry(version, season, patch, array, freq, model='act_mr3'):
     noise_gen  = noise.NoiseGen(version=version,model=model,ncache=1,verbose=False)
     oshape,owcs = noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=None,get_geometry=True)
