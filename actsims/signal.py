@@ -220,6 +220,7 @@ class SignalGen(object):
     def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, fgflux="15mjy",  alm_file_postfix=''):
         # note: beam is set to false
         print("loading alm base")
+        #cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, 0, alm_file_postfix))
         cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, sim_idx, alm_file_postfix))
         print("loading %s" %cmb_file)
         alm_signal = np.complex128(hp.fitsfunc.read_alm(cmb_file, hdu = (1,2,3))) 
@@ -449,19 +450,29 @@ class Sehgal09Gen(SignalGen):
         
     def load_alm_fg(self, set_idx, sim_idx, fgflux='sehgal09'):
         print("loading fg alm") 
-        alm_file_postfix = '' if self.eulers == (0,0,0) else '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
-        fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, 0, alm_file_postfix))
-        print fg_file_temp
-        #alm_fg090    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%90), hdu = (1))) 
-        
-        alm_fg090    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%90), hdu = (1))) 
-        alm_fg150    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%148), hdu = (1))) 
-        alm_fg90_150 = np.stack([alm_fg090, alm_fg150]) 
+        alm_fg90_150 = None
+        if fgflux == 'sehgal09':
+            alm_file_postfix = '' if self.eulers == (0,0,0) else '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
+            #fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, 0, alm_file_postfix))
+            fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, set_idx, alm_file_postfix))
+            print fg_file_temp
+            
+            alm_fg090    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%90), hdu = (1))) 
+            alm_fg150    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%148), hdu = (1))) 
+            alm_fg90_150 = np.stack([alm_fg090, alm_fg150]) 
+        elif fgflux == 'sehgal09_gauss':
+            ## generate GRF FGs matching sehgal09 flux
+            fg_file      = os.path.join(actsim_root, '../data/Sehgal09FG_nodust_15mJycut.dat')
+            seed         = (set_idx, 0, 1, sim_idx, 0) 
+            fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
+            alm_fg90_150 = curvedsky.rand_alm_healpy(fg_power, seed = seed)
+        else:
+            assert(False)
         return alm_fg90_150
     
-    def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, fgflux="15mjy", alm_file_postfix=''):
+    def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, fgflux="sehgal09", alm_file_postfix=''):
         if self.eulers != (0,0,0): alm_file_postfix = '{}_rot_{}_{}_{}'.format(alm_file_postfix, self.eulers[0], self.eulers[1], self.eulers[2])
-        return super(Sehgal09Gen, self).load_alms_base(set_idx, sim_idx, cache=cache, fg_override=fg_override, ret_alm=ret_alm, alm_file_postfix=alm_file_postfix, fgflux='sehgal09')
+        return super(Sehgal09Gen, self).load_alms_base(set_idx, sim_idx, cache=cache, fg_override=fg_override, ret_alm=ret_alm, alm_file_postfix=alm_file_postfix, fgflux=fgflux)
 
 
     def __get_lens_potential_sim__(self, patch, set_idx, sim_num, oshape, owcs, mode='phi', save_alm=False):
