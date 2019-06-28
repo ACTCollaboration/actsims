@@ -4,7 +4,7 @@ from soapack import interfaces as sints
 import healpy as hp
 import warnings
 from collections import OrderedDict as ODict
-
+from actsims.util import seed_tracker as seedgen
 actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
@@ -308,14 +308,16 @@ class SignalGen(object):
     
     def load_alm_fg(self, set_idx, sim_idx, fgflux):
         print("loading fg alm")
+        
+        seed = seedgen.get_fg_seed(set_idx, sim_idx, fgflux)
         if fgflux == "15mjy":
             print("loading FG with 15mJy fluxcut")
-            seed         = (set_idx, 0, 1, sim_idx, 0) # need to unify sim seed structure!
             fg_file      = os.path.join(actsim_root, '../data/fg.dat')
         elif fgflux=="100mjy":
             print("loading FG with 100mJy fluxcut")
-            seed         = (set_idx, 0, 1, sim_idx, 1)
             fg_file      = os.path.join(actsim_root, '../data/highflux_fg.dat')
+        else:
+            assert(False) ### :o
         fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
         alm_fg90_150 = curvedsky.rand_alm_healpy(fg_power, seed = seed)#, lmax=lmax_sg)
         return alm_fg90_150
@@ -374,13 +376,11 @@ class SignalGen(object):
         #ideally this RNG stuff would be defined in a central place to
         #avoid RNG collisions.  Old version is currently commented out at top of
         #simgen.py
-        poissonSeedInd = 4
-        poissonSeed = (set_idx, 0, poissonSeedInd, sim_num)
-
         templ = self.get_template(patch, shape = oshape, wcs = owcs)
         
         templ[:] = 0
-        np.random.seed(seed = poissonSeed)
+        seed = seedgen.get_poisson_seed(set_idx, sim_num)
+        np.random.seed(seed = seed)
 
         #Wasn't sure how to codify this stuff outside this routine - hardcoded for now
         S_min_Jy = .001
