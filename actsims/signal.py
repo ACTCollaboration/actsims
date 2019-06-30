@@ -92,10 +92,12 @@ class SignalGen(object):
             alm_patch = self.alms_patch[signal_idx].copy()
         else:
             freq_idx  = 0 if freq == 'f090' else 1
+
+            alm_patch = None
             if base_alm_idx not in self.alms_base:
-                self.load_alms_base(set_idx, sim_num, fgflux=fgflux) 
+                self.load_alms_base(set_idx, sim_num, fgflux=fgflux)         
+                alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
                 self.manage_cache(self.alms_base, self.max_cached)
-            alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
             if add_poisson_srcs: 
                 alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape, oshape=oshape, owcs=owcs)
             if self.dobeam:
