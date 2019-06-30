@@ -324,11 +324,13 @@ class SignalGen(object):
         return alm_fg90_150
     
     def get_template(self, patch, shape, wcs):
+        template = None
         if patch not in self.templates:
             self.templates[patch] = enmap.empty((3,) + shape[-2:], wcs) 
+            template = self.templates[patch].copy()
             self.manage_cache(self.templates, self.max_cached) 
         else: pass
-        return self.templates[patch].copy()
+        return template
 
     def manage_cache(self, odict, max_cached=None):
         if max_cached is None: max_cached = self.max_cached
