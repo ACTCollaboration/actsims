@@ -93,8 +93,8 @@ class SignalGen(object):
         else:
             freq_idx  = 0 if freq == 'f090' else 1
             if base_alm_idx not in self.alms_base:
-                self.manage_cache(self.alms_base, self.max_cached-1)
-                self.load_alms_base(set_idx, sim_num, fgflux=fgflux)
+                self.load_alms_base(set_idx, sim_num, fgflux=fgflux) 
+                self.manage_cache(self.alms_base, self.max_cached)
             alm_patch = self.alms_base[base_alm_idx][freq_idx].copy()
             if add_poisson_srcs: 
                 alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape, oshape=oshape, owcs=owcs)
@@ -103,9 +103,8 @@ class SignalGen(object):
                 alm_patch = self.__apply_beam__(alm_patch, season, patch, array, freq)
             else: pass
             if save_alm: 
-                self.manage_cache(self.alms_patch, self.max_cached-1) 
-                self.alms_patch[signal_idx] = alm_patch.copy()
-        
+                self.alms_patch[signal_idx] = alm_patch.copy() 
+                self.manage_cache(self.alms_patch, self.max_cached) 
         return self.__signal_postprocessing__(patch, signal_idx, alm_patch, save_map=save_map,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
  
     def get_cmb_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False ):
@@ -127,9 +126,8 @@ class SignalGen(object):
                 alm_cmb = self.__apply_beam__(alm_cmb, season, patch, array, freq)
             else: pass
             if save_alm: 
-                self.manage_cache(self.alms_cmb, self.max_cached-1) 
                 self.alms_cmb[signal_idx] = alm_cmb.copy()
-
+                self.manage_cache(self.alms_cmb, self.max_cached) 
         return self.__signal_postprocessing__(patch, signal_idx, alm_cmb, save_map=False,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
 
 
@@ -155,9 +153,8 @@ class SignalGen(object):
                 alm_fg = self.__apply_beam__(alm_fg, season, patch, array, freq)
             else: pass
             if save_alm: 
-                self.manage_cache(self.alms_fg, self.max_cached-1) 
                 self.alms_fg[signal_idx] = alm_fg.copy()
-
+                self.manage_cache(self.alms_fg, self.max_cached) 
         return self.__signal_postprocessing__(patch, signal_idx, alm_fg, save_map=False,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
         
     def get_phi_sim(self, patch, set_idx, sim_num, oshape, owcs, save_alm=False):
@@ -179,9 +176,8 @@ class SignalGen(object):
         else:
             alm_lenp = loader_func(set_idx, sim_num, cache=False, ret_alm=True)
             if save_alm: 
-                self.manage_cache(alms_lenp, self.max_cached-1) 
                 alms_lenp[lenp_idx] = alm_lenp.copy()
-
+                self.manage_cache(alms_lenp, self.max_cached) 
         return self.__signal_postprocessing__(patch, lenp_idx, alm_lenp, save_map=False, oshape=oshape,owcs=owcs, apply_window=False)
 
     def __apply_beam__(self, alm_patch, season, patch, array, freq):
@@ -211,8 +207,8 @@ class SignalGen(object):
                 del kmap
 
         if save_map: 
-            self.manage_cache(self.signals, self.max_cached-1)
             self.signals[signal_idx] = signal.copy()
+            self.manage_cache(self.signals, self.max_cached)
         return signal
 
 
@@ -324,8 +320,8 @@ class SignalGen(object):
     
     def get_template(self, patch, shape, wcs):
         if patch not in self.templates:
-            self.manage_cache(self.templates, self.max_cached-1) 
-            self.templates[patch] = enmap.empty((3,) + shape[-2:], wcs)
+            self.templates[patch] = enmap.empty((3,) + shape[-2:], wcs) 
+            self.manage_cache(self.templates, self.max_cached) 
         else: pass
         return self.templates[patch].copy()
 
