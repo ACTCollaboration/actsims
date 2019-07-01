@@ -15,8 +15,8 @@ class SignalGen(object):
         ncache: The number of 
 
         """
-        warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
-        max_cached = 0
+        #warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
+        #max_cached = 0
 
         self.data_model = sints.models[model]()
         self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
@@ -330,7 +330,8 @@ class SignalGen(object):
             self.templates[patch] = enmap.empty((3,) + shape[-2:], wcs) 
             template = self.templates[patch].copy()
             self.manage_cache(self.templates, self.max_cached) 
-        else: pass
+        else: 
+            template = self.templates[patch].copy()
         return template
 
     def manage_cache(self, odict, max_cached=None):
