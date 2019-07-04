@@ -37,3 +37,4 @@ extract_region = enmap.zeros(shape, wcs)
 SG      = signal.SignalGen(extract_region=extract_region)
 cmbmaps = SG.get_cmb_sim('s15', 'pa3', 'deep56', 'f090', 0, 0)
 make_plots('cmb_ext2', cmbmaps)
+'''
