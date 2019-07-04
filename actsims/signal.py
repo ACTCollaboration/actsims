@@ -16,8 +16,8 @@ class SignalGen(object):
         model: The name of an implemented soapack datamodel
         ncache: The number of 
         """
-        #warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
-        #max_cached = 0
+        warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
+        max_cached = 0
 
         self.data_model = sints.models[model]()
         self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
@@ -222,7 +222,7 @@ class SignalGen(object):
         # note: beam is set to false
         print("loading alm base")
         #cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, 0, alm_file_postfix))
-        cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, 0, alm_file_postfix))
+        cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, 0, 0, alm_file_postfix))
         print("loading %s" %cmb_file)
         alm_signal = np.complex128(hp.fitsfunc.read_alm(cmb_file, hdu = (1,2,3))) 
 
