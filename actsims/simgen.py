@@ -80,10 +80,10 @@ class SimGen(object):
         shape,wcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
         # (nfreqs,nsplits,npol,Ny,Nx)
         noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=sim_num,mask_patch=mask_patch,set_idx=set_idx,apply_ivar=False)
+        #noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=0,mask_patch=mask_patch,set_idx=set_idx,apply_ivar=False)
         afreqs = self.noise_gen.dm.array_freqs[array]
         signals = []
         for afreq in afreqs:
-
             # This could be improved
             if self.model=='act_mr3': pfreq = afreq.split('_')[1] 
             elif self.model=='planck_hybrid': 
@@ -115,3 +115,12 @@ def get_default_geometry(version, season, patch, array, freq, model='act_mr3'):
     noise_gen  = noise.NoiseGen(version=version,model=model,ncache=1,verbose=False)
     oshape,owcs = noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=None,get_geometry=True)
     return (oshape, owcs)
+
+class Sehgal09Gen(SimGen):
+    def __init__(self, version, model="act_mr3", cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, extract_region = None,  extract_region_shape = None, extract_region_wcs = None, eulers=None):
+        super(Sehgal09Gen, self).__init__(version=version, model=model, cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds,
+                 apply_window=apply_window, max_cached=max_cached, 
+                 extract_region = extract_region, extract_region_shape = extract_region_shape, extract_region_wcs = extract_region_wcs)
+
+        self.signal_gen = signal.Sehgal09Gen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model,  eulers=eulers)
+
