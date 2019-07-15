@@ -104,30 +104,6 @@ class SimGen(object):
         assert wcsutils.equal(owcs,noises.wcs)
         return self._footprint(noise.apply_ivar_window(signals + noises,ivars))
 
-class MockSimGen(SimGen):
-    def __init__(self, version, model="act_mr3", cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, extract_region = None,  extract_region_shape = None, extract_region_wcs = None, eulers=None):
-        super(MockSimGen, self).__init__(version=version, model=model, cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds,
-                 apply_window=apply_window, max_cached=max_cached, 
-                 extract_region = extract_region, extract_region_shape = extract_region_shape, extract_region_wcs = extract_region_wcs)
-
-        self.signal_gen = signal.MockSignalGen(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model)
-
-    def get_sim(self,season,patch,array,sim_num, save_alm=True, save_map=False, set_idx=0,mask_patch=None,fgflux="15mjy", pfreq='f150'):
-        shape,wcs = self.noise_gen.load_covsqrt(season,patch,array,coadd=True,mask_patch=mask_patch,get_geometry=True)
-        # (nfreqs,nsplits,npol,Ny,Nx)
-        noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=sim_num,mask_patch=mask_patch,set_idx=set_idx,apply_ivar=False)
-        #noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=0,mask_patch=mask_patch,set_idx=set_idx,apply_ivar=False)
-        signals = []
-
-        imap = self.get_signal(season, patch, array, pfreq, sim_num, save_alm=save_alm, save_map=save_map, set_idx=set_idx,oshape=shape,owcs=wcs,fgflux=fgflux)
-        signals.append(imap)
-        owcs = imap.wcs
-        # (nfreqs,npol,Ny,Nx)
-        signals = enmap.enmap(np.stack(signals),owcs)[:,None,...]
-        del imap
-        assert wcsutils.equal(wcs,noises.wcs)
-        assert wcsutils.equal(owcs,noises.wcs)
-        return self._footprint(noise.apply_ivar_window(signals + noises,ivars))
 
 def get_default_geometry(version, season, patch, array, freq, model='act_mr3'):
     noise_gen  = noise.NoiseGen(version=version,model=model,ncache=1,verbose=False)

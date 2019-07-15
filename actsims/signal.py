@@ -422,21 +422,6 @@ class SignalGen(object):
         output = curvedsky.map2alm(templ[0], lmax = hp.Alm.getlmax(alm_shape[0]))
 
         return output
-                           
-class MockSignalGen(SignalGen):
-    ## all the good stuff of SignalGen + Mock s14 D6 channel for testing
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None):
-        super(MockSignalGen, self).__init__(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model,\
-                                apply_rotation=apply_rotation, alpha_map=alpha_map)
-
-        self.supported_sims.append('s13_deep6_pa1_f090')
-
-    def __apply_beam__(self, alm_patch, season, patch, array, freq):
-        # bait and switch
-        spaf_idx = self.__combine_idxes__(season, patch, array, freq)
-        if spaf_idx == 's13_deep6_pa1_f090':
-            freq = 'f150'
-        return super(MockSignalGen,self).__apply_beam__(alm_patch, season, patch, array, freq)
 
 
 class Sehgal09Gen(SignalGen):
