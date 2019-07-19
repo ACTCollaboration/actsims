@@ -37,21 +37,76 @@ def is_hfi(array):
     else:
         return ValueError    
 
+
+def load_spec(patch,a1,a2):
+    def _load_spec(a1,a2):
+        try:
+            aseason1,aarray1 = a1
+            str1 = "%s_%s" % (aseason1,aarray1)
+        except:
+            pfreq1 = a1
+            str1 = "%s" % pfreq1
+        try:
+            aseason2,aarray2 = a2
+            str2 = "%s_%s" % (aseason2,aarray2)
+        except:
+            pfreq2 = a2
+            str2 = "%s" % pfreq2
+        fname = "/scratch/r/rbond/msyriac/data/depot/actsims/spectra/spec%s_%s_%s_%s.txt" % (fftstr,patch,str1,str2)
+        ls,Cls = np.loadtxt(fname,unpack=True)
+        return ls,Cls
+    try:
+        return _load_spec(a1,a2)
+    except:
+        return _load_spec(a2,a1)
+
+pfreqs = ['030','044','070','100','143','217','353','545']
+fftstr = "_fft"
+
 class Spec(object):
     def __init__(self,loc='./data/spectra/'):
-        with open(loc+'Planck_Planck.pickle', 'rb') as handle:
-            self.pdict = pickle.load(handle)
-        with open(loc+'ACT_ACT.pickle', 'rb') as handle:
-            self.adict = pickle.load(handle)            
-        with open(loc+'ACT_planck.pickle', 'rb') as handle:
-            self.apdict = pickle.load(handle)
 
-        croot = "/home/msyriac/data/act/theory/cosmo2017_10K_acc3"
+
+        # with open(loc+'Planck_Planck.pickle', 'rb') as handle:
+        #     self.pdict = pickle.load(handle)
+        # with open(loc+'ACT_ACT.pickle', 'rb') as handle:
+        #     self.adict = pickle.load(handle)            
+        # with open(loc+'ACT_planck.pickle', 'rb') as handle:
+        #     self.apdict = pickle.load(handle)
+
+        self.pdict = {}
+        self.apdict = {}
+        self.adict = {}
+        for patch in ['deep56','boss']:
+            for i in range(len(pfreqs)):
+                for j in range(i,len(pfreqs)):
+                    array1 = pfreqs[i]
+                    array2 = pfreqs[j]
+                    self.pdict[patch,array1,array2] = load_spec(patch,array1,array2)
+
+        acts = {'boss':{'s15':['pa1_f150','pa2_f150','pa3_f090','pa3_f150']},'deep56':{'s14':['pa1_f150','pa2_f150'],'s15':['pa1_f150','pa2_f150','pa3_f090','pa3_f150']}}
+
+        for patch in ['deep56','boss']:
+            combs = []
+            for season in acts[patch].keys():
+                for array in acts[patch][season]:
+                    combs.append((season,array))
+            ncombs = len(combs)
+            for i in range(ncombs):
+                season1,array1 = combs[i]
+                for k in range(len(pfreqs)):
+                    self.apdict[patch,pfreqs[k],season1,array1] = load_spec(patch,pfreqs[k],(season1,array1))
+                for j in range(i,ncombs):
+                    season2,array2 = combs[j]
+                    self.adict[patch,season1,array1,season2,array2] = load_spec(patch,(season1,array1),(season2,array2))
+
+
+
+        croot = "data/cosmo2017_10K_acc3"
         self.theory = cosmology.loadTheorySpectraFromCAMB(croot,get_dimensionless=False)
 
         import pandas as pd
         self.adf = pd.read_csv("./data/spectra/wnoise.csv")
-
         # 545 and 857 are wrong
         self.planck_rms = {'030':195,'044':226,'070':199,'100':77,'143':33,'217':47,'353':153,'545':1000,'857':1000}
 
