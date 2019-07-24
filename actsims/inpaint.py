@@ -6,7 +6,27 @@ from soapack import interfaces as sints
 import os,sys
 from enlib import bench
 
-def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 20,hole_radius = 3.,plots=False):
+def _get_temp_root_dir():
+   try:
+       return dconfig['actsims']['temp_path']
+   except:
+       print("Error: Key temp_path not found in actsims section of ~/.soapack.yml. Please add this key and point it to the directory where you wish to hold temporary actsims files.")
+       raise KeyError
+
+def load_cached_inpaint_geometries(cache_name):
+    rootdir = _get_temp_root_dir() + cache_name
+    assert os.path.exists(rootdir)
+    
+    
+    pass
+
+def save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts):
+    rootdir = _get_temp_root_dir() + cache_name
+    assert not(os.path.exists(rootdir))
+    os.mkdir(rootdir)
+    
+    
+def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 20,hole_radius = 3.,plots=False,cache_name=None):
     """
 
     Inpaints a map under the assumption of inhomogenous but white uncorrelated instrument noise.
@@ -17,36 +37,46 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 2
     imap -- (npol,Ny,Nx)
     ivar -- (Ny,Nx)
     fn_beam -- lambda ells: beam(ells)
+    cache_name -- a unique string identifying the catalog+map/array/frequency/split combination to/from which the geometries are cached
     """
 
-    ras,decs = sints.get_act_mr3f_union_sources(version=union_sources_version)
-    cmb_theory_fn = lambda s,l: cosmology.default_theory().lCl(s,l)
+    cache_name = cache_name + "_catversion_%s" % union_sources_version
+    if cache_name is not None:
+        try:
+            ras,decs,gtags,pcoords,gdicts = load_cached_inpaint_geometries(cache_name)
+            do_geoms = False
+            print("actsims.inpaint: loaded cached geometries for ", cache_name)
+        except:
+            print("actsims.inpaint: no cached geometries found for ", cache_name, ". Generating and saving...")
+            do_geoms = True
+    else:
+        do_geoms = True
 
-    gtags = []
-    gdicts = {}
-    pcoords = []
-    for i,(ra,dec) in enumerate(zip(ras,decs)):
-        sel = reproject.cutout(ivar, ra=np.deg2rad(ra), dec=np.deg2rad(dec), pad=1, corner=False,npix=noise_pix,return_slice=True)
-        if sel is None: continue
-        civar = ivar[sel]
-        if np.any(civar<=0): continue
-        modrmap = civar.modrmap()
-        modlmap = civar.modlmap()
-        res = maps.resolution(civar.shape,civar.wcs)
-        cimap = imap[sel]
-        print("Inpainting: built noise model for source ",i," / ",len(ras))
-        if plots: 
-            for p in range(3): io.plot_img(cimap[p],os.environ['WORK']+"/cimap_%d_%s" % (p,str(i).zfill(2)))
-            mimap = cimap.copy()
-            mimap[...,modrmap<np.deg2rad(hole_radius/60.)] = np.nan
-            for p in range(3): io.plot_img(mimap[p],os.environ['WORK']+"/masked_cimap_%d_%s" % (p,str(i).zfill(2)))
-        
-        scov = pixcov.scov_from_theory(modlmap,cmb_theory_fn,fn_beam,iau=False)
-        ncov = pixcov.ncov_from_ivar(civar)
-        pcov = scov + ncov
-        gdicts[i] = pixcov.make_geometry(hole_radius=np.deg2rad(hole_radius/60.),n=noise_pix,deproject=True,iau=False,pcov=pcov,res=res)
-        pcoords.append(np.array((dec,ra)))
-        gtags.append(i)
+    if do_geoms:
+        ras,decs = sints.get_act_mr3f_union_sources(version=union_sources_version)
+        cmb_theory_fn = lambda s,l: cosmology.default_theory().lCl(s,l)
+        gtags = []
+        gdicts = {}
+        pcoords = []
+        for i,(ra,dec) in enumerate(zip(ras,decs)):
+            sel = reproject.cutout(ivar, ra=np.deg2rad(ra), dec=np.deg2rad(dec), pad=1, corner=False,npix=noise_pix,return_slice=True)
+            if sel is None: continue
+            civar = ivar[sel]
+            if np.any(civar<=0): continue
+            modrmap = civar.modrmap()
+            modlmap = civar.modlmap()
+            res = maps.resolution(civar.shape,civar.wcs)
+            cimap = imap[sel]
+            print("actsims.inpaint: built noise model for source ",i," / ",len(ras))
+            scov = pixcov.scov_from_theory(modlmap,cmb_theory_fn,fn_beam,iau=False)
+            ncov = pixcov.ncov_from_ivar(civar)
+            pcov = scov + ncov
+            gdicts[i] = pixcov.make_geometry(hole_radius=np.deg2rad(hole_radius/60.),n=noise_pix,deproject=True,iau=False,pcov=pcov,res=res)
+            pcoords.append(np.array((dec,ra)))
+            gtags.append(i)
+        if cache_name is not None:
+            save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts)
+            print("actsims.inpaint: cached geometries for ",cache_name)
 
     if len(gtags)>0: 
         pcoords = np.stack(pcoords).swapaxes(0,1)
@@ -61,10 +91,13 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 2
             modrmap = civar.modrmap()
             modlmap = civar.modlmap()
             res = maps.resolution(civar.shape,civar.wcs)
+            cimap = imap[sel]
+            for p in range(3): io.plot_img(cimap[p],os.environ['WORK']+"/cimap_%d_%s" % (p,str(i).zfill(2)))
+            mimap = cimap.copy()
+            mimap[...,modrmap<np.deg2rad(hole_radius/60.)] = np.nan
+            for p in range(3): io.plot_img(mimap[p],os.environ['WORK']+"/masked_cimap_%d_%s" % (p,str(i).zfill(2)))
             cimap = result[sel]
-            print("Inpainted ", ra,dec)
-            if plots: 
-                for p in range(3): io.plot_img(cimap[p],os.environ['WORK']+"/inpainted_cimap_%d_%s" % (p,str(i).zfill(2)))
+            for p in range(3): io.plot_img(cimap[p],os.environ['WORK']+"/inpainted_cimap_%d_%s" % (p,str(i).zfill(2)))
 
     return result
 
