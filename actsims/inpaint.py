@@ -7,23 +7,53 @@ import os,sys
 from enlib import bench
 
 def _get_temp_root_dir():
-   try:
-       return dconfig['actsims']['temp_path']
-   except:
-       print("Error: Key temp_path not found in actsims section of ~/.soapack.yml. Please add this key and point it to the directory where you wish to hold temporary actsims files.")
-       raise KeyError
+    try:
+        return sints.dconfig['actsims']['temp_path']
+    except KeyError:
+        print("Error: Key temp_path not found in actsims section of ~/.soapack.yml. Please add this key and point it to the directory where you wish to hold temporary actsims files.")
+        raise KeyError
+
+def _get_radec_filename(rootdir):
+    return rootdir + "/all_ra_dec.txt"
+
+def _get_pcoords_filename(rootdir):
+    return rootdir + "/pcoords.npy"
+
+def _get_gtags_filename(rootdir):
+    return rootdir + "/gtags.npy"
+
+def _get_gdicts_filename(rootdir,key,item):
+    return rootdir + "/gdicts_%d_%s.npy" % (key,item)
 
 def load_cached_inpaint_geometries(cache_name):
     rootdir = _get_temp_root_dir() + cache_name
     assert os.path.exists(rootdir)
     
-    
-    pass
+    ras,decs = np.loadtxt(_get_radec_filename(rootdir),unpack=True)
+    pcoords = np.load(_get_pcoords_filename(rootdir))
+    gtags = np.load(_get_gtags_filename(rootdir))
+    gdicts = {}
+    for key in gtags:
+        gdicts[key] = {}
+        for item in ['covsqrt','hole_radius','m1','m2','meanmul','ncomp','n','res']:
+            gdicts[key][item] = np.load(_get_gdicts_filename(rootdir,key,item))
+
+
+    return ras,decs,gtags,pcoords,gdicts
 
 def save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts):
     rootdir = _get_temp_root_dir() + cache_name
     assert not(os.path.exists(rootdir))
     os.mkdir(rootdir)
+    
+    io.save_cols(_get_radec_filename(rootdir),(ras,decs))
+    np.save(_get_pcoords_filename(rootdir),pcoords)
+    np.save(_get_gtags_filename(rootdir),gtags)
+
+    for key in gdicts.keys():
+        gd = gdicts[key]
+        for item in gd.keys():
+            np.save(_get_gdicts_filename(rootdir,key,item),gdicts[key][item])
     
     
 def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 20,hole_radius = 3.,plots=False,cache_name=None):
@@ -39,7 +69,7 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 2
     fn_beam -- lambda ells: beam(ells)
     cache_name -- a unique string identifying the catalog+map/array/frequency/split combination to/from which the geometries are cached
     """
-
+   
     cache_name = cache_name + "_catversion_%s" % union_sources_version
     if cache_name is not None:
         try:
@@ -74,13 +104,13 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 2
             gdicts[i] = pixcov.make_geometry(hole_radius=np.deg2rad(hole_radius/60.),n=noise_pix,deproject=True,iau=False,pcov=pcov,res=res)
             pcoords.append(np.array((dec,ra)))
             gtags.append(i)
+        if len(gtags)>0: 
+            pcoords = np.stack(pcoords).swapaxes(0,1)
         if cache_name is not None:
             save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts)
             print("actsims.inpaint: cached geometries for ",cache_name)
 
-    if len(gtags)>0: 
-        pcoords = np.stack(pcoords).swapaxes(0,1)
-        result = pixcov.inpaint(imap,pcoords,deproject=True,iau=False,geometry_tags=gtags,geometry_dicts=gdicts,verbose=True)
+    if len(gtags)>0: result = pixcov.inpaint(imap,pcoords,deproject=True,iau=False,geometry_tags=gtags,geometry_dicts=gdicts,verbose=True)
 
     if plots:
         for i,(ra,dec) in enumerate(zip(ras,decs)):
@@ -98,7 +128,7 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 2
             for p in range(3): io.plot_img(mimap[p],os.environ['WORK']+"/masked_cimap_%d_%s" % (p,str(i).zfill(2)))
             cimap = result[sel]
             for p in range(3): io.plot_img(cimap[p],os.environ['WORK']+"/inpainted_cimap_%d_%s" % (p,str(i).zfill(2)))
-
+            
     return result
 
 
