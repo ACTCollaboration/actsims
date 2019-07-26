@@ -188,7 +188,8 @@ class SignalGen(object):
     def __apply_beam__(self, alm_patch, season, patch, array, freq):
         lmax      = hp.Alm.getlmax(alm_patch.shape[-1])
         l_beam    = np.arange(0, lmax+100, dtype=np.float)
-        beam_data = self.data_model.get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq) 
+        # NEVER SANITIZE SIMULATED BEAM!!! 
+        beam_data = self.data_model.get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq,sanitize=False) 
         
         for idx in range(alm_patch.shape[0]):
             alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
