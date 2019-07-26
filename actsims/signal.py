@@ -16,8 +16,8 @@ class SignalGen(object):
         model: The name of an implemented soapack datamodel
         ncache: The number of 
         """
-        warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
-        max_cached = 0
+        #warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
+        #max_cached = 0
 
         self.data_model = sints.models[model]()
         self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
@@ -317,6 +317,9 @@ class SignalGen(object):
         elif fgflux=="100mjy":
             print("loading FG with 100mJy fluxcut")
             fg_file      = os.path.join(actsim_root, '../data/highflux_fg.dat')
+        elif fgflux=="quick-srcfree":
+            print("loading FG with srcfree fg")
+            fg_file      = os.path.join(actsim_root, '../data/quick_srcfree_combined_d56.dat')
         else:
             assert(False) ### :o
         fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
@@ -419,6 +422,7 @@ class SignalGen(object):
         output = curvedsky.map2alm(templ[0], lmax = hp.Alm.getlmax(alm_shape[0]))
 
         return output
+
 
 class Sehgal09Gen(SignalGen):
     # Switching out act baseline cmb and fg sims with Sehgal 09 sims with following modifications
