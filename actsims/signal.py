@@ -460,7 +460,7 @@ class Sehgal09Gen(SignalGen):
             alm_file_postfix = '' if self.eulers == (0,0,0) else '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
             #fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, 0, alm_file_postfix))
             fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, set_idx, alm_file_postfix))
-            print fg_file_temp
+            print (fg_file_temp)
             
             alm_fg090    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%90), hdu = (1))) 
             alm_fg150    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%148), hdu = (1))) 

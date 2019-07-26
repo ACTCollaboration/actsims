@@ -63,11 +63,11 @@ class NoiseGen(object):
                 self._icache[ikey] = ivars
         return covsqrt,ivars
         
-    def generate_sim(self,season=None,patch=None,array=None,seed=None,mask_patch=None,apply_ivar=True):
+    def generate_sim(self,season=None,patch=None,array=None,seed=None,mask_patch=None,apply_ivar=True,ext_signal=0):
         covsqrt,ivars = self.load_covsqrt(season=season,patch=patch,array=array,mask_patch=mask_patch)
         sims,ivars = generate_noise_sim(covsqrt,ivars,seed=seed,dtype=self.dm.dtype)
         if apply_ivar: 
-            sims = apply_ivar_window(sims,ivars)
+            sims = apply_ivar_window(ext_signal+sims,ivars)
             return sims
         else:
             return sims,ivars

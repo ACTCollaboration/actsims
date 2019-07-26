@@ -8,6 +8,16 @@ from szar import foregrounds as fgs
 import soapack.interfaces as sints
 
 
+def physical_fit(ells):
+    """
+    We use a physically motivated fitting function.
+    This will be 
+    1. cibc with amplitude and index free
+    2. cibp with amplitude and index free
+    3. 
+    """
+
+
 def plaw(ells,a1,a2,a3,e1,e2,e3,b,ellp):
     return a1*(ells/ellp)**e1 + a2*(ells/ellp)**e2 + a3*(ells/ellp)**e3 + b
 
