@@ -218,7 +218,8 @@ def generate_noise_sim(covsqrt,ivars,seed=None,dtype=None):
     # outmaps = enmap.ifft(kmap, normalize="phys").real
 
     # isivars = 1/np.sqrt(wmaps)
-    isivars   = ((1./wmaps) - (1./wmaps.sum(axis=1)[:,None,...]))**0.5
+    with np.errstate(divide='ignore',invalid='ignore'): 
+        isivars   = ((1./wmaps) - (1./wmaps.sum(axis=1)[:,None,...]))**0.5
     isivars[~np.isfinite(isivars)] = 0
     
     assert np.all(np.isfinite(outmaps))
