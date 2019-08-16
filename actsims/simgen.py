@@ -82,6 +82,7 @@ class SimGen(object):
         noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=0,mask_patch=mask_patch,set_idx=0,apply_ivar=False)
         #noises,ivars = self.get_noise(season=season,patch=patch,array=array, sim_num=0,mask_patch=mask_patch,set_idx=set_idx,apply_ivar=False)
         afreqs = self.noise_gen.dm.array_freqs[array]
+        #afreqs  = ['pa1_f090', 'pa1_f150'] 
         signals = []
         for afreq in afreqs:
             # This could be improved

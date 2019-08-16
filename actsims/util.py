@@ -12,9 +12,13 @@ class _SeedTracker(object):
         self.PHI     = 2
         self.NOISE   = 3
         self.POISSON = 4
+        self.COMPTONY = 5
 
-        self.fgdict  = {'15mjy': 0, '100mjy': 1, 'srcfree': 2}
+        #quick-srcfree is maxmally correlated with 15mJy sims
+        self.fgdict  = {'15mjy': 0, '100mjy': 1, 'srcfree': 2, 'quick-srcfree':0,'comptony': 3}
+
         self.dmdict  = {'act_mr3':0,'act_c7v5':1,'planck_hybrid':2}
+
     def get_cmb_seed(self, set_idx, sim_idx):
         return (set_idx, 0, self.CMB, sim_idx)
 

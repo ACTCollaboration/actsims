@@ -188,7 +188,8 @@ class SignalGen(object):
     def __apply_beam__(self, alm_patch, season, patch, array, freq):
         lmax      = hp.Alm.getlmax(alm_patch.shape[-1])
         l_beam    = np.arange(0, lmax+100, dtype=np.float)
-        beam_data = self.data_model.get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq) 
+        # NEVER SANITIZE SIMULATED BEAM!!! 
+        beam_data = self.data_model.get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq,sanitize=False) 
         
         for idx in range(alm_patch.shape[0]):
             alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
@@ -317,6 +318,9 @@ class SignalGen(object):
         elif fgflux=="100mjy":
             print("loading FG with 100mJy fluxcut")
             fg_file      = os.path.join(actsim_root, '../data/highflux_fg.dat')
+        elif fgflux=="quick-srcfree":
+            print("loading FG with srcfree fg")
+            fg_file      = os.path.join(actsim_root, '../data/quick_srcfree_combined_d56.dat')
         else:
             assert(False) ### :o
         fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
@@ -420,6 +424,7 @@ class SignalGen(object):
 
         return output
 
+
 class Sehgal09Gen(SignalGen):
     # Switching out act baseline cmb and fg sims with Sehgal 09 sims with following modifications
     # 1) Included Lensed Q and U maps
@@ -456,7 +461,7 @@ class Sehgal09Gen(SignalGen):
             alm_file_postfix = '' if self.eulers == (0,0,0) else '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
             #fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, 0, alm_file_postfix))
             fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, set_idx, alm_file_postfix))
-            print fg_file_temp
+            print (fg_file_temp)
             
             alm_fg090    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%90), hdu = (1))) 
             alm_fg150    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%148), hdu = (1))) 

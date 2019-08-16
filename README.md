@@ -1,6 +1,6 @@
 # actsims
 
-This is a simple set of tools to return sims of noise and signal for CMB studies with ACTPol.
+This is a simple set of tools to return sims of noise and signal for CMB studies with ACTPol and Planck.
 
 
 ## To run
