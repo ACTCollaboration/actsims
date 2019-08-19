@@ -56,7 +56,7 @@ def save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts):
             np.save(_get_gdicts_filename(rootdir,key,item),gdicts[key][item])
     
     
-def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 20,hole_radius = 3.,plots=False,cache_name=None):
+def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 20,hole_radius = 6.,plots=False,cache_name=None,verbose=True):
     """
 
     Inpaints a map under the assumption of inhomogenous but white uncorrelated instrument noise.
@@ -70,14 +70,14 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 2
     cache_name -- a unique string identifying the catalog+map/array/frequency/split combination to/from which the geometries are cached
     """
    
-    cache_name = cache_name + "_catversion_%s" % union_sources_version
     if cache_name is not None:
+        cache_name = cache_name + "_catversion_%s" % union_sources_version
         try:
             ras,decs,gtags,pcoords,gdicts = load_cached_inpaint_geometries(cache_name)
             do_geoms = False
-            print("actsims.inpaint: loaded cached geometries for ", cache_name)
+            if verbose: print("actsims.inpaint: loaded cached geometries for ", cache_name)
         except:
-            print("actsims.inpaint: no cached geometries found for ", cache_name, ". Generating and saving...")
+            if verbose: print("actsims.inpaint: no cached geometries found for ", cache_name, ". Generating and saving...")
             do_geoms = True
     else:
         do_geoms = True
@@ -97,7 +97,7 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 2
             modlmap = civar.modlmap()
             res = maps.resolution(civar.shape,civar.wcs)
             cimap = imap[sel]
-            print("actsims.inpaint: built noise model for source ",i," / ",len(ras))
+            if verbose: print("actsims.inpaint: built noise model for source ",i," / ",len(ras))
             scov = pixcov.scov_from_theory(modlmap,cmb_theory_fn,fn_beam,iau=False)
             ncov = pixcov.ncov_from_ivar(civar)
             pcov = scov + ncov
@@ -108,9 +108,9 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 2
             pcoords = np.stack(pcoords).swapaxes(0,1)
         if cache_name is not None:
             save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts)
-            print("actsims.inpaint: cached geometries for ",cache_name)
+            if verbose: print("actsims.inpaint: cached geometries for ",cache_name)
 
-    if len(gtags)>0: result = pixcov.inpaint(imap,pcoords,deproject=True,iau=False,geometry_tags=gtags,geometry_dicts=gdicts,verbose=True)
+    if len(gtags)>0: result = pixcov.inpaint(imap,pcoords,deproject=True,iau=False,geometry_tags=gtags,geometry_dicts=gdicts,verbose=verbose)
 
     if plots:
         for i,(ra,dec) in enumerate(zip(ras,decs)):
