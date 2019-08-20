@@ -56,7 +56,7 @@ def save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts):
             np.save(_get_gdicts_filename(rootdir,key,item),gdicts[key][item])
     
     
-def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 20,hole_radius = 6.,plots=False,cache_name=None,verbose=True):
+def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 40,hole_radius = 6.,plots=False,cache_name=None,verbose=True):
     """
 
     Inpaints a map under the assumption of inhomogenous but white uncorrelated instrument noise.
