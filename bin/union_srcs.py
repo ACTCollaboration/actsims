@@ -54,8 +54,8 @@ jras = np.append(eras , bras)
 jdecs = np.append(edecs , bdecs)
 ocat = merge_duplicates(jras*utils.degree,jdecs*utils.degree, rlim=rlim*utils.arcmin)  / utils.degree
 
-extras = [(185.0433, 2.0733),
-          (181.922, -1.108),
+extras = [(-174.9567, 2.0733),
+          (-178.078, -1.108),
           (166.408, 2.043)]
 
 print(ocat.shape)
