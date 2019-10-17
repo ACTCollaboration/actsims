@@ -7,6 +7,9 @@ from soapack import interfaces as sints
 from scipy import spatial
 import matplotlib.pyplot as plt
 
+#version = "06192019"
+version = "20190819"
+
 def merge_duplicates(ras,decs, rlim=1*utils.arcmin):
     """Modified from Sigurd's enlib.dory. Given a point source catalog 
     which might contain duplicates, detect these duplicates
@@ -50,10 +53,21 @@ rlim = 1.0
 jras = np.append(eras , bras)
 jdecs = np.append(edecs , bdecs)
 ocat = merge_duplicates(jras*utils.degree,jdecs*utils.degree, rlim=rlim*utils.arcmin)  / utils.degree
-io.save_cols("union_catalog_06192019.csv",(ocat[:,0],ocat[:,1]),delimiter=',',header='ra(deg),dec(deg) | Made using actsims/bin/union_srcs.py.',fmt='%.5f')
-ras,decs = sints.get_act_mr3f_union_sources()
-assert np.all(np.isclose(ras,ocat[:,0]))
-assert np.all(np.isclose(decs,ocat[:,1]))
+
+extras = [(-174.9567, 2.0733),
+          (-178.078, -1.108),
+          (166.408, 2.043)]
+
+print(ocat.shape)
+for extra in extras:
+    ocat = np.vstack((ocat,extra))
+
+print(ocat.shape)
+
+io.save_cols("union_catalog_%s.csv" % version,(ocat[:,0],ocat[:,1]),delimiter=',',header='ra(deg),dec(deg) | Made using actsims/bin/union_srcs.py.',fmt='%.5f')
+#ras,decs = sints.get_act_mr3f_union_sources()
+#assert np.all(np.isclose(ras,ocat[:,0]))
+#assert np.all(np.isclose(decs,ocat[:,1]))
 
 
 if debug:

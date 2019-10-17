@@ -32,6 +32,8 @@ parser.add_argument("--season", type=str,help='Season')
 parser.add_argument("--array", type=str,help='Array')
 parser.add_argument("--patch", type=str,help='Patch')
 parser.add_argument("--rlmin",     type=int,  default=300,help="Minimum ell.")
+parser.add_argument("--fill-min",     type=int,  default=150,help="Minimum ell.")
+parser.add_argument("--fill-const", action='store_true',help='Fill < fill-lmin with constant instead of zero. Constant is inferred from noise in annulus.')
 parser.add_argument("-n", "--nsims",     type=int,  default=10,help="Number of sims.")
 parser.add_argument("-r", "--radial-fit-annulus",     type=int,  default=20,help="Bin width for azimuthal averaging.")
 parser.add_argument("-d", "--dfact",     type=int,  default=8,help="Downsample factor.")
@@ -123,6 +125,10 @@ else:
 del n2d_xflat
 
 #n2d_xflat_smoothed[:,:,modlmap<mask_ell] = 0
+
+fill_val = 0
+if args.fill_const: fill_val = n2d_xflat_smoothed[:,:,np.logical_and(modlmap>args.fill_min,modlmap<(args.fill_min+args.radial_fit_annulus))].mean()
+if args.fill_min is not None: n2d_xflat_smoothed[:,:,modlmap<args.fill_min] = fill_val
 n2d_xflat_smoothed[:,:,modlmap<2] = 0
 if args.lmax is not None: n2d_xflat_smoothed[:,:,modlmap>args.lmax] = 0
 
