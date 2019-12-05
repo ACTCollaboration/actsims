@@ -11,7 +11,7 @@ actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None):
+    def __init__(self, cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None):
         """
         model: The name of an implemented soapack datamodel
         ncache: The number of 
