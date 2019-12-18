@@ -217,14 +217,16 @@ class SignalGen(object):
             self.manage_cache(self.signals, self.max_cached)
         return signal
 
+    def load_cmb_alm(self, set_idx, sim_idx, alm_file_postfix):
+        cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, sim_idx, alm_file_postfix))
+        print("loading %s" %cmb_file)
+        return np.complex128(hp.fitsfunc.read_alm(cmb_file, hdu = (1,2,3)))
 
     def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, fgflux="15mjy",  alm_file_postfix=''):
         # note: beam is set to false
         print("loading alm base")
         #cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, 0, alm_file_postfix))
-        cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, sim_idx, alm_file_postfix))
-        print("loading %s" %cmb_file)
-        alm_signal = np.complex128(hp.fitsfunc.read_alm(cmb_file, hdu = (1,2,3))) 
+        alm_signal = self.load_cmb_alm(set_idx, sim_idx, alm_file_postfix)
 
         # check if rotation is needed
         if self.apply_rotation:
@@ -423,6 +425,32 @@ class SignalGen(object):
         output = curvedsky.map2alm(templ[0], lmax = hp.Alm.getlmax(alm_shape[0]))
 
         return output
+
+class GaussGen(SignalGen):
+    # Switching out act baseline cmb with Guassian Sims
+    def __init__(self, cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None,  eulers=None,
+            camb_unlensed_file=None, camb_lensed_file=None, lmax=8000):
+        """
+        model: The name of an implemented soapack datamodel
+        eulers            : rotate alm by euler angles (psi, theta, phi) (i.e (0,15,0) ->  maps are rotated by 15 deg in theta) 
+        """
+        super(GaussGen, self).__init__(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model,\
+                apply_rotation=apply_rotation, alpha_map=alpha_map)
+        self.cmb_types   = ['UnlensedCMB', 'LensedUnabberatedCMB']
+        self.signal_path = None
+        self.lmax = lmax
+        assert(cmb_type in self.cmb_types)
+
+        if not(camb_unlensed_file): self.camb_unlensed_file = os.path.join(actsim_root, '../inputParams/cosmo2017_10K_acc3_scalCls.dat')
+        if not(camb_lensed_file): self.camb_lensed_file = os.path.join(actsim_root, '../inputParams/cosmo2017_10K_acc3_lensedCls.dat')
+        
+        self.ps_unlen = powspec.read_camb_scalar(self.camb_unlensed_file)[0]
+        self.ps_len = powspec.read_spectrum(self.camb_lensed_file)
+
+    def load_cmb_alm(self, set_idx, sim_idx, alm_file_postfix):
+        ps = self.ps_unlen if self.cmb_type == 'UnlensedCMB' else self.ps_len
+        print("generating cmb alm for %s" %self.cmb_type)
+        return curvedsky.rand_alm_healpy(ps, lmax=self.lmax, seed=seedgen.get_cmb_seed(set_idx, sim_idx))
 
 
 class Sehgal09Gen(SignalGen):
