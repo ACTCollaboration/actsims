@@ -11,13 +11,13 @@ actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, cmb_type='LensedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None):
+    def __init__(self, cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None):
         """
         model: The name of an implemented soapack datamodel
         ncache: The number of 
         """
-        #warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
-        #max_cached = 0
+        warnings.warn('signal caching is disabled. Check issue #29 on actsims repo')
+        max_cached = 0
 
         self.data_model = sints.models[model]()
         self.cmb_types   = ['LensedCMB', 'UnlensedCMB', 'LensedUnabberatedCMB']
@@ -217,14 +217,16 @@ class SignalGen(object):
             self.manage_cache(self.signals, self.max_cached)
         return signal
 
+    def load_cmb_alm(self, set_idx, sim_idx, alm_file_postfix):
+        cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, sim_idx, alm_file_postfix))
+        print("loading %s" %cmb_file)
+        return np.complex128(hp.fitsfunc.read_alm(cmb_file, hdu = (1,2,3)))
 
     def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, fgflux="15mjy",  alm_file_postfix=''):
         # note: beam is set to false
         print("loading alm base")
         #cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, 0, alm_file_postfix))
-        cmb_file   = os.path.join(self.signal_path, 'fullsky%s_alm_set%02d_%05d%s.fits' %(self.cmb_type, set_idx, sim_idx, alm_file_postfix))
-        print("loading %s" %cmb_file)
-        alm_signal = np.complex128(hp.fitsfunc.read_alm(cmb_file, hdu = (1,2,3))) 
+        alm_signal = self.load_cmb_alm(set_idx, sim_idx, alm_file_postfix)
 
         # check if rotation is needed
         if self.apply_rotation:
@@ -424,6 +426,32 @@ class SignalGen(object):
 
         return output
 
+class GaussGen(SignalGen):
+    # Switching out act baseline cmb with Guassian Sims
+    def __init__(self, cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None,  eulers=None,
+            camb_unlensed_file=None, camb_lensed_file=None, lmax=8000):
+        """
+        model: The name of an implemented soapack datamodel
+        eulers            : rotate alm by euler angles (psi, theta, phi) (i.e (0,15,0) ->  maps are rotated by 15 deg in theta) 
+        """
+        super(GaussGen, self).__init__(cmb_type=cmb_type, dobeam=dobeam, add_foregrounds=add_foregrounds, apply_window=apply_window, max_cached=max_cached, model=model,\
+                apply_rotation=apply_rotation, alpha_map=alpha_map)
+        self.cmb_types   = ['UnlensedCMB', 'LensedUnabberatedCMB']
+        self.signal_path = None
+        self.lmax = lmax
+        assert(cmb_type in self.cmb_types)
+
+        if not(camb_unlensed_file): self.camb_unlensed_file = os.path.join(actsim_root, '../inputParams/cosmo2017_10K_acc3_scalCls.dat')
+        if not(camb_lensed_file): self.camb_lensed_file = os.path.join(actsim_root, '../inputParams/cosmo2017_10K_acc3_lensedCls.dat')
+        
+        self.ps_unlen = powspec.read_camb_scalar(self.camb_unlensed_file)[0]
+        self.ps_len = powspec.read_spectrum(self.camb_lensed_file)
+
+    def load_cmb_alm(self, set_idx, sim_idx, alm_file_postfix):
+        ps = self.ps_unlen if self.cmb_type == 'UnlensedCMB' else self.ps_len
+        print("generating cmb alm for %s" %self.cmb_type)
+        return curvedsky.rand_alm_healpy(ps, lmax=self.lmax, seed=seedgen.get_cmb_seed(set_idx, sim_idx))
+
 
 class Sehgal09Gen(SignalGen):
     # Switching out act baseline cmb and fg sims with Sehgal 09 sims with following modifications
@@ -449,18 +477,22 @@ class Sehgal09Gen(SignalGen):
         for psi, theta in product(rot_angs, rot_angs):
             self.allowed_rots.append(((psi,theta,0)))
 
-
         assert(self.signal_path is not None)
         assert(cmb_type in self.cmb_types)
         assert(self.eulers in self.allowed_rots)
         
-    def load_alm_fg(self, set_idx, sim_idx, fgflux='sehgal09'):
+    def load_alm_fg(self, set_idx, sim_idx, fgflux='sehgal09_15mJy'):
+        fgflux_elmt = fgflux.split('_')
+        fcut = fgflux_elmt[-1]
+        fgflux = '_'.join(fgflux_elmt[:-1])
+        if not fcut.lower() in ['15mjy', '5mjy']:
+            assert(False)
+
         print("loading fg alm") 
         alm_fg90_150 = None
         if fgflux == 'sehgal09':
-            alm_file_postfix = '' if self.eulers == (0,0,0) else '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
-            #fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, 0, alm_file_postfix))
-            fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_set%02d_%05d%s.fits' %(set_idx, set_idx, alm_file_postfix))
+            alm_file_postfix = '_rot_{}_{}_{}'.format(self.eulers[0], self.eulers[1], self.eulers[2])
+            fg_file_temp   = os.path.join(self.signal_path, 'fullskyCOMBINED_NODUST_f{}_%s_set%02d_%05d%s.fits' %(fcut.lower(), set_idx, set_idx, alm_file_postfix))
             print (fg_file_temp)
             
             alm_fg090    = np.complex128(hp.fitsfunc.read_alm(fg_file_temp.format('%03d'%90), hdu = (1))) 
@@ -468,7 +500,7 @@ class Sehgal09Gen(SignalGen):
             alm_fg90_150 = np.stack([alm_fg090, alm_fg150]) 
         elif fgflux == 'sehgal09_gauss':
             ## generate GRF FGs matching sehgal09 flux
-            fg_file      = os.path.join(actsim_root, '../data/Sehgal09FG_nodust_15mJycut.dat')
+            fg_file      = os.path.join(actsim_root, '../data/Sehgal09FG_nodust_{}cut.dat'.format(fcut))
             seed         = (set_idx, 0, 1, sim_idx, 0) 
             fg_power     = powspec.read_spectrum(fg_file, ncol = 3, expand = 'row')
             alm_fg90_150 = curvedsky.rand_alm_healpy(fg_power, seed = seed)
@@ -477,7 +509,7 @@ class Sehgal09Gen(SignalGen):
         return alm_fg90_150
     
     def load_alms_base(self, set_idx, sim_idx, cache=True, fg_override=None, ret_alm=False, fgflux="sehgal09", alm_file_postfix=''):
-        if self.eulers != (0,0,0): alm_file_postfix = '{}_rot_{}_{}_{}'.format(alm_file_postfix, self.eulers[0], self.eulers[1], self.eulers[2])
+        alm_file_postfix = '{}_rot_{}_{}_{}'.format(alm_file_postfix, self.eulers[0], self.eulers[1], self.eulers[2])
         return super(Sehgal09Gen, self).load_alms_base(set_idx, sim_idx, cache=cache, fg_override=fg_override, ret_alm=ret_alm, alm_file_postfix=alm_file_postfix, fgflux=fgflux)
 
 
