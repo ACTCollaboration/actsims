@@ -13,6 +13,8 @@ class _SeedTracker(object):
         self.NOISE   = 3
         self.POISSON = 4
         self.COMPTONY = 5
+        self.BEAM = 6
+        self.CAL  = 7
 
         #quick-srcfree is maxmally correlated with 15mJy sims
         self.fgdict  = {'15mjy': 0, '100mjy': 1, 'srcfree': 2, 'quick-srcfree':0,'comptony': 3}
@@ -44,9 +46,14 @@ class _SeedTracker(object):
 
     def get_poisson_seed(self, set_idx, sim_idx):
         return (set_idx, 0, self.POISSON, sim_idx)
+    
+    def get_beam_seed(self, set_idx, sim_idx):
+        return (set_idx, 0, self.BEAM, sim_idx)
+
+    def get_cal_seed(self, set_idx, sim_idx):
+        return (set_idx, 0, self.CAL, sim_idx)
 
 seed_tracker = _SeedTracker()
-
 
 #########################
 

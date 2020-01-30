@@ -11,7 +11,7 @@ actsim_root = os.path.dirname(os.path.realpath(__file__))
 
 class SignalGen(object):
     # a helper class to quickly generate sims for given patch
-    def __init__(self, cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None):
+    def __init__(self, cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1, model="act_mr3", apply_rotation=False, alpha_map=None, sample_beam=False):
         """
         model: The name of an implemented soapack datamodel
         ncache: The number of 
@@ -58,6 +58,7 @@ class SignalGen(object):
         self.dobeam           = dobeam
         self.apply_rotation   = apply_rotation
         self.alpha_map        = alpha_map
+        self.sample_beam      = sample_beam
 
     def is_supported(self, season, patch,array, freq):
         signal_idx      = self.__combine_idxes__(season, patch, array , freq)
@@ -105,7 +106,7 @@ class SignalGen(object):
                 alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape, oshape=oshape, owcs=owcs)
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                alm_patch = self.__apply_beam__(alm_patch, season, patch, array, freq)
+                alm_patch = self.__apply_beam__(alm_patch, season, patch, array, freq, set_idx, sim_num)
             else: pass
             if save_alm: 
                 self.alms_patch[signal_idx] = alm_patch.copy() 
@@ -128,7 +129,7 @@ class SignalGen(object):
             alm_cmb = alm_cmb[freq_idx].copy()
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                alm_cmb = self.__apply_beam__(alm_cmb, season, patch, array, freq)
+                alm_cmb = self.__apply_beam__(alm_cmb, season, patch, array, freq, set_idx, sim_num)
             else: pass
             if save_alm: 
                 self.alms_cmb[signal_idx] = alm_cmb.copy()
@@ -155,7 +156,7 @@ class SignalGen(object):
             alm_fg = alm_out
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                alm_fg = self.__apply_beam__(alm_fg, season, patch, array, freq)
+                alm_fg = self.__apply_beam__(alm_fg, season, patch, array, freq, set_idx, sim_num)
             else: pass
             if save_alm: 
                 self.alms_fg[signal_idx] = alm_fg.copy()
@@ -185,11 +186,14 @@ class SignalGen(object):
                 self.manage_cache(alms_lenp, self.max_cached) 
         return self.__signal_postprocessing__(patch, lenp_idx, alm_lenp, save_map=False, oshape=oshape,owcs=owcs, apply_window=False)
 
-    def __apply_beam__(self, alm_patch, season, patch, array, freq):
+    def __apply_beam__(self, alm_patch, season, patch, array, freq, set_idx=None, sim_idx=None):
         lmax      = hp.Alm.getlmax(alm_patch.shape[-1])
         l_beam    = np.arange(0, lmax+100, dtype=np.float)
-        # NEVER SANITIZE SIMULATED BEAM!!! 
-        beam_data = self.data_model.get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq,sanitize=False) 
+        # NEVER SANITIZE SIMULATED BEAM!!!
+
+        beam_data = get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq, 
+                model=self.data_model.name, set_idx=set_idx, sim_idx=sim_idx, sample_beam=self.sample_beam or array == 'planck')
+        #beam_data = self.data_model.get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq,sanitize=False) 
         
         for idx in range(alm_patch.shape[0]):
             alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
@@ -515,3 +519,20 @@ class Sehgal09Gen(SignalGen):
 
     def __get_lens_potential_sim__(self, patch, set_idx, sim_num, oshape, owcs, mode='phi', save_alm=False):
         raise NotImplemented('Not Yet Implemente')
+
+def get_beam(ells, season, patch, array, model, set_idx=None, sim_idx=None, sample_beam=False):
+    DM = sints.models[model]()
+    if not sample_beam:
+        bells = DM.get_beam(ells, season, patch, array, kind='normalized', sanitize=False)
+    else:
+        assert(sim_idx is not None)
+        assert(set_idx is not None)
+        print("sampling beam error")
+        np.random.seed(seedgen.get_beam_seed(set_idx, sim_idx))
+        ls, b_profile = DM.get_beam_profile(season, patch, array, kind='normalized')
+        rand_fact = np.random.normal(loc=0., scale=1., size = b_profile.shape)
+        rand_fact[:,0] = 1.
+        bells = np.sum(rand_fact*b_profile, axis=1)
+        bells = sints.utils.interp(ls, bells)(ells)
+        del b_profile, ls
+    return bells
