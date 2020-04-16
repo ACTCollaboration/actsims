@@ -77,7 +77,7 @@ class SignalGen(object):
     def get_signal_idx(self, season, patch, array, freq, set_idx, sim_num):
         return '_'.join([season, patch, array, freq, 'set0%d'%set_idx, '%05d'%sim_num])
 
-    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False, save_map=False, fgflux="15mjy", add_poisson_srcs=False,freq_idx=None):
+    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False, save_map=False, fgflux="15mjy", add_poisson_srcs=False,freq_idx=None,beam_override=None):
         assert(self.is_supported(season, patch, array, freq))
 
         base_alm_idx = self.get_base_alm_idx(set_idx, sim_num) 
@@ -106,14 +106,14 @@ class SignalGen(object):
                 alm_patch[0] += self.get_poisson_srcs_alms(set_idx, sim_num, patch, alm_patch[0].shape, oshape=oshape, owcs=owcs)
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                alm_patch = self.__apply_beam__(alm_patch, season, patch, array, freq)
+                alm_patch = self.__apply_beam__(alm_patch, season, patch, array, freq,beam_override=beam_override)
             else: pass
             if save_alm: 
                 self.alms_patch[signal_idx] = alm_patch.copy() 
                 self.manage_cache(self.alms_patch, self.max_cached) 
         return self.__signal_postprocessing__(patch, signal_idx, alm_patch, save_map=save_map,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
  
-    def get_cmb_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False ):
+    def get_cmb_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False,beam_override=None ):
         assert(self.is_supported(season, patch, array, freq))
         print("[WARNING] get_cmb_sim() is implemented for debugging purpose. Use get_signal_sim() for the production run")
 
@@ -129,7 +129,7 @@ class SignalGen(object):
             alm_cmb = alm_cmb[freq_idx].copy()
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                alm_cmb = self.__apply_beam__(alm_cmb, season, patch, array, freq)
+                alm_cmb = self.__apply_beam__(alm_cmb, season, patch, array, freq,beam_override=beam_override)
             else: pass
             if save_alm: 
                 self.alms_cmb[signal_idx] = alm_cmb.copy()
@@ -137,7 +137,7 @@ class SignalGen(object):
         return self.__signal_postprocessing__(patch, signal_idx, alm_cmb, save_map=False,oshape=oshape,owcs=owcs, apply_window=self.apply_window)
 
 
-    def get_fg_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False, fgflux="15mjy"):
+    def get_fg_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False, fgflux="15mjy",beam_override=None):
         assert(self.is_supported(season, patch, array, freq))
         print("[WARNING] get_fg_sim() is implemented for debugging purpose. Use get_signal_sim() for the production run")
 
@@ -156,7 +156,7 @@ class SignalGen(object):
             alm_fg = alm_out
             if self.dobeam:
                 print ("apply beam for alm {}".format(signal_idx))
-                alm_fg = self.__apply_beam__(alm_fg, season, patch, array, freq)
+                alm_fg = self.__apply_beam__(alm_fg, season, patch, array, freq,beam_override=beam_override)
             else: pass
             if save_alm: 
                 self.alms_fg[signal_idx] = alm_fg.copy()
@@ -186,11 +186,15 @@ class SignalGen(object):
                 self.manage_cache(alms_lenp, self.max_cached) 
         return self.__signal_postprocessing__(patch, lenp_idx, alm_lenp, save_map=False, oshape=oshape,owcs=owcs, apply_window=False)
 
-    def __apply_beam__(self, alm_patch, season, patch, array, freq):
-        lmax      = hp.Alm.getlmax(alm_patch.shape[-1])
-        l_beam    = np.arange(0, lmax+100, dtype=np.float)
-        # NEVER SANITIZE SIMULATED BEAM!!! 
-        beam_data = self.data_model.get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq,sanitize=False) 
+    def __apply_beam__(self, alm_patch, season, patch, array, freq, beam_override=None):
+
+        if beam_override is None:
+            lmax      = hp.Alm.getlmax(alm_patch.shape[-1])
+            l_beam    = np.arange(0, lmax+100, dtype=np.float)
+            # NEVER SANITIZE SIMULATED BEAM!!! 
+            beam_data = self.data_model.get_beam(l_beam, season=season, patch=patch, array='{}_{}'.format(array, freq) if array!='planck' else freq,sanitize=False) 
+        else:
+            beam_data = beam_override
         
         for idx in range(alm_patch.shape[0]):
             alm_patch[idx] = hp.sphtfunc.almxfl(alm_patch[idx].copy(), beam_data)
