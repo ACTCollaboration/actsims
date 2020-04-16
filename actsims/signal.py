@@ -77,7 +77,7 @@ class SignalGen(object):
     def get_signal_idx(self, season, patch, array, freq, set_idx, sim_num):
         return '_'.join([season, patch, array, freq, 'set0%d'%set_idx, '%05d'%sim_num])
 
-    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False, save_map=False, fgflux="15mjy", add_poisson_srcs=False):
+    def get_signal_sim(self, season, patch, array, freq, set_idx, sim_num, oshape, owcs, save_alm=False, save_map=False, fgflux="15mjy", add_poisson_srcs=False,freq_idx=None):
         assert(self.is_supported(season, patch, array, freq))
 
         base_alm_idx = self.get_base_alm_idx(set_idx, sim_num) 
@@ -93,7 +93,8 @@ class SignalGen(object):
             print ("loading precomputed alm {}".format(signal_idx))
             alm_patch = self.alms_patch[signal_idx].copy()
         else:
-            freq_idx  = 0 if freq == 'f090' else 1
+            if freq_idx is None:
+                freq_idx  = 0 if freq == 'f090' else 1
 
             if base_alm_idx not in self.alms_base:
                 self.load_alms_base(set_idx, sim_num, fgflux=fgflux)         

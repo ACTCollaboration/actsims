@@ -75,7 +75,6 @@ mask = sints.get_act_mr3_crosslinked_mask(mask_patch,
                                           kind=args.mask_kind,
                                           season=args.season,array=args.array+"_f150",
                                           pad=args.mask_pad)
-
 if args.debug: noise.plot(pout+"_mask",mask,grid=True)
 dm = sints.models[args.model](region=mask,calibrated=args.calibrated)
 

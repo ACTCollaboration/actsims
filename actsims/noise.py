@@ -39,6 +39,7 @@ class NoiseGen(object):
                                         coadd=coadd,season=season,patch=patch,array=array,
                                         overwrite=False,mask_patch=mask_patch)
         fpath = "%s_filter_noise.fits" % (cout)
+
         enmap.write_map(fpath ,n2d)
         print(fpath,n2d.shape,n2d.wcs)
 
@@ -164,10 +165,10 @@ def get_n2d_data(splits,ivars,mask_a,coadd_estimator=False,flattened=False,plot_
         wmaps = mask_a + enmap.zeros(ffts.shape,mask_a.wcs,dtype=dtype) # WARNING: type
         del ivars, data, splits
     else:
-        assert np.all(np.isfinite(data*mask_a*ivars))
-        ffts = enmap.fft(data*mask_a*ivars,normalize="phys")
-        if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a*ivars,quantile=0)
-        wmaps = ivars * mask_a
+        assert np.all(np.isfinite(data*mask_a))
+        ffts = enmap.fft(data*mask_a,normalize="phys")
+        if plot_fname is not None: plot(plot_fname+"_fft_maps",data*mask_a,quantile=0)
+        wmaps = mask_a * np.ones(ivars.shape)
         del ivars, data, splits
     n2d = get_n2d(ffts,wmaps,coadd_estimator=coadd_estimator,plot_fname=plot_fname,dtype=dtype)
     assert np.all(np.isfinite(n2d))

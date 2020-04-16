@@ -5,10 +5,7 @@ import numpy as np
 
 
 class SimGen(object):
-    def __init__(self, version, model="act_mr3", cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1,
-                 extract_region = None,
-                 extract_region_shape = None,
-                 extract_region_wcs = None):
+    def __init__(self, version, model="act_mr3", cmb_type='LensedUnabberatedCMB', dobeam=True, add_foregrounds=True, apply_window=True, max_cached=1,extract_region = None,extract_region_shape = None,extract_region_wcs = None):
         
         """
         version: The version identifier for the filename of covsqrts on disk
