@@ -287,7 +287,7 @@ class SignalGen(object):
     def load_alm_phi(self, set_idx, sim_idx, cache=True, ret_alm=False):
         # note: beam is set to false
         print("loading alm phi")
-        phi_file = os.path.join(self.signal_path, 'fullskyPhi_alm_set%02d_%05d.fits' %(set_idx, sim_idx))
+        phi_file = os.path.join(self.signal_path, 'fullskyPhi_alm_%05d.fits' %(sim_idx))
         print("loading %s" %phi_file)
         alm_phi  = np.complex128(hp.fitsfunc.read_alm(phi_file, hdu = (1))) 
 
