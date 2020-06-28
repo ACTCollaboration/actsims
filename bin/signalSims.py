@@ -2,7 +2,7 @@
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
-from actsims.util import SEED_TRACKER as seedgen
+from actsims.util import seed_tracker as seedgen
 
 import sys
 sys.path.append('../../')
@@ -14,15 +14,30 @@ import healpy
 import matplotlib.pyplot as plt
 import os
 from mpi4py import MPI
-sys.path.append('../../aveTools/')
-import aveTools
-import pickle
+import pickle, time
 from actsims import flipperDict
 
-print('hacking paths--remove this after merging to master')
-# from actsims import simTools
 
-sys.path.append('../actsims/')
+
+def mpiMinMax(comm, iStop, iStart = 0):
+#copied/pasted from Alex's "aveTools" library - https://github.com/ajvanengelen/aveTools
+    rank = comm.Get_rank()
+    size = comm.Get_size()
+
+    delta = (iStop - iStart)/size
+    if delta == 0:
+        raise ValueError, 'Too many processors for too small a  loop!'
+
+    iMin = iStart+rank*delta
+    iMax = iStart+(rank+1)*delta
+
+    if iMax>iStop:
+        iMax = iStop
+    elif (iMax > (iStop - delta)) and iMax <iStop:
+        iMax = iStop
+
+    return iMin, iMax, delta, rank, size
+
 
 
 # p = flipper.flipperDict.flipperDict()
@@ -30,42 +45,17 @@ p = flipperDict.flipperDict()
 
 p.read_from_file('../inputParams/' + sys.argv[1])
 
-import time
 startTime = time.clock()
 
-iMin, iMax, delta, rank, size = aveTools.mpiMinMax(MPI.COMM_WORLD, p['iStop'])
 
 
-
-def tqu2teb(tqu, LMAX, wantCl = False, wantAlmAndCl = False):
-    alm = curvedsky.map2alm(tqu, lmax=LMAX)
-    teb = curvedsky.alm2map(alm[:,None], tqu.copy()[:,None], spin=0)[:,0]
-    if wantCl:
-        cls = healpy.sphtfunc.alm2cl(alm)
-        return teb, cls
-    if wantAlmAndCl:
-        cls = healpy.sphtfunc.alm2cl(alm)
-        return teb, alm, cls
-    else:
-        return teb
-
-def phi2kappa(phiMap, LMAX):
-
-    phiAlm = curvedsky.map2alm(phiMap, lmax = LMAX)
-    ells = np.arange(LMAX-1)
-    kappaAlm = healpy.sphtfunc.almxfl(phiAlm, ells * (ells + 1) / 2.)
-    kappaMap = curvedsky.alm2map(kappaAlm, phiMap.copy() )
-    return kappaMap
-
-
+iMin, iMax, delta, rank, size = mpiMinMax(MPI.COMM_WORLD, p['iStop'])
 
 shape, wcs = enmap.fullsky_geometry(p['PIX_SIZE']*utils.arcmin)
 ps = powspec.read_camb_full_lens(p['inputSpecRoot'] + "_lenspotentialCls.dat")
 lPs = powspec.read_spectrum(p['inputSpecRoot'] + "_lensedCls.dat")
 
 doAll = True    
-cmbSet = 0 # still to-do: loop over sets.
-
 
 #make phi totally uncorrelated with both T and E.  This is necessary due to the way that separate phi and CMB seeds were put forward in an update to the pixell library around mid-Nov 2018
 ps[0, 1:, :] = 0.
@@ -80,7 +70,7 @@ for cmbSet in range(p['START_SET'], p['STOP_SET']):
         print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
             ', iMin', iMin, ', iMax', iMax, 'calling lensing.rand_map', time.time() - start)
 
-        #Turn this off for now as the interpol routine is not compiling for me ATM
+
         phiSeed = seedgen.get_phi_seed(iii)
         cmbSeed = seedgen.get_cmb_seed(cmbSet, iii)
 
@@ -92,20 +82,10 @@ for cmbSet in range(p['START_SET'], p['STOP_SET']):
                 
         mapList = [uTquMap, lTquMap, pMap]
 
-        mapNameList = ['fullskyUnlensedCMB', 'fullskyLensedCMB', 'fullskyPhi']
-
-        if False:
-            print('temporarily doing a gaussian random field -- lensed = unlensed')
-            print('calling curvedsky.rand_map')
-            uTquMap = curvedsky.rand_map((3,)+shape, wcs, ps[1:, 1:, :], lmax = p['LMAX'],
-                                         seed = iii * 100)
-
-            mapList = [uTquMap]
-
-            mapNameList = [ 'fullskyUnlensed']
+        mapNameList = ['fullskyUnlensedCMB', 'fullskyLensedUnabberatedCMB', 'fullskyPhi']
 
         if p['doAberration']:
-            unaberrated = lTquMap.copy()
+
 
             from pixell import aberration
             print('doing aberration')
@@ -116,16 +96,15 @@ for cmbSet in range(p['START_SET'], p['STOP_SET']):
             print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
                 ', iMin', iMin, ', iMax', iMax, 'calling aberration.boost_map', time.time() - start)
 
-            lTquMap, AForMod = aberration.boost_map(lTquMap,
+            lTquMapAberrated, AForMod = aberration.boost_map(lTquMap,
                                                     aberration.dir_equ,
                                                     aberration.beta,
                                                     modulation = None,
                                                     return_modulation = True)
 
-            mapList += [unaberrated]
-            mapNameList += ['fullskyLensedUnabberatedCMB']
+            mapList += [lTquMapAberrated]
+            mapNameList += ['fullskyLensedCMB']
             
-
 
         for mi, mmm in enumerate(mapList):
             print(iii, ' calling curvedsky.map2alm for ', mapNameList[mi])
@@ -181,6 +160,28 @@ for cmbSet in range(p['START_SET'], p['STOP_SET']):
 
 
 
+
+
+
+# def tqu2teb(tqu, LMAX, wantCl = False, wantAlmAndCl = False):
+#     alm = curvedsky.map2alm(tqu, lmax=LMAX)
+#     teb = curvedsky.alm2map(alm[:,None], tqu.copy()[:,None], spin=0)[:,0]
+#     if wantCl:
+#         cls = healpy.sphtfunc.alm2cl(alm)
+#         return teb, cls
+#     if wantAlmAndCl:
+#         cls = healpy.sphtfunc.alm2cl(alm)
+#         return teb, alm, cls
+#     else:
+#         return teb
+
+# def phi2kappa(phiMap, LMAX):
+
+#     phiAlm = curvedsky.map2alm(phiMap, lmax = LMAX)
+#     ells = np.arange(LMAX-1)
+#     kappaAlm = healpy.sphtfunc.almxfl(phiAlm, ells * (ells + 1) / 2.)
+#     kappaMap = curvedsky.alm2map(kappaAlm, phiMap.copy() )
+#     return kappaMap
 
 
 
