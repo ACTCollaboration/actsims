@@ -26,8 +26,8 @@ class _SeedTracker(object):
         assert(fg_type in self.fgdict.keys())
         return (set_idx, 0, self.FG, sim_idx, self.fgdict[fg_type])
 
-    def get_phi_seed(self, sim_idx):
-        return (0, 0, self.PHI, sim_idx)
+    def get_phi_seed(self, set_idx, sim_idx):
+        return (set_idx, 0, self.PHI, sim_idx)
 
     def get_noise_seed(self, set_idx, sim_idx, data_model, season, patch, array, patch_id=None):
         ret = (set_idx, 0, self.NOISE, sim_idx)

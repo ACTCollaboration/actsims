@@ -1,0 +1,39 @@
+
+
+
+
+
+scratch = "/global/cscratch1/sd/engelen/"
+# dataDir = '%s/simsS1516_v0.3/data/' % scratch
+dataDir = '%s/simsS1516_v0.5/data/' % scratch
+
+
+
+# inputSpecRoot = '../data/Aug6_highAcc_CDM'
+inputSpecRoot = '../data/cosmo2017_10K_acc3'
+
+
+
+
+LMAX = 8000
+LMAX_WRITE = 5100
+LMAX_NYQ = 10800
+PIX_SIZE = 1.0
+
+iStart = 0
+iStop = 2
+# iStop = 4
+
+START_CMB_SET = 0
+STOP_CMB_SET = 2
+
+START_PHI_SET = 0
+STOP_PHI_SET = 2
+
+
+
+
+doAberration = True
+
+
+

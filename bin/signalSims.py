@@ -1,22 +1,20 @@
-
+from __future__ import print_function
 import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from actsims.util import seed_tracker as seedgen
 
-import sys
-sys.path.append('../../')
+# import sys
+# sys.path.append('../../')
 
 from pixell import enmap, utils , lensing
 from pixell import powspec, curvedsky
 import numpy as np
 import healpy
-import matplotlib.pyplot as plt
-import os
+import subprocess, sys
 from mpi4py import MPI
-import pickle, time
-from actsims import flipperDict
-
+import time
+import yaml
 
 
 def mpiMinMax(comm, iStop, iStart = 0):
@@ -39,89 +37,128 @@ def mpiMinMax(comm, iStop, iStart = 0):
     return iMin, iMax, delta, rank, size
 
 
+def usefulInfo(scriptFilename, inputFilename, parameterDict, gitVersion = None, runTime = None, size = None):
 
-# p = flipper.flipperDict.flipperDict()
-p = flipperDict.flipperDict()
+    output = '\n'
+    output += 'This run of %s was invoked with config file %s\n\n' % (scriptFilename, inputFilename)
 
-p.read_from_file('../inputParams/' + sys.argv[1])
+    if gitVersion is not None:
+        output += "Git version number: %s  \n\n" % gitVersion
+    output += "Parameters were:\n\n"
+    for key in parameterDict.keys():
+        output += "%s = %s \n" % (key, str(parameterDict[key]))
+    if runTime is not None:
+        output += '\nThe run took %f seconds.\n' % runTime
+    if size is not None:
+        output += '\nThe run was done on %i MPI processes.' % size
+    return output
 
-startTime = time.clock()
+if __name__ == '__main__':
 
-
-
-iMin, iMax, delta, rank, size = mpiMinMax(MPI.COMM_WORLD, p['iStop'])
-
-shape, wcs = enmap.fullsky_geometry(p['PIX_SIZE']*utils.arcmin)
-ps = powspec.read_camb_full_lens(p['inputSpecRoot'] + "_lenspotentialCls.dat")
-lPs = powspec.read_spectrum(p['inputSpecRoot'] + "_lensedCls.dat")
-
-doAll = True    
-
-#make phi totally uncorrelated with both T and E.  This is necessary due to the way that separate phi and CMB seeds were put forward in an update to the pixell library around mid-Nov 2018
-ps[0, 1:, :] = 0.
-ps[1:, 0, :] = 0.
-
-
-start = time.time()
-
-for cmbSet in range(p['START_SET'], p['STOP_SET']):    
-
-    for iii in range(iMin, iMax):
-        print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
-            ', iMin', iMin, ', iMax', iMax, 'calling lensing.rand_map', time.time() - start)
+    #p = flipperDict.flipperDict()
+    #p.read_from_file('../inputParams/' + sys.argv[1])
+    with open('../inputParams/' + sys.argv[1]) as f:
+        p = yaml.load(f)
 
 
-        phiSeed = seedgen.get_phi_seed(iii)
-        cmbSeed = seedgen.get_cmb_seed(cmbSet, iii)
+    startTime = time.clock()
 
-        uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps, lmax=p['LMAX'], output="ulp", verbose=True,
+
+
+    iMin, iMax, delta, rank, size = mpiMinMax(MPI.COMM_WORLD, p['iStop'])
+
+    shape, wcs = enmap.fullsky_geometry(p['PIX_SIZE']*utils.arcmin)
+    ps = powspec.read_camb_full_lens(p['inputSpecRoot'] + "_lenspotentialCls.dat")
+    lPs = powspec.read_spectrum(p['inputSpecRoot'] + "_lensedCls.dat")
+
+    doAll = True    
+
+    #make phi totally uncorrelated with both T and E.  This is necessary due to the way that separate phi and CMB seeds were put forward in an update to the pixell library around mid-Nov 2018
+    ps[0, 1:, :] = 0.
+    ps[1:, 0, :] = 0.
+
+
+    start = time.time()
+
+    for cmbSet in range(p['START_CMB_SET'], p['STOP_CMB_SET']):    
+        for phiSet in range(p['START_PHI_SET'], p['STOP_PHI_SET']):    
+            for iii in range(iMin, iMax):
+                print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
+                    ', iMin', iMin, ', iMax', iMax, 'calling lensing.rand_map', time.time() - start)
+
+
+                phiSeed = seedgen.get_phi_seed(phiSet, iii)
+                cmbSeed = seedgen.get_cmb_seed(cmbSet, iii)
+
+                uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps,
+                                                          lmax=p['LMAX'],
+                                                          output="ulp",
+                                                          verbose=True,
                                                           phi_seed = phiSeed,
                                                           seed = cmbSeed)
 
 
-                
-        mapList = [uTquMap, lTquMap, pMap]
 
-        mapNameList = ['fullskyUnlensedCMB', 'fullskyLensedUnabberatedCMB', 'fullskyPhi']
+                mapList = [uTquMap, lTquMap, pMap]
 
-        if p['doAberration']:
+                mapNameList = ['fullskyUnlensedCMB', 'fullskyLensedUnabberatedCMB', 'fullskyPhi']
+                #Yes, there is a spelling mistake in "Unabberated" - we are
+                #keeping it for reverse compatibility with previous versions
+                #:(
 
-
-            from pixell import aberration
-            print('doing aberration')
-            #This was Sigurd's old version
-            # lTquMap = aberration.aberrate(lTquMap,
-            #                               aberration.dir_equ,
-            #                               aberration.beta, modulation = False)
-            print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
-                ', iMin', iMin, ', iMax', iMax, 'calling aberration.boost_map', time.time() - start)
-
-            lTquMapAberrated, AForMod = aberration.boost_map(lTquMap,
-                                                    aberration.dir_equ,
-                                                    aberration.beta,
-                                                    modulation = None,
-                                                    return_modulation = True)
-
-            mapList += [lTquMapAberrated]
-            mapNameList += ['fullskyLensedCMB']
-            
-
-        for mi, mmm in enumerate(mapList):
-            print(iii, ' calling curvedsky.map2alm for ', mapNameList[mi])
-            alm = curvedsky.map2alm(mmm, lmax=p['LMAX_WRITE'])
-
-            cmbDir = p['dataDir']
-            print('writing to disk')
+                if p['doAberration']:
 
 
-            filename = cmbDir + "/%s_alm_%s%05d.fits" \
-                       % ( mapNameList[mi],
-                           ('set%02d_' % cmbSet if 'CMB' in mapNameList[mi] else '' ) ,
-                           iii)
+                    from pixell import aberration
+                    print('doing aberration')
+                    #This was Sigurd's old version
+                    # lTquMap = aberration.aberrate(lTquMap,
+                    #                               aberration.dir_equ,
+                    #                               aberration.beta, modulation = False)
+                    print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
+                        ', iMin', iMin, ', iMax', iMax, 'calling aberration.boost_map', time.time() - start)
 
-            healpy.fitsfunc.write_alm(filename ,
-                                       np.complex64(alm), overwrite = True)
 
+                    #Note - we are aberrating and not modulating! The
+                    #modulation is a frequency-dependent, so is done
+                    #later.
+                    lTquMapAberrated, AForMod = aberration.boost_map(lTquMap,
+                                                                     aberration.dir_equ,
+                                                                     aberration.beta,
+                                                                     modulation = None,
+                                                                     return_modulation = True)
+
+                    mapList += [lTquMapAberrated]
+                    mapNameList += ['fullskyLensedAbberatedCMB']
+                    #Yes, there is a spelling mistake in "Unabberated" - we are
+                    #keeping it for reverse compatibility with previous versions
+                    #:(
+
+
+                for mi, mmm in enumerate(mapList):
+                    print(iii, ' calling curvedsky.map2alm for ', mapNameList[mi])
+                    alm = curvedsky.map2alm(mmm, lmax=p['LMAX_WRITE'])
+
+                    cmbDir = p['dataDir']
+
+                    filename = cmbDir + "/%s_alm_%s%s%05d.fits" \
+                               % ( mapNameList[mi],
+                                   ('cmbset%02d_' % cmbSet if 'CMB' in mapNameList[mi] else '' ) ,
+                                   ('phiset%02d_' % phiSet \
+                                    if (('Lensed' in mapNameList[mi]) or ('Phi' in mapNameList[mi])) \
+                                    else '' ) ,
+                                   iii)
+
+                    print('writing to disk, filename is', filename)
+
+                    healpy.fitsfunc.write_alm(filename ,
+                                               np.complex64(alm), overwrite = True)
+
+
+    if rank == 0:
+        gitVersion = subprocess.check_output("git rev-parse --short HEAD", shell=True).rstrip("\n")
+        with open(cmbDir + "/__README.txt", 'w') as f:
+            print(usefulInfo(__file__, sys.argv[1], p, gitVersion, time.time() - start, size), file = f)
 
 
 
