@@ -7,8 +7,11 @@ from soapack import interfaces as sints
 from scipy import spatial
 import matplotlib.pyplot as plt
 
+sncut = 40
+
 #version = "06192019"
-version = "20190819"
+#version = "20190819"
+version = f"20200503_sncut_{sncut}"
 
 def merge_duplicates(ras,decs, rlim=1*utils.arcmin):
     """Modified from Sigurd's enlib.dory. Given a point source catalog 
@@ -43,7 +46,7 @@ def merge_duplicates(ras,decs, rlim=1*utils.arcmin):
     return np.array(ocat)
 
 
-eras,edecs,snrs,sizes = sints.get_act_mr3f_extended_sources(sn_cut=90.,size_cut=0.0)
+eras,edecs,snrs,sizes = sints.get_act_mr3f_extended_sources(sn_cut=sncut,size_cut=0.)
 print("Number of bright extended sources : ", len(eras))
 bras,bdecs = sints.get_act_mr3f_cut_sources()
 print("Number of bright cut sources : ", len(bras))
@@ -56,7 +59,13 @@ ocat = merge_duplicates(jras*utils.degree,jdecs*utils.degree, rlim=rlim*utils.ar
 
 extras = [(-174.9567, 2.0733),
           (-178.078, -1.108),
-          (166.408, 2.043)]
+          (166.408, 2.043),
+          (11.8875,-25.2883),# NGC 253
+          (79.935,-45.7516),
+          (68.7863,-14.252),
+          (68.58583,-14.70417),
+          (3.74792,-39.20),
+          (-20.8125,-22.58750)] 
 
 print(ocat.shape)
 for extra in extras:
@@ -64,7 +73,13 @@ for extra in extras:
 
 print(ocat.shape)
 
-io.save_cols("union_catalog_%s.csv" % version,(ocat[:,0],ocat[:,1]),delimiter=',',header='ra(deg),dec(deg) | Made using actsims/bin/union_srcs.py.',fmt='%.5f')
+ras = ocat[:,0]
+decs = ocat[:,1]
+io.save_cols("union_catalog_%s.csv" % version,(ras,decs),delimiter=',',header='ra(deg),dec(deg) | Made using actsims/bin/union_srcs.py.',fmt='%.5f')
+
+# for ra,dec in zip(ras,decs):
+#     if (np.abs(ra-11.8875)<10./60) and (np.abs(dec+25.2883)<10./60):
+#         print(ra,dec)
 #ras,decs = sints.get_act_mr3f_union_sources()
 #assert np.all(np.isclose(ras,ocat[:,0]))
 #assert np.all(np.isclose(decs,ocat[:,1]))
