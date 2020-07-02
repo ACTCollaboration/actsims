@@ -2,6 +2,7 @@ from flipper import *
 import pdb
 import scipy
 
+import numpy
 
 def lensMaps(phi,T_map, Q_map, U_map, TaylOrder = 5):#,iii,count): van Engelen commented out the last two args as they don't seem to be used in this routine.
     
