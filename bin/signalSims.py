@@ -4,9 +4,6 @@ mpl.use('Agg')
 import matplotlib.pyplot as plt
 from actsims.util import seed_tracker as seedgen
 
-# import sys
-# sys.path.append('../../')
-
 from pixell import enmap, utils , lensing
 from pixell import powspec, curvedsky
 import numpy as np
@@ -94,18 +91,18 @@ if __name__ == '__main__':
                 cmbSeed = seedgen.get_cmb_seed(cmbSet, iii)
 
                 with bench.show("lensing"):
-                    uTquMap, lTquMap, pMap = lensing.rand_map((3,)+shape, wcs, ps,
+                    lTquMap, = lensing.rand_map((3,)+shape, wcs, ps,
                                                               lmax=p['LMAX'],
-                                                              output="ulp",
+                                                              output="l",
                                                               verbose=True,
                                                               phi_seed = phiSeed,
                                                               seed = cmbSeed)
 
 
 
-                mapList = [uTquMap, lTquMap, pMap]
+                mapList = [lTquMap]
 
-                mapNameList = ['fullskyUnlensedCMB', 'fullskyLensedUnabberatedCMB', 'fullskyPhi']
+                mapNameList = ['fullskyLensedUnabberatedCMB']
                 #Yes, there is a spelling mistake in "Unabberated" - we are
                 #keeping it for reverse compatibility with previous versions
                 #:(
@@ -114,10 +111,6 @@ if __name__ == '__main__':
 
 
                     print('doing aberration')
-                    #This was Sigurd's old version
-                    # lTquMap = aberration.aberrate(lTquMap,
-                    #                               aberration.dir_equ,
-                    #                               aberration.beta, modulation = False)
                     print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
                         ', iMin', iMin, ', iMax', iMax, 'calling aberration.boost_map', time.time() - start)
 
@@ -127,11 +120,6 @@ if __name__ == '__main__':
                     #later.
                     with bench.show("boost"):
                         lTquMapAberrated = Ab.aberrate(lTquMap)
-                        # lTquMapAberrated, AForMod = aberration.boost_map(lTquMap,
-                        #                                                  aberration.dir_equ,
-                        #                                                  aberration.beta,
-                        #                                                  modulation = None,
-                        #                                                  return_modulation = True)
 
                     mapList += [lTquMapAberrated]
                     mapNameList += ['fullskyLensedAbberatedCMB']
