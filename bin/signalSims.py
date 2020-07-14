@@ -54,6 +54,15 @@ def usefulInfo(scriptFilename, inputFilename, parameterDict, gitVersion = None, 
 
 if __name__ == '__main__':
 
+    try:
+        with open('../inputParams/paths_local.yml') as f:
+            p = yaml.load(f)
+    except:
+        print("ERROR: ../inputParams/paths_local.yml not found. Please copy ../inputParams/paths.yml to this file and edit with your local paths.")
+        sys.exit(1)
+
+    cmbDir = p['dataDir']
+
     with open('../inputParams/' + sys.argv[1]) as f:
         p = yaml.load(f)
 
@@ -132,7 +141,6 @@ if __name__ == '__main__':
                     print(iii, ' calling curvedsky.map2alm for ', mapNameList[mi])
                     alm = curvedsky.map2alm(mmm, lmax=p['LMAX_WRITE'])
 
-                    cmbDir = p['dataDir']
 
                     filename = cmbDir + "/%s_alm_%s%s%05d.fits" \
                                % ( mapNameList[mi],

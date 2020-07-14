@@ -3,7 +3,6 @@
 
 
 
-dataDir: '/scratch/r/rbond/msyriac/data/sims/signal/v0.5'
 
 
 
@@ -12,13 +11,9 @@ inputSpecRoot: '../data/cosmo2017_10K_acc3'
 
 
 
-# LMAX: 8000
-# LMAX_WRITE: 5100
-# PIX_SIZE: 1.0
-
-LMAX: 200
-LMAX_WRITE: 400
-PIX_SIZE: 12.0
+LMAX: 8000
+LMAX_WRITE: 10000
+PIX_SIZE: 1.0
 
 
 iStart: 0

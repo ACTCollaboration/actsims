@@ -1,5 +1,5 @@
 *.pyc
 actsims.egg-info/
 *.png
-inputParams/paths.yml
+inputParams/paths_local.yml
 *.sh
