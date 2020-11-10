@@ -4,6 +4,8 @@
 import os,sys, numpy as np
 from collections import OrderedDict
 from soapack import interfaces as dmint
+from mpi4py import MPI
+import logging
 
 class _SeedTracker(object):
     def __init__(self):
@@ -157,3 +159,34 @@ def mkdir(dirpath,comm=None):
         if not (exists):
             os.makedirs(dirpath)
     return exists
+
+def mpi_distribute(num_tasks,avail_cores,allow_empty=False):
+    # copied to mapsims.convert_noise_templates
+    if not(allow_empty): assert avail_cores<=num_tasks
+    min_each, rem = divmod(num_tasks,avail_cores)
+    num_each = np.array([min_each]*avail_cores) # first distribute equally
+    if rem>0: num_each[-rem:] += 1  # add the remainder to the last set of cores (so that rank 0 never gets extra jobs)
+
+    task_range = list(range(num_tasks)) # the full range of tasks
+    cumul = np.cumsum(num_each).tolist() # the end indices for each task
+    task_dist = [task_range[x:y] for x,y in zip([0]+cumul[:-1],cumul)] # a list containing the tasks for each core
+    assert sum(num_each)==num_tasks
+    assert len(num_each)==avail_cores
+    assert len(task_dist)==avail_cores
+    return num_each,task_dist
+
+
+def distribute(njobs,verbose=True,**kwargs):
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    numcores = comm.Get_size()
+    num_each,each_tasks = mpi_distribute(njobs,numcores,**kwargs)
+    if rank==0: logging.info("MPI: At most ", max(num_each) , " tasks...")
+    my_tasks = each_tasks[rank]
+    return comm,rank,my_tasks
+
+def config_from_yaml(filename):
+    import yaml
+    with open(filename) as f:
+        config = yaml.safe_load(f)
+    return config

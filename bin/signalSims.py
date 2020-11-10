@@ -3,7 +3,6 @@ import matplotlib as mpl
 mpl.use('Agg')
 import matplotlib.pyplot as plt
 from actsims.util import seed_tracker as seedgen
-
 from pixell import enmap, utils , lensing
 from pixell import powspec, curvedsky
 import numpy as np
@@ -14,40 +13,39 @@ import time
 import yaml
 from enlib import bench
 from pixell import aberration
+import logging
+from actsims import util as autil
+
+defaults = autil.config_from_yaml("../inputParams/simsInput_v0p5_test.yaml")
+
+import argparse
+# Parse command line
+parser = argparse.ArgumentParser(description='Generate lensed CMB.')
+parser.add_argument("--nsims",     type=int,  default=defaults['nsims'],help="Number of sims.")
+parser.add_argument("--skip-aberration", action='store_true',help='Skip aberration.')
+parser.add_argument("--lmax",     type=int,  default=defaults['lmax'],help="Maxmimum multipole for lensing.")
+parser.add_argument("--lmax-write",     type=int,  default=defaults['lmax_write'],help="Maximum multipole to write.")
+parser.add_argument("--pix-size",     type=float,  default=defaults['pix_size'],help="Pixel width in arcminutes.")
+parser.add_argument("--cmb-sets",     type=int,  nargs='+', default=defaults['cmb_sets'],help="CMB sets.")
+parser.add_argument("--phi-sets",     type=int,  nargs='+', default=defaults['phi_sets'],help="phi sets.")
+parser.add_argument("--input-spec",     type=str,  default=defaults['input_spec_root'],help="Input spectrum root.")
+args = parser.parse_args()
 
 
-def mpiMinMax(comm, iStop, iStart = 0):
-#copied/pasted from Alex's "aveTools" library - https://github.com/ajvanengelen/aveTools
-    rank = comm.Get_rank()
-    size = comm.Get_size()
-
-    delta = (iStop - iStart)/size
-    if delta == 0:
-        raise ValueError('Too many processors for too small a  loop!')
-
-    iMin = iStart+rank*delta
-    iMax = iStart+(rank+1)*delta
-
-    if iMax>iStop:
-        iMax = iStop
-    elif (iMax > (iStop - delta)) and iMax <iStop:
-        iMax = iStop
-
-    return iMin, iMax, delta, rank, size
 
 
-def usefulInfo(scriptFilename, inputFilename, parameterDict, gitVersion = None, runTime = None, size = None):
+def useful_info(script_filename, input_filename, parameter_dict, git_version = None, run_time = None, size = None):
 
     output = '\n'
-    output += 'This run of %s was invoked with config file %s\n\n' % (scriptFilename, inputFilename)
+    output += 'This run of %s was invoked with config file %s\n\n' % (script_filename, input_filename)
 
-    if gitVersion is not None:
-        output += "Git version number: %s  \n\n" % gitVersion
+    if git_version is not None:
+        output += "Git version number: %s  \n\n" % git_version
     output += "Parameters were:\n\n"
-    for key in parameterDict.keys():
-        output += "%s = %s \n" % (key, str(parameterDict[key]))
-    if runTime is not None:
-        output += '\nThe run took %f seconds.\n' % runTime
+    for key in parameter_dict.keys():
+        output += "%s = %s \n" % (key, str(parameter_dict[key]))
+    if run_time is not None:
+        output += '\nThe run took %f seconds.\n' % run_time
     if size is not None:
         output += '\nThe run was done on %i MPI processes.' % size
     return output
@@ -56,30 +54,26 @@ if __name__ == '__main__':
 
     try:
         with open('../inputParams/paths_local.yml') as f:
-            p = yaml.load(f)
+            p = yaml.safe_load(f)
     except:
-        print("ERROR: ../inputParams/paths_local.yml not found. Please copy ../inputParams/paths.yml to this file and edit with your local paths.")
+        logging.error("../inputParams/paths_local.yml not found. Please copy ../inputParams/paths.yml to this file and edit with your local paths.")
         sys.exit(1)
 
-    cmbDir = p['dataDir']
-
-    with open('../inputParams/' + sys.argv[1]) as f:
-        p = yaml.load(f)
+    cmb_dir = p['data_dir']
+    # logging.basicConfig(filename='/scratch/r/rbond/msyriac/example.log', level=logging.DEBUG, format='%(asctime)s %(levelname)s %(message)s')
 
 
-    startTime = time.clock()
+    start_time = time.clock()
+
+    comm,rank,my_tasks = autil.distribute(args.nsims)
 
 
+    shape, wcs = enmap.fullsky_geometry(args.pix_size*utils.arcmin)
+    ps = powspec.read_camb_full_lens(args.input_spec + "_lenspotentialCls.dat")
 
-
-    iMin, iMax, delta, rank, size = mpiMinMax(MPI.COMM_WORLD, p['iStop'])
-
-    shape, wcs = enmap.fullsky_geometry(p['PIX_SIZE']*utils.arcmin)
-    ps = powspec.read_camb_full_lens(p['inputSpecRoot'] + "_lenspotentialCls.dat")
-    lPs = powspec.read_spectrum(p['inputSpecRoot'] + "_lensedCls.dat")
-
-    with bench.show("init"):
-        Ab = aberration.Aberrator(shape, wcs, modulation=None)
+    if not(args.skip_aberration):
+        with bench.show("init ab"):
+            ab = aberration.Aberrator(shape, wcs, modulation=None)
 
 
     #make phi totally uncorrelated with both T and E.  This is necessary due to the way that separate phi and CMB seeds were put forward in an update to the pixell library around mid-Nov 2018
@@ -87,77 +81,70 @@ if __name__ == '__main__':
     ps[1:, 0, :] = 0.
 
 
+    # if rank == 0:
+    #     git_version = subprocess.check_output("git rev-parse --short HEAD", shell=True).encode().rstrip("\n")
+    #     with open(cmb_dir + "/__README.txt", 'w') as f:
+    #         print(useful_info(__file__, sys.argv[1], p, git_version, time.time() - start, size), file = f)
+
+
     start = time.time()
 
-    for cmbSet in range(p['START_CMB_SET'], p['STOP_CMB_SET']):    
-        for phiSet in range(p['START_PHI_SET'], p['STOP_PHI_SET']):    
-            for iii in range(int(iMin), int(iMax)):
-                print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
-                    ', iMin', iMin, ', iMax', iMax, 'calling lensing.rand_map', time.time() - start)
+    for cmb_set in args.cmb_sets:    
+        for phi_set in args.phi_sets:    
+            for iii in my_tasks:
+                logging.info('rank', rank, 'doing cmb_set', cmb_set, 'task' , iii, \
+                    'calling lensing.rand_map', time.time() - start)
 
 
-                phiSeed = seedgen.get_phi_seed(phiSet, iii)
-                cmbSeed = seedgen.get_cmb_seed(cmbSet, iii)
+                phi_seed = seedgen.get_phi_seed(phi_set, iii)
+                cmb_seed = seedgen.get_cmb_seed(cmb_set, iii)
 
                 with bench.show("lensing"):
-                    lTquMap, = lensing.rand_map((3,)+shape, wcs, ps,
-                                                              lmax=p['LMAX'],
+                    l_tqu_map, = lensing.rand_map((3,)+shape, wcs, ps,
+                                                              lmax=args.lmax,
                                                               output="l",
                                                               verbose=True,
-                                                              phi_seed = phiSeed,
-                                                              seed = cmbSeed)
+                                                              phi_seed = phi_seed,
+                                                              seed = cmb_seed)
 
 
 
-                mapList = [lTquMap]
+                map_list = [l_tqu_map]
 
-                mapNameList = ['fullskyLensedUnabberatedCMB']
-                #Yes, there is a spelling mistake in "Unabberated" - we are
-                #keeping it for reverse compatibility with previous versions
-                #:(
+                map_name_list = ['fullskyLensedUnaberratedCMB']
 
-                if p['doAberration']:
+                if not(args.skip_aberration):
 
 
-                    print('doing aberration')
-                    print('rank', rank, 'doing cmbSet', cmbSet, 'iii' , iii, \
-                        ', iMin', iMin, ', iMax', iMax, 'calling aberration.boost_map', time.time() - start)
+                    logging.info('doing aberration')
+                    logging.info('rank', rank, 'doing cmb_set', cmb_set, 'task' , iii, \
+                        'calling aberration.boost_map', time.time() - start)
 
 
                     #Note - we are aberrating and not modulating! The
                     #modulation is a frequency-dependent, so is done
                     #later.
                     with bench.show("boost"):
-                        lTquMapAberrated = Ab.aberrate(lTquMap)
+                        l_tqu_map_aberrated = ab.aberrate(l_tqu_map)
 
-                    mapList += [lTquMapAberrated]
-                    mapNameList += ['fullskyLensedAbberatedCMB']
-                    #Yes, there is a spelling mistake in "Unabberated" - we are
-                    #keeping it for reverse compatibility with previous versions
-                    #:(
+                    map_list += [l_tqu_map_aberrated]
+                    map_name_list += ['fullskyLensedAberratedCMB']
 
 
-                for mi, mmm in enumerate(mapList):
-                    print(iii, ' calling curvedsky.map2alm for ', mapNameList[mi])
-                    alm = curvedsky.map2alm(mmm, lmax=p['LMAX_WRITE'])
+                for mi, mmm in enumerate(map_list):
+                    logging.info(iii, ' calling curvedsky.map2alm for ', map_name_list[mi])
+                    alm = curvedsky.map2alm(mmm, lmax=args.lmax_write)
 
 
-                    filename = cmbDir + "/%s_alm_%s%s%05d.fits" \
-                               % ( mapNameList[mi],
-                                   ('cmbset%02d_' % cmbSet if 'CMB' in mapNameList[mi] else '' ) ,
-                                   ('phiset%02d_' % phiSet \
-                                    if (('Lensed' in mapNameList[mi]) or ('Phi' in mapNameList[mi])) \
+                    filename = cmb_dir + "/%s_alm_%s%s%05d.fits" \
+                               % ( map_name_list[mi],
+                                   ('cmbset%02d_' % cmb_set if 'CMB' in map_name_list[mi] else '' ) ,
+                                   ('phiset%02d_' % phi_set \
+                                    if (('Lensed' in map_name_list[mi]) or ('Phi' in map_name_list[mi])) \
                                     else '' ) ,
                                    iii)
 
-                    print('writing to disk, filename is', filename)
+                    logging.info('writing to disk, filename is', filename)
 
                     healpy.fitsfunc.write_alm(filename ,
                                                np.complex64(alm), overwrite = True)
-
-
-    if rank == 0:
-        gitVersion = subprocess.check_output("git rev-parse --short HEAD", shell=True).rstrip("\n")
-        with open(cmbDir + "/__README.txt", 'w') as f:
-            print(usefulInfo(__file__, sys.argv[1], p, gitVersion, time.time() - start, size), file = f)
-
