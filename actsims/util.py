@@ -4,6 +4,8 @@
 import os,sys, numpy as np
 from collections import OrderedDict
 from soapack import interfaces as dmint
+from mpi4py import MPI
+import logging
 
 class _SeedTracker(object):
     def __init__(self):
@@ -140,7 +142,7 @@ class memorize(object):
         self.cache = {}
     def __call__(self, *args):
         if args in self.cache:
-            print("returning from cache.")
+            logging.info("returning from cache.")
             return self.cache[args]
         else:
             v = self.func(*args)
@@ -157,3 +159,87 @@ def mkdir(dirpath,comm=None):
         if not (exists):
             os.makedirs(dirpath)
     return exists
+
+def mpi_distribute(num_tasks,avail_cores,allow_empty=False):
+    # copied to mapsims.convert_noise_templates
+    if not(allow_empty): assert avail_cores<=num_tasks
+    min_each, rem = divmod(num_tasks,avail_cores)
+    num_each = np.array([min_each]*avail_cores) # first distribute equally
+    if rem>0: num_each[-rem:] += 1  # add the remainder to the last set of cores (so that rank 0 never gets extra jobs)
+
+    task_range = list(range(num_tasks)) # the full range of tasks
+    cumul = np.cumsum(num_each).tolist() # the end indices for each task
+    task_dist = [task_range[x:y] for x,y in zip([0]+cumul[:-1],cumul)] # a list containing the tasks for each core
+    assert sum(num_each)==num_tasks
+    assert len(num_each)==avail_cores
+    assert len(task_dist)==avail_cores
+    return num_each,task_dist
+
+
+def distribute(njobs,verbose=True,**kwargs):
+    comm = MPI.COMM_WORLD
+    rank = comm.Get_rank()
+    numcores = comm.Get_size()
+    num_each,each_tasks = mpi_distribute(njobs,numcores,**kwargs)
+    if rank==0: logging.info(f"MPI: At most {max(num_each)} tasks...")
+    my_tasks = each_tasks[rank]
+    return comm,rank,my_tasks
+
+def config_from_yaml(filename):
+    import yaml
+    with open(filename) as f:
+        config = yaml.safe_load(f)
+    return config
+
+"""
+I'll probably be moving these git info functions to a pipelining package later
+"""
+def pretty_info(info):
+    name = info['package'] if info['package'] is not None else info['path']
+    pstr = f'\n{name}'
+    pstr = pstr + '\n'+''.join(["=" for x in range(len(name))])
+    for key in info.keys():
+        if key=='package': continue
+        pstr = pstr + '\n' + f'\t{key:<10}{str(info[key]):<40}'
+    return pstr
+
+def get_info(package=None,path=None,validate=True):
+    import git
+    import importlib
+    info = {}
+    if package is None:
+        assert path is not None, "One of package or path must be specified."
+        path = os.path.dirname(path)
+        version = None
+    else:
+        mod = importlib.import_module(package)
+        try:
+            version = mod.__version__
+        except AttributeError:
+            version = None
+        path = mod.__file__
+        path = os.path.dirname(path)
+    info['package'] = package
+    info['path'] = path
+    info['version'] = version
+    try:
+        repo = git.Repo(path,search_parent_directories=True)
+        is_git = True
+    except git.exc.InvalidGitRepositoryError:
+        is_git = False
+    info['is_git'] = is_git
+    if is_git:
+        chash = str(repo.head.commit)
+        untracked = len(repo.untracked_files)>0
+        changes = len(repo.index.diff(None))>0
+        branch = str(repo.active_branch)
+        info['hash'] = chash
+        info['untracked'] = untracked
+        info['changes'] = changes
+        info['branch'] = branch
+    else:
+        if validate:
+            assert version is not None
+            assert 'site-packages' in path
+    return info
+    

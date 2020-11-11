@@ -1,0 +1,28 @@
+input_spec_root: '../data/cosmo2017_10K_acc3'
+
+# DEBUG settings
+# lmax: 1000
+# lmax_write: 1000
+# pix_size: 10.0
+
+# SCIENCE settings
+lmax: 10000
+lmax_write: 10000
+pix_size: 1.0
+
+cmb_sets: [0,1]
+phi_sets: [0,1]
+
+# This will do 0-1999
+nsims: 2000
+start_index: 0
+
+# e.g. This will do 0-499
+# nsims: 500
+# start_index: 0
+
+# e.g. This will do 500-999
+# nsims: 500
+# start_index: 500
+
+
