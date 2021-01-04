@@ -1,13 +1,31 @@
 import numpy as np, os
-from pixell import enmap, powspec, curvedsky, fft as pfft
+from pixell import enmap, powspec, curvedsky, fft as pfft,lensing as plensing
 from soapack import interfaces as sints
 import healpy as hp
 import warnings
 from collections import OrderedDict as ODict
 from itertools import product
-from actsims.util import seed_tracker as seedgen
+from actsims.util import seed_tracker as seedgen,config_from_yaml
 
 actsim_root = os.path.dirname(os.path.realpath(__file__))
+
+def get_cmb_alm_v0p5(cmb_set,phi_set,i,path='/scratch/r/rbond/msyriac/data/sims/signal/v0.5_lenstest/'):
+    fname = path + f"fullskyLensedUnaberratedCMB_alm_cmb_set_{cmb_set:02d}_phi_set_{phi_set:02d}_{i:05d}.fits"
+    return hp.read_alm(fname,hdu=(1,2,3))
+
+def get_input_alms_v0p5(cmb_set,phi_set,i,path='/scratch/r/rbond/msyriac/data/sims/signal/v0.5_lenstest/'):
+    ps = powspec.read_camb_full_lens(path + "/lenspotentialCls.dat")
+    lmax = config_from_yaml(path + "/args.yml")['lmax']
+    ncomp   = 3
+    cmb_seed = seedgen.get_cmb_seed(cmb_set, i) 
+    phi_seed = seedgen.get_phi_seed(phi_set, i)
+    phi_alm, unlensed_cmb_alm, ainfo = plensing.rand_alm(ps_lensinput=ps, 
+                                       lmax=lmax, seed=cmb_seed, 
+                                       phi_seed=phi_seed, verbose=False,
+                                       ncomp=ncomp)
+    return plensing.phi_to_kappa(phi_alm), unlensed_cmb_alm
+
+
 
 class SignalGen(object):
     # a helper class to quickly generate sims for given patch

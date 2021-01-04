@@ -1,28 +1,28 @@
 input_spec_root: '../data/cosmo2017_10K_acc3'
 
+# These correspond to sets used for RDN0+MCMF+PS, MCN1 S=Sphi, MCN1 Sphi', MCN1 S'
+cmb_phi_sets: [[0,0],[1,1],[2,1],[2,2]]
+
+
 # DEBUG settings
 # lmax: 1000
 # lmax_write: 1000
 # pix_size: 10.0
+# nsims: [2,2,2,2]
 
 # SCIENCE settings
+# lmax: 10000
+# lmax_write: 10000
+# pix_size: 1.0
+# nsims: 2000,500,500,500
+
+# SCIENCE TEST settings
 lmax: 10000
 lmax_write: 10000
 pix_size: 1.0
+nsims: [24,8,8,8]
 
-cmb_sets: [0,1]
-phi_sets: [0,1]
-
-# This will do 0-1999
-nsims: 2000
-start_index: 0
-
-# e.g. This will do 0-499
-# nsims: 500
-# start_index: 0
-
-# e.g. This will do 500-999
-# nsims: 500
-# start_index: 500
+# This will do [0-1999,0-499,0-499,0-499]
+start_index: [0,0,0,0]
 
 

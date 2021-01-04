@@ -193,6 +193,7 @@ def config_from_yaml(filename):
 
 """
 I'll probably be moving these git info functions to a pipelining package later
+COPIED INTO PYFISHER
 """
 def pretty_info(info):
     name = info['package'] if info['package'] is not None else info['path']
