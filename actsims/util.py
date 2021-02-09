@@ -4,7 +4,6 @@
 import os,sys, numpy as np
 from collections import OrderedDict
 from soapack import interfaces as dmint
-from mpi4py import MPI
 import logging
 
 class _SeedTracker(object):
@@ -150,6 +149,7 @@ class memorize(object):
             return v
 
 def mkdir(dirpath,comm=None):
+    from mpi4py import MPI
     if comm is None:
         from mpi4py import MPI
         comm = MPI.COMM_WORLD
@@ -177,6 +177,7 @@ def mpi_distribute(num_tasks,avail_cores,allow_empty=False):
 
 
 def distribute(njobs,verbose=True,**kwargs):
+    from mpi4py import MPI
     comm = MPI.COMM_WORLD
     rank = comm.Get_rank()
     numcores = comm.Get_size()
