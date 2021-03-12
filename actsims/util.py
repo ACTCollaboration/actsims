@@ -14,11 +14,12 @@ class _SeedTracker(object):
         self.NOISE   = 3
         self.POISSON = 4
         self.COMPTONY = 5
+        self.TILED_NOISE = 6
 
         #quick-srcfree is maxmally correlated with 15mJy sims
         self.fgdict  = {'15mjy': 0, '100mjy': 1, 'srcfree': 2, 'quick-srcfree':0,'comptony': 3}
 
-        self.dmdict  = {'act_mr3':0,'act_c7v5':1,'planck_hybrid':2}
+        self.dmdict  = {'act_mr3':0,'act_c7v5':1,'planck_hybrid':2,'dr5':3}
 
     def get_cmb_seed(self, set_idx, sim_idx):
         return (set_idx, 0, self.CMB, sim_idx)
@@ -45,6 +46,15 @@ class _SeedTracker(object):
 
     def get_poisson_seed(self, set_idx, sim_idx):
         return (set_idx, 0, self.POISSON, sim_idx)
+
+    def get_tiled_noise_seed(self, set_idx, sim_idx, data_model, qid, tile_idx):
+        ret = (set_idx, 0, self.TILED_NOISE, sim_idx)
+        dm = data_model
+
+        assert(dm.name in self.dmdict.keys())
+        dm_idx = self.dmdict[dm.name]
+        qid_idx = dmint.get_all_dr5_qids().index(qid)
+        return ret + (dm_idx, qid_idx, tile_idx)
 
 seed_tracker = _SeedTracker()
 
