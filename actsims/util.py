@@ -74,7 +74,7 @@ class _SeedTracker(object):
         -------
         >>> from actsims import util as u
         >>> u.seed_tracker.get_tiled_noise_seed(3,963,u.dmint.DR5(),'s18_03',7_034)
-        >>> (3, 0, 6, 963, 3, (8326, 0), 7034)
+        >>> (3, 0, 6, 963, 3, 8326, 0, 7034)
         >>> u.seed_tracker.get_tiled_noise_seed(3,963,u.dmint.DR5(),['s18_04','s18_03'],7_034)
         >>> (3, 0, 6, 963, 3, 8326, 2839, 7034)
 
