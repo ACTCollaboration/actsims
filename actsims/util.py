@@ -48,13 +48,50 @@ class _SeedTracker(object):
         return (set_idx, 0, self.POISSON, sim_idx)
 
     def get_tiled_noise_seed(self, set_idx, sim_idx, data_model, qid, tile_idx):
+        """Return a seed for a tile in a tiled noise simulation scheme. Allows consistent
+        seeding for a given simulation set, map number, data model, qid (array), and tile
+        number, across users and platforms.
+
+        Parameters
+        ----------
+        set_idx : int
+        sim_idx : int
+        data_model : object
+            A soapack.interfaces DataModel object
+        qid : str or iterable of str
+            If simulating 1 array, can pass 1 string or iterable of type string
+            and length 1. If simulating correlation between 2 arrays, pass iterable of
+            type str and length 2. Iterables are sorted, so order does not matter. Cannot
+            correlate more than 2 arrays. 
+        tile_idx : int
+
+        Returns
+        -------
+        tuple of int
+            Seed to be passed to np.random.seed
+
+        Example
+        -------
+        >>> from actsims import util as u
+        >>> u.seed_tracker.get_tiled_noise_seed(3,963,u.dmint.DR5(),'s18_03',7_034)
+        >>> (3, 0, 6, 963, 3, (8326, 0), 7034)
+        >>> u.seed_tracker.get_tiled_noise_seed(3,963,u.dmint.DR5(),['s18_04','s18_03'],7_034)
+        >>> (3, 0, 6, 963, 3, 8326, 2839, 7034)
+
+        """
         ret = (set_idx, 0, self.TILED_NOISE, sim_idx)
         dm = data_model
+        qid = np.sort(np.atleast_1d(qid)) # sorted qids
+        assert len(qid) <= 2, f'Can only seed for correlation of up to 2 arrays; {len(qid)} passed'
 
         assert(dm.name in self.dmdict.keys())
         dm_idx = self.dmdict[dm.name]
-        qid_idx = dmint.get_all_dr5_qids().index(qid)
-        return ret + (dm_idx, qid_idx, tile_idx)
+        
+        if len(qid) == 1:
+            qid_idx = (dmint.arrays(qid[0], 'hash'), 0)
+        else:
+            qid_idx = tuple(dmint.arrays(q, 'hash') for q in qid)
+        return ret + (dm_idx,) + qid_idx + (tile_idx,)
 
 seed_tracker = _SeedTracker()
 
