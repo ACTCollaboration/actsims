@@ -47,7 +47,7 @@ class _SeedTracker(object):
     def get_poisson_seed(self, set_idx, sim_idx):
         return (set_idx, 0, self.POISSON, sim_idx)
 
-    def get_tiled_noise_seed(self, set_idx, sim_idx, data_model, qid, tile_idx):
+    def get_tiled_noise_seed(self, set_idx, sim_idx, data_model, qid, tile_idx, lowell_seed=False):
         """Return a seed for a tile in a tiled noise simulation scheme. Allows consistent
         seeding for a given simulation set, map number, data model, qid (array), and tile
         number, across users and platforms.
@@ -64,6 +64,9 @@ class _SeedTracker(object):
             type str and length 2. Iterables are sorted, so order does not matter. Cannot
             correlate more than 2 arrays. 
         tile_idx : int
+        lowell_seed : bool
+            If two tiling schemes are building one sim, you don't want correlated tiles.
+            The second integer in the seed tuple will be 1 if True.
 
         Returns
         -------
@@ -79,7 +82,7 @@ class _SeedTracker(object):
         >>> (3, 0, 6, 963, 3, 8326, 2839, 7034)
 
         """
-        ret = (set_idx, 0, self.TILED_NOISE, sim_idx)
+        ret = (set_idx, int(lowell_seed), self.TILED_NOISE, sim_idx)
         dm = data_model
         qid = np.sort(np.atleast_1d(qid)) # sorted qids
         assert len(qid) <= 2, f'Can only seed for correlation of up to 2 arrays; {len(qid)} passed'
@@ -92,7 +95,6 @@ class _SeedTracker(object):
         else:
             qid_idx = tuple(dmint.arrays(q, 'hash') for q in qid)
         return ret + (dm_idx,) + qid_idx + (tile_idx,)
-
 seed_tracker = _SeedTracker()
 
 
