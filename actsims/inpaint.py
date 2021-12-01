@@ -56,7 +56,7 @@ def save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts):
             np.save(_get_gdicts_filename(rootdir,key,item),gdicts[key][item])
     
     
-def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 40,hole_radius = 6.,plots=False,cache_name=None,verbose=True,include_cmb=True):
+def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 40,hole_radius = 6.,plots=False,cache_name=None,verbose=True,include_cmb=True,max_srcs=None,ppath=None):
     """
 
     Inpaints a map under the assumption of inhomogenous but white uncorrelated instrument noise.
@@ -87,6 +87,8 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 4
 
     if do_geoms:
         iras,idecs = sints.get_act_mr3f_union_sources(version=union_sources_version)
+        iras = iras[:max_srcs]
+        idecs = idecs[:max_srcs]
         cmb_theory_fn = lambda s,l: cosmology.default_theory().lCl(s,l)
         gtags = []
         gdicts = {}
@@ -125,11 +127,15 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 4
             save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts)
             if verbose: print("actsims.inpaint: cached geometries for ",cache_name)
 
+    from enlib import bench
     if len(gtags)>0: 
-        result = pixcov.inpaint(imap,pcoords,deproject=True,iau=False,geometry_tags=gtags,geometry_dicts=gdicts,verbose=verbose)
+        with bench.show("inpaint"):
+            result = pixcov.inpaint(imap,pcoords,deproject=True,iau=False,geometry_tags=gtags,geometry_dicts=gdicts,verbose=verbose)
     else:
         print("Nothing to inpaint")
 
+    if ppath is None:
+        ppath = os.environ['WORK']
     if plots:
         for i,(ra,dec) in enumerate(zip(ras,decs)):
             sel = reproject.cutout(ivar, ra=np.deg2rad(ra), dec=np.deg2rad(dec), pad=1, corner=False,npix=noise_pix,return_slice=True)
@@ -140,12 +146,12 @@ def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 4
             modlmap = civar.modlmap()
             res = maps.resolution(civar.shape,civar.wcs)
             cimap = imap[sel]
-            for p in range(ncomp): io.plot_img(cimap[p],os.environ['WORK']+"/cimap_%d_%s" % (p,str(i).zfill(2)))
+            for p in range(ncomp): io.plot_img(cimap[p],ppath+"/cimap_%d_%s" % (p,str(i).zfill(2)))
             mimap = cimap.copy()
             mimap[...,modrmap<np.deg2rad(hole_radius/60.)] = np.nan
-            for p in range(ncomp): io.plot_img(mimap[p],os.environ['WORK']+"/masked_cimap_%d_%s" % (p,str(i).zfill(2)))
+            for p in range(ncomp): io.plot_img(mimap[p],ppath+"/masked_cimap_%d_%s" % (p,str(i).zfill(2)))
             cimap = result[sel]
-            for p in range(ncomp): io.plot_img(cimap[p],os.environ['WORK']+"/inpainted_cimap_%d_%s" % (p,str(i).zfill(2)))
+            for p in range(ncomp): io.plot_img(cimap[p],ppath+"/inpainted_cimap_%d_%s" % (p,str(i).zfill(2)))
             
     return result
 
