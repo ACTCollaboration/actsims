@@ -27,7 +27,6 @@ def _get_gdicts_filename(rootdir,key,item):
 
 def load_cached_inpaint_geometries(cache_name):
     rootdir = _get_temp_root_dir() + cache_name
-    print(rootdir)
     assert os.path.exists(rootdir)
     
     ras,decs = np.loadtxt(_get_radec_filename(rootdir),unpack=True)
