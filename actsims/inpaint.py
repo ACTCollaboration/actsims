@@ -5,6 +5,7 @@ import numpy as np
 from soapack import interfaces as sints
 import os,sys
 from enlib import bench
+import pickle
 
 def _get_temp_root_dir():
     try:
@@ -25,6 +26,34 @@ def _get_gtags_filename(rootdir):
 def _get_gdicts_filename(rootdir,key,item):
     return rootdir + "/gdicts_%d_%s.npy" % (key,item)
 
+def load_cached_inpaint_geometries(cache_name):
+    rootdir = _get_temp_root_dir() + cache_name
+    assert os.path.exists(rootdir)
+    
+    ras,decs = np.loadtxt(_get_radec_filename(rootdir),unpack=True)
+    pcoords = np.load(_get_pcoords_filename(rootdir))
+    gtags = np.load(_get_gtags_filename(rootdir))
+    gdicts = {}
+    
+    with open(_get_gdicts_filename(rootdir,0,"all"), 'rb') as handle:
+        gdicts = pickle.load(handle)
+
+    return ras,decs,gtags,pcoords,gdicts
+
+def save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts):
+    rootdir = _get_temp_root_dir() + cache_name
+    assert not(os.path.exists(rootdir))
+    os.mkdir(rootdir)
+    
+    io.save_cols(_get_radec_filename(rootdir),(ras,decs))
+    np.save(_get_pcoords_filename(rootdir),pcoords)
+    np.save(_get_gtags_filename(rootdir),gtags)
+    
+    with open(_get_gdicts_filename(rootdir, 0,"all"), 'wb') as handle:
+        pickle.dump(gdicts, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+'''
 def load_cached_inpaint_geometries(cache_name):
     rootdir = _get_temp_root_dir() + cache_name
     assert os.path.exists(rootdir)
@@ -54,7 +83,7 @@ def save_cached_inpaint_geometries(cache_name,ras,decs,gtags,pcoords,gdicts):
         gd = gdicts[key]
         for item in gd.keys():
             np.save(_get_gdicts_filename(rootdir,key,item),gdicts[key][item])
-    
+'''    
     
 def inpaint_map_white(imap,ivar,fn_beam,union_sources_version=None,noise_pix = 40,hole_radius = 6.,plots=False,cache_name=None,verbose=True,include_cmb=True,max_srcs=None,ppath=None):
     """
